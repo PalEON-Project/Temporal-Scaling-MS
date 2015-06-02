@@ -13,7 +13,7 @@ model.gam <- function(data, model, response, k, outdir){
 	# Running the basic model
 	# -----------
 	# Running the gamm; note this has no temporal autocorrelation
-	gam1 <- gam(response ~ s(Temp, by=Site, k=k) + s(Precip, by=Site, k=k) + s(CO2, by=Site, k=k) + Site - 1, data=data.temp)
+	gam1 <- gam(response ~ s(Temp, by=Model, k=k) + s(Precip, by=Model, k=k) + s(CO2, by=Model, k=k) + Model*Site - 1, data=data.temp)
 	print(summary(gam1))	
 
 	# return(assign(paste0("gam.", model), gam1)) # Saving the gam a name based on the model
