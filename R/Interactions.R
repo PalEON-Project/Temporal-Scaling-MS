@@ -23,177 +23,176 @@ library(zoo)
 # Set Directories
 # ----------------------------------------
 setwd("~/Desktop/PalEON CR/paleon_mip_site")
-inputs <- "phase1a_mput_variables"
+inputs <- "phase1a_output_variables"
+path.data <- "~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
 # ----------------------------------------
 
-# ----------------------------------------
-# Load Data Sets
-# ----------------------------------------
-# Ecosystem Model Outputs
-ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
-ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
-levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
-summary(ecosys)
+# # Note: Commented out because saved as EcosysData.RData 1 June 2015
+# #       (with an increasing number of models, running this every time became cumbersome)
+# # ----------------------------------------
+# # Load Data Sets
+# # ----------------------------------------
+# # Ecosystem Model Outputs
+# ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
+# ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
+# levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+# summary(ecosys)
 
-# CO2 Record
-nc.co2 <- nc_open("~/Desktop/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
-co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
-nc_close(nc.co2)
+# # CO2 Record
+# nc.co2 <- nc_open("~/Desktop/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
+# co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
+# nc_close(nc.co2)
 
-# Merging CO2 into Model Outputs
-ecosys <- merge(ecosys, co2.ann)
-summary(ecosys)
+# # Merging CO2 into Model Outputs
+# ecosys <- merge(ecosys, co2.ann)
+# summary(ecosys)
 
-# Colors used for graphing
-model.colors <- read.csv("~/Desktop/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
-model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
-levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
-model.colors
+# # Colors used for graphing
+# model.colors <- read.csv("~/Desktop/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+# model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
+# levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+# model.colors
 
-model.colors <- model.colors[order(model.colors$Model.Order),]
-model.colors
-# ----------------------------------------
+# model.colors <- model.colors[order(model.colors$Model.Order),]
+# model.colors
+# # ----------------------------------------
 
-# ----------------------------------------
-# Calculate Deviations from desired reference point
-# Reference Point: 0850-0869 (spinup climate)
-# ----------------------------------------
-vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp")
-vars.climate <- c("Temp", "Precip", "CO2")
+# # ----------------------------------------
+# # Calculate Deviations from desired reference point
+# # Reference Point: 0850-0869 (spinup climate)
+# # ----------------------------------------
+# vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp")
+# vars.climate <- c("Temp", "Precip", "CO2")
 
+# # vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
+
+# ref.window <- 850:869
+
+# for(s in unique(ecosys$Site)){
+	# for(m in unique(ecosys$Model)){
+		# # -----------------------
+		# # Model Variabiles -- Relative Change
+		# # Deviation = percent above or below the mean for the reference window
+		# #             (observed-ref.mean)/ref.mean 
+		# # -----------------------
+		# for(v in unique(vars)){
+			# ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
+			# ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".dev")] <- (ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean)/ref.mean
+
+		# }
+		# # -----------------------
+
+		# # -----------------------
+		# # Climate Drivers -- Absolute, not relative change
+		# # Deviation = absolute deviation from reference window
+		# #             observed - ref.mean
+		# # -----------------------
+		# for(v in unique(vars.climate)){
+			# ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
+			# ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".abs.dev")] <- ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean
+		# }
+		# # -----------------------
+	# }
+# }
+
+# summary(ecosys)
+# # ----------------------------------------
+
+
+# # ----------------------------------------
+# # Perform Temporal Smoothing on Data
+# # Note: Smoothing is performed over the PREVIOUS 100 years becuase ecosystems 
+# #       cannot respond to what they have not yet experienced
+# # ----------------------------------------
+# vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp", "Temp", "Precip", "CO2")
 # vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
 
-ref.window <- 850:869
+# for(s in unique(ecosys$Site)){
+	# for(m in unique(ecosys$Model)){
+		# # -----------------------
+		# # 10-yr Smoothing
+		# # -----------------------
+		# ## Non-standardized
+		# for(v in vars){
+			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
 
-for(s in unique(ecosys$Site)){
-	for(m in unique(ecosys$Model)){
-		# -----------------------
-		# Model Variabiles -- Relative Change
-		# Deviation = percent above or below the mean for the reference window
-		#             (observed-ref.mean)/ref.mean 
-		# -----------------------
-		for(v in unique(vars)){
-			ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
-			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".dev")] <- (ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean)/ref.mean
+			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
+		# }
 
-		}
-		# -----------------------
+		# ## Non-standardized
+		# for(v in vars.dev){
+			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
+		# }
+		# # -----------------------
 
-		# -----------------------
-		# Climate Drivers -- Absolute, not relative change
-		# Deviation = absolute deviation from reference window
-		#             observed - ref.mean
-		# -----------------------
-		for(v in unique(vars.climate)){
-			ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
-			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".abs.dev")] <- ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean
-		}
-		# -----------------------
-	}
-}
+		# # -----------------------
+		# # 50-yr Smoothing
+		# # -----------------------
+		# ## Non-standardized
+		# for(v in vars){
+			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
+		# }
 
-summary(ecosys)
+		# ## Non-standardized
+		# for(v in vars.dev){
+			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
+		# }
+		# # -----------------------
+
+		# # -----------------------
+		# # 100-yr Smoothing
+		# # -----------------------
+		# ## Non-standardized
+		# for(v in vars){
+			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
+		# }
+
+		# ## Non-standardized
+		# for(v in vars.dev){
+			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
+		# }
+		# # -----------------------
+
+		# # -----------------------
+		# # 250-Year Smoothing
+		# # -----------------------
+		# ## Non-standardized
+		# for(v in vars){
+			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
+		# }
+
+		# ## Non-standardized
+		# for(v in vars.dev){
+			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
+		# }
+		# # -----------------------
+
+	# }
+# }
+# summary(ecosys)
+# save(ecosys, model.colors, file=file.path(path.data, "EcosysData.Rdata"))
+
+# ----------------------------------------
+# Load processing from previous step
+load(file.path(path.data, "EcosysData.Rdata"))
 # ----------------------------------------
 
-
-# ----------------------------------------
-# Perform Temporal Smoothing on Data
-# Note: Smoothing is performed over the PREVIOUS 100 years becuase ecosystems 
-#       cannot respond to what they have not yet experienced
-# ----------------------------------------
-vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp", "Temp", "Precip", "CO2")
-vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
-
-for(s in unique(ecosys$Site)){
-	for(m in unique(ecosys$Model)){
-		# -----------------------
-		# 10-yr Smoothing
-		# -----------------------
-		## Non-standardized
-		for(v in vars){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
-		}
-
-		## Non-standardized
-		for(v in vars.dev){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
-		}
-		# -----------------------
-
-		# -----------------------
-		# 50-yr Smoothing
-		# -----------------------
-		## Non-standardized
-		for(v in vars){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
-		}
-
-		## Non-standardized
-		for(v in vars.dev){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
-		}
-		# -----------------------
-
-		# -----------------------
-		# 100-yr Smoothing
-		# -----------------------
-		## Non-standardized
-		for(v in vars){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
-		}
-
-		## Non-standardized
-		for(v in vars.dev){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
-		}
-		# -----------------------
-
-		# -----------------------
-		# 250-Year Smoothing
-		# -----------------------
-		## Non-standardized
-		for(v in vars){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
-		}
-
-		## Non-standardized
-		for(v in vars.dev){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
-		}
-		# -----------------------
-
-	}
-}
-summary(ecosys)
 
 # -----------------------
 # Some exploratory Graphing
 # -----------------------
-colors.use <- 
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.6) +
 	geom_line(aes(x=Year, y=AGB.100, color=Model.Order), size=1.5) +
-	scale_color_manual(values=as.vector(model.colors[model.colors$Model %in% unique(ecosys$Model.Order),"color"])) +
+	scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
 	theme_bw()
-# -----------------------
-
-# -----------------------
-# Subsetting individual models & sites for model prototyping
-# -----------------------
-ed2.pha <- ecosys[ecosys$Model=="ed2" & ecosys$Site=="PHA",]
-summary(ed2.pha)
-
-lpj.g.pha <- ecosys[ecosys$Model=="lpj.guess" & ecosys$Site=="PHA",]
-summary(lpj.g.pha)
 # -----------------------
 # ----------------------------------------
 
@@ -214,293 +213,409 @@ summary(lpj.g.pha)
 
 interactions <- function(){
 	# Priors
-	# for(i in 1:5) beta[i] ~ dunif(0,100)
-	beta0 ~ dnorm(0, 1.0E-6)
-	beta1 ~ dnorm(0, 1.0E-6)
-	beta2 ~ dnorm(0, 1.0E-6)
-	beta3 ~ dnorm(0, 1.0E-6)
-	beta4 ~ dnorm(0, 1.0E-6)
-	beta5 ~ dnorm(0, 1.0E-6)
-	beta6 ~ dnorm(0, 1.0E-6)
-	beta7 ~ dnorm(0, 1.0E-6)
-    tau ~ dgamma(.001,.001)
+	for(t in 1:nt){	
+		beta0[t] ~ dnorm(0, 1.0E-2)
+		beta1[t] ~ dnorm(0, 1.0E-2)
+		beta2[t] ~ dnorm(0, 1.0E-2)
+		beta3[t] ~ dnorm(0, 1.0E-2)
+		beta4[t] ~ dnorm(0, 1.0E-2)
+		beta5[t] ~ dnorm(0, 1.0E-2)
+		beta6[t] ~ dnorm(0, 1.0E-2)
+		beta7[t] ~ dnorm(0, 1.0E-2)
+	}
+	# sigma ~ dnorm(0, 1.0E-6)
+    tau ~ dgamma(0.001,0.001)
     sigma <- 1/tau
-	# Model
+	tau2 <- 1/tau
+	for(s in 1:ns){		
+		alpha0[s] ~ dnorm(0, tau2)  # + 
+		alpha1[s] ~ dnorm(0, tau2)  # + 
+		# alpha2[s] ~ dnorm(0, tau2)  # + 
+		# alpha3[s] ~ dnorm(0, tau2)  # + 
+		# alpha4[s] ~ dnorm(0, tau2)  # + 
+		# alpha5[s] ~ dnorm(0, tau2)  # + 
+		# alpha6[s] ~ dnorm(0, tau2)  # + 
+		# alpha7[s] ~ dnorm(0, tau2)  # + 
+	}
 	for(i in 1:n){
+		mu[i] <- beta0[T.SCALE[i]]*alpha0[SITE[i]] + 
+				 beta1[T.SCALE[i]]*TEMP[i]*PRECIP[i]*CO2[i] + 
+				 beta2[T.SCALE[i]]*TEMP[i]*PRECIP[i] + 
+				 beta3[T.SCALE[i]]*TEMP[i]*CO2[i] + 
+				 beta4[T.SCALE[i]]*PRECIP[i]*CO2[i] + 
+				 beta5[T.SCALE[i]]*TEMP[i] + 
+				 beta6[T.SCALE[i]]*PRECIP[i] + 
+				 beta7[T.SCALE[i]]*CO2[i] + 
+				 alpha1[SITE[i]] 
 		# mu[i] <- beta*TEMP[i]
-		mu[i] <- beta0 + 
-				 beta1*TEMP[i]*PRECIP[i]*CO2[i] + 
-				 beta2*TEMP[i]*PRECIP[i] + beta3*TEMP[i]*CO2[i] + beta4*PRECIP[i]*CO2[i] + 
-				 beta5*TEMP[i] + beta6*PRECIP[i] + beta7*CO2[i]
 		y[i] ~  dnorm(mu[i], sigma)
 	}
-}
-# ----------------------------------------
+	}
 
 # ----------------------------------------
-# Run Jags -- Scales Test on LPJ-GUESS at PHA
+
+
+
 # ----------------------------------------
-lpj.g.pha2 <- lpj.g.pha[complete.cases(lpj.g.pha),]
-
-# In a non-bayesian way
-lm.lpj.g.pha <- lm(AGB ~ Temp*Precip*CO2, data=lpj.g.pha2)
-agb.pred <- fitted(lm.lpj.g.pha)
-summary(lm.lpj.g.pha)
-
-lm.lpj.g.pha.250 <- lm(AGB.250 ~ Temp.250*Precip.250*CO2.250, data=lpj.g.pha2)
-agb.pred.250 <- fitted(lm.lpj.g.pha.250)
-summary(lm.lpj.g.pha.250)
-
-par(mfrow=c(2,1))
-plot(AGB ~ Year, data=lpj.g.pha2, type="l", lwd=2)
-	lines(agb.pred ~ lpj.g.pha2$Year, col="red")
-plot(AGB.250 ~ Year, data=lpj.g.pha2, type="l", lwd=2)
-	lines(agb.pred.250 ~ lpj.g.pha2$Year, col="red")
+# Running the Bayesian Interaction Models 
+# ----------------------------------------
+# Note: The models are currently set up to be run individually by model
+# ----------------------------------------
 
 # -----------------------
-# 1-Yr Model, AGB
+# LPJ-GUESS
 # -----------------------
-lpj.g.pha2 <- lpj.g.pha[complete.cases(lpj.g.pha),]
-y      <- lpj.g.pha2$AGB
-n      <- nrow(lpj.g.pha2)
-TEMP   <- lpj.g.pha2$Temp
-PRECIP <- lpj.g.pha2$Precip
-CO2    <- lpj.g.pha2$CO2
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "tau", "sigma", "mu")
+dat.lpj.g <- ecosys[ecosys$Model=="lpj.guess",]
+dat.lpj.g <- dat.lpj.g[complete.cases(dat.lpj.g$AGB.250),]
+summary(dat.lpj.g)
+
+ny      <- length(unique(dat.lpj.g$Year))
+ns      <- length(unique(dat.lpj.g$Site))
+y       <- c(dat.lpj.g$AGB, dat.lpj.g$AGB.50, dat.lpj.g$AGB.100, dat.lpj.g$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.lpj.g$Temp, dat.lpj.g$Temp.50, dat.lpj.g$Temp.100, dat.lpj.g$Temp.250)
+PRECIP  <- c(dat.lpj.g$Precip, dat.lpj.g$Precip.50, dat.lpj.g$Precip.100, dat.lpj.g$Precip.250)
+CO2     <- c(dat.lpj.g$CO2, dat.lpj.g$CO2.50, dat.lpj.g$CO2.100, dat.lpj.g$CO2.250)
+SITE    <- rep(as.numeric(dat.lpj.g$Site), nt)
+MODELS  <- rep(as.numeric(dat.lpj.g$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
 # params <- c("beta", "sigma")
 
+dat.lpj.g.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
 
-m1 <- jags(data=list(y=y, n=n, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2), parameters.to.save=params, n.chains=3, n.iter=5000, n.burnin=1000, model.file=interactions, DIC=F)
+m.lpj.g <- jags(data=dat.lpj.g.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
 
-m1b <- as.mcmc(m1)
-summary(m1b[,which(!substr(dimnames(m1b[[1]])[[2]], 1, 2)=="mu")])
+save(dat.lpj.g.jags, m.lpj.g, file=filepath(path.data, "Interactions_LPJ-GUESS.RData"))
+# -----------------------
 
-plot(m1b[,which(!substr(dimnames(m1b[[1]])[[2]], 1, 2)=="mu")])
 
+# -----------------------
+# LPJ-WSL
+# -----------------------
+dat.lpj.w <- ecosys[ecosys$Model=="lpj.wsl",]
+dat.lpj.w <- dat.lpj.w[complete.cases(dat.lpj.w$AGB.250),]
+summary(dat.lpj.w)
+
+ny      <- length(unique(dat.lpj.w$Year))
+ns      <- length(unique(dat.lpj.w$Site))
+y       <- c(dat.lpj.w$AGB, dat.lpj.w$AGB.50, dat.lpj.w$AGB.100, dat.lpj.w$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.lpj.w$Temp, dat.lpj.w$Temp.50, dat.lpj.w$Temp.100, dat.lpj.w$Temp.250)
+PRECIP  <- c(dat.lpj.w$Precip, dat.lpj.w$Precip.50, dat.lpj.w$Precip.100, dat.lpj.w$Precip.250)
+CO2     <- c(dat.lpj.w$CO2, dat.lpj.w$CO2.50, dat.lpj.w$CO2.100, dat.lpj.w$CO2.250)
+SITE    <- rep(as.numeric(dat.lpj.w$Site), nt)
+MODELS  <- rep(as.numeric(dat.lpj.w$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.lpj.w.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.lpj.w <- jags(data=dat.lpj.w.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.lpj.w.jags, m.lpj.w, file=filepath(path.data, "Interactions_LPJ-WSL.RData"))
+# -----------------------
+
+
+# -----------------------
+# JULES-STATIC
+# -----------------------
+dat.jules.s <- ecosys[ecosys$Model=="jules.stat",]
+dat.jules.s <- dat.jules.s[complete.cases(dat.jules.s$AGB.250),]
+summary(dat.jules.s)
+
+ny      <- length(unique(dat.jules.s$Year))
+ns      <- length(unique(dat.jules.s$Site))
+y       <- c(dat.jules.s$AGB, dat.jules.s$AGB.50, dat.jules.s$AGB.100, dat.jules.s$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.jules.s$Temp, dat.jules.s$Temp.50, dat.jules.s$Temp.100, dat.jules.s$Temp.250)
+PRECIP  <- c(dat.jules.s$Precip, dat.jules.s$Precip.50, dat.jules.s$Precip.100, dat.jules.s$Precip.250)
+CO2     <- c(dat.jules.s$CO2, dat.jules.s$CO2.50, dat.jules.s$CO2.100, dat.jules.s$CO2.250)
+SITE    <- rep(as.numeric(dat.jules.s$Site), nt)
+MODELS  <- rep(as.numeric(dat.jules.s$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.jules.s.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.jules.s <- jags(data=dat.jules.s.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.jules.s.jags, m.jules.s, file=filepath(path.data, "Interactions_JULES-STATIC.RData"))
+# -----------------------
+
+
+# -----------------------
+# JULES-TRIFFID
+# -----------------------
+dat.jules.triff <- ecosys[ecosys$Model=="jules.triffid",]
+dat.jules.triff <- dat.jules.triff[complete.cases(dat.jules.triff$AGB.250),]
+summary(dat.jules.triff)
+
+ny      <- length(unique(dat.jules.triff$Year))
+ns      <- length(unique(dat.jules.triff$Site))
+y       <- c(dat.jules.triff$AGB, dat.jules.triff$AGB.50, dat.jules.triff$AGB.100, dat.jules.triff$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.jules.triff$Temp, dat.jules.triff$Temp.50, dat.jules.triff$Temp.100, dat.jules.triff$Temp.250)
+PRECIP  <- c(dat.jules.triff$Precip, dat.jules.triff$Precip.50, dat.jules.triff$Precip.100, dat.jules.triff$Precip.250)
+CO2     <- c(dat.jules.triff$CO2, dat.jules.triff$CO2.50, dat.jules.triff$CO2.100, dat.jules.triff$CO2.250)
+SITE    <- rep(as.numeric(dat.jules.triff$Site), nt)
+MODELS  <- rep(as.numeric(dat.jules.triff$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.jules.triff.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.jules.triff <- jags(data=dat.jules.triff.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.jules.triff.jags, m.jules.triff, file=filepath(path.data, "Interactions_JULES-TRIFFID.RData"))
+# -----------------------
+
+
+# -----------------------
+# LINKAGES
+# -----------------------
+dat.linkages <- ecosys[ecosys$Model=="linkages",]
+dat.linkages <- dat.linkages[complete.cases(dat.linkages$AGB.250),]
+summary(dat.linkages)
+
+ny      <- length(unique(dat.linkages$Year))
+ns      <- length(unique(dat.linkages$Site))
+y       <- c(dat.linkages$AGB, dat.linkages$AGB.50, dat.linkages$AGB.100, dat.linkages$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.linkages$Temp, dat.linkages$Temp.50, dat.linkages$Temp.100, dat.linkages$Temp.250)
+PRECIP  <- c(dat.linkages$Precip, dat.linkages$Precip.50, dat.linkages$Precip.100, dat.linkages$Precip.250)
+CO2     <- c(dat.linkages$CO2, dat.linkages$CO2.50, dat.linkages$CO2.100, dat.linkages$CO2.250)
+SITE    <- rep(as.numeric(dat.linkages$Site), nt)
+MODELS  <- rep(as.numeric(dat.linkages$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.linkages.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.linkages <- jags(data=dat.linkages.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.linkages.jags, m.linkages, file=filepath(path.data, "Interactions_LINKAGES.RData"))
+# -----------------------
+
+
+# -----------------------
+# SiBCASA
+# -----------------------
+dat.sibcasa <- ecosys[ecosys$Model=="sibcasa",]
+dat.sibcasa <- dat.sibcasa[complete.cases(dat.sibcasa$AGB.250),]
+summary(dat.sibcasa)
+
+ny      <- length(unique(dat.sibcasa$Year))
+ns      <- length(unique(dat.sibcasa$Site))
+y       <- c(dat.sibcasa$AGB, dat.sibcasa$AGB.50, dat.sibcasa$AGB.100, dat.sibcasa$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.sibcasa$Temp, dat.sibcasa$Temp.50, dat.sibcasa$Temp.100, dat.sibcasa$Temp.250)
+PRECIP  <- c(dat.sibcasa$Precip, dat.sibcasa$Precip.50, dat.sibcasa$Precip.100, dat.sibcasa$Precip.250)
+CO2     <- c(dat.sibcasa$CO2, dat.sibcasa$CO2.50, dat.sibcasa$CO2.100, dat.sibcasa$CO2.250)
+SITE    <- rep(as.numeric(dat.sibcasa$Site), nt)
+MODELS  <- rep(as.numeric(dat.sibcasa$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.sibcasa.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.sibcasa <- jags(data=dat.sibcasa.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.sibcasa.jags, m.sibcasa, file=filepath(path.data, "Interactions_SiBCASA.RData"))
+# -----------------------
+
+
+# -----------------------
+# ED
+# -----------------------
+dat.ed <- ecosys[ecosys$Model=="ed2",]
+dat.ed <- dat.ed[complete.cases(dat.ed$AGB.250),]
+summary(dat.ed)
+
+ny      <- length(unique(dat.ed$Year))
+ns      <- length(unique(dat.ed$Site))
+y       <- c(dat.ed$AGB, dat.ed$AGB.50, dat.ed$AGB.100, dat.ed$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.ed$Temp, dat.ed$Temp.50, dat.ed$Temp.100, dat.ed$Temp.250)
+PRECIP  <- c(dat.ed$Precip, dat.ed$Precip.50, dat.ed$Precip.100, dat.ed$Precip.250)
+CO2     <- c(dat.ed$CO2, dat.ed$CO2.50, dat.ed$CO2.100, dat.ed$CO2.250)
+SITE    <- rep(as.numeric(dat.ed$Site), nt)
+MODELS  <- rep(as.numeric(dat.ed$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.ed.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.ed <- jags(data=dat.ed.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.ed.jags, m.ed, file=filepath(path.data, "Interactions_ED.RData"))
+# -----------------------
+
+# -----------------------
+# ED-LU
+# -----------------------
+dat.ed.lu <- ecosys[ecosys$Model=="ed2.lu",]
+dat.ed.lu <- dat.ed.lu[complete.cases(dat.ed.lu$AGB.250),]
+summary(dat.ed.lu)
+
+ny      <- length(unique(dat.ed.lu$Year))
+ns      <- length(unique(dat.ed.lu$Site))
+y       <- c(dat.ed.lu$AGB, dat.ed.lu$AGB.50, dat.ed.lu$AGB.100, dat.ed.lu$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.ed.lu$Temp, dat.ed.lu$Temp.50, dat.ed.lu$Temp.100, dat.ed.lu$Temp.250)
+PRECIP  <- c(dat.ed.lu$Precip, dat.ed.lu$Precip.50, dat.ed.lu$Precip.100, dat.ed.lu$Precip.250)
+CO2     <- c(dat.ed.lu$CO2, dat.ed.lu$CO2.50, dat.ed.lu$CO2.100, dat.ed.lu$CO2.250)
+SITE    <- rep(as.numeric(dat.ed.lu$Site), nt)
+MODELS  <- rep(as.numeric(dat.ed.lu$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.ed.lu.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.ed.lu <- jags(data=dat.ed.lu.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.ed.lu.jags, m.ed.lu, file=filepath(path.data, "Interactions_ED-LU.RData"))
+# -----------------------
+
+
+# -----------------------
+# CLM-CN
+# -----------------------
+dat.clm.cn <- ecosys[ecosys$Model=="clm.cn",]
+dat.clm.cn <- dat.clm.cn[complete.cases(dat.clm.cn$AGB.250),]
+summary(dat.clm.cn)
+
+ny      <- length(unique(dat.clm.cn$Year))
+ns      <- length(unique(dat.clm.cn$Site))
+y       <- c(dat.clm.cn$AGB, dat.clm.cn$AGB.50, dat.clm.cn$AGB.100, dat.clm.cn$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.clm.cn$Temp, dat.clm.cn$Temp.50, dat.clm.cn$Temp.100, dat.clm.cn$Temp.250)
+PRECIP  <- c(dat.clm.cn$Precip, dat.clm.cn$Precip.50, dat.clm.cn$Precip.100, dat.clm.cn$Precip.250)
+CO2     <- c(dat.clm.cn$CO2, dat.clm.cn$CO2.50, dat.clm.cn$CO2.100, dat.clm.cn$CO2.250)
+SITE    <- rep(as.numeric(dat.clm.cn$Site), nt)
+MODELS  <- rep(as.numeric(dat.clm.cn$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.clm.cn.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.clm.cn <- jags(data=dat.clm.cn.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.clm.cn.jags, m.clm.cn, file=filepath(path.data, "Interactions_CLM-CN.RData"))
+# -----------------------
+
+
+# -----------------------
+# CLM-BGC
+# -----------------------
+dat.clm.bgc <- ecosys[ecosys$Model=="clm.bgc",]
+dat.clm.bgc <- dat.clm.bgc[complete.cases(dat.clm.bgc$AGB.250),]
+summary(dat.clm.bgc)
+
+ny      <- length(unique(dat.clm.bgc$Year))
+ns      <- length(unique(dat.clm.bgc$Site))
+y       <- c(dat.clm.bgc$AGB, dat.clm.bgc$AGB.50, dat.clm.bgc$AGB.100, dat.clm.bgc$AGB.250)
+T.SCALE <- c(rep(1, ny*ns), rep(2, ny*ns),  rep(3, ny*ns),  rep(4, ny*ns))
+n       <- length(y)
+nt		<- length(unique(T.SCALE))
+TEMP    <- c(dat.clm.bgc$Temp, dat.clm.bgc$Temp.50, dat.clm.bgc$Temp.100, dat.clm.bgc$Temp.250)
+PRECIP  <- c(dat.clm.bgc$Precip, dat.clm.bgc$Precip.50, dat.clm.bgc$Precip.100, dat.clm.bgc$Precip.250)
+CO2     <- c(dat.clm.bgc$CO2, dat.clm.bgc$CO2.50, dat.clm.bgc$CO2.100, dat.clm.bgc$CO2.250)
+SITE    <- rep(as.numeric(dat.clm.bgc$Site), nt)
+MODELS  <- rep(as.numeric(dat.clm.bgc$Model), nt)
+nm	    <- length(unique(MODELS))
+
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+# params <- c("beta", "sigma")
+
+dat.clm.bgc.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+
+m.clm.bgc <- jags(data=dat.clm.bgc.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+
+save(dat.clm.bgc.jags, m.clm.bgc, file=filepath(path.data, "Interactions_CLM-BGC.RData"))
+# -----------------------
+
+# ----------------------------------------
+
+
+# ----------------------------------------
+# Looking at the Output
+# ----------------------------------------
+
+# -----------------------
+# LPJ-GUESS
+# -----------------------
+m.lpj.g2 <- as.mcmc(m.lpj.g)
+summary(m.lpj.g2[,which(!substr(dimnames(m.lpj.g2[[1]])[[2]], 1, 2)=="mu")])
+
+plot(m.lpj.g2[,which(!substr(dimnames(m.lpj.g2[[1]])[[2]], 1, 2)=="mu")])
 
 pulls <- 5000
 y.predict1 <- array(dim=c(n, pulls))
 
 for(i in 1:pulls){
-	c <- sample(1:length(m1b), 1, replace=T)    # randomly pick a chain
-	r <- sample(1:nrow(m1b[[c]]), 1, replace=T) # randomly pick an iteration 
+	c <- sample(1:length(m.lpj.g2), 1, replace=T)    # randomly pick a chain
+	r <- sample(1:nrow(m.lpj.g2[[c]]), 1, replace=T) # randomly pick an iteration 
 
-	y.predict1[,r] <- m1b[[c]][r,"beta0"] + 
-					  m1b[[c]][r,"beta1"]*TEMP*PRECIP*CO2+
-					  m1b[[c]][r,"beta2"]*TEMP*PRECIP + 
-					  m1b[[c]][r,"beta3"]*TEMP*CO2 + 
-					  m1b[[c]][r,"beta4"]*PRECIP*CO2 + 
-					  m1b[[c]][r,"beta5"]*TEMP + 
-					  m1b[[c]][r,"beta6"]*PRECIP + 
-					  m1b[[c]][r,"beta7"]*CO2
+	for(t in 1:nt){
+	rows.t   <- which(T.SCALE==t)
+	temp.t   <- TEMP[rows.t]
+	precip.t <- PRECIP[rows.t]
+	co2.t    <- CO2[rows.t]
+
+	y.predict1[rows.t,i] <- m.lpj.g2[[c]][r,paste0("beta0[",t,"]")] + 
+					        m.lpj.g2[[c]][r,paste0("beta1[",t,"]")]*temp.t*precip.t*co2.t +
+					        m.lpj.g2[[c]][r,paste0("beta2[",t,"]")]*temp.t* precip.t + 
+					        m.lpj.g2[[c]][r,paste0("beta3[",t,"]")]*temp.t*co2.t + 
+					        m.lpj.g2[[c]][r,paste0("beta4[",t,"]")]*precip.t*co2.t + 
+					        m.lpj.g2[[c]][r,paste0("beta5[",t,"]")]*temp.t + 
+					        m.lpj.g2[[c]][r,paste0("beta6[",t,"]")]*precip.t + 
+					        m.lpj.g2[[c]][r,paste0("beta7[",t,"]")]*co2.t
+	}
 }
 
 
-y.pred1 <- apply(y.predict1, 1, mean, na.rm=T)
-y.lb1 <- apply(y.predict1, 1, quantile, 0.025, na.rm=T)
-y.ub1 <- apply(y.predict1, 1, quantile, 0.975, na.rm=T)
+lpj.g.analy <- data.frame(Scale=recode(T.SCALE, "'1'='t.001'; '2'='t.050'; '3'='t.100'; '4'='t.250'"), Site=rep(lpj.g2$Site, nt), Year=rep(lpj.g2$Year, nt), AGB=y, CO2=CO2, Temp=TEMP, Precip=PRECIP, Pred.y=apply(y.predict1, 1, mean, na.rm=T), Pred.LB=apply(y.predict1, 1, quantile, 0.025, na.rm=T), Pred.UB=apply(y.predict1, 1, quantile, 0.975, na.rm=T))
 
-summary(y.pred1)
-par(mfrow=c(1,1))
-plot(AGB ~ Year, data=lpj.g.pha2, type="l", lwd=2, ylab="AGB", xlab="Year")
-	lines(y.pred1 ~ lpj.g.pha2$Year, type="l", lwd=1, col="red")
-	lines(y.lb1 ~ lpj.g.pha2$Year, type="l", lwd=1, col="blue", lty="dashed")
-	lines(y.ub1 ~ lpj.g.pha2$Year, type="l", lwd=1, col="blue", lty="dashed")
+summary(lpj.g.analy)
 
+ggplot(data=lpj.g.analy) + facet_grid(Site ~ Scale) +
+	geom_line(aes(x=Year, y=AGB), siz=2)+
+	geom_ribbon(aes(x=Year, ymin=Pred.LB, ymax=Pred.UB), alpha=0.5, fill="red") +
+	geom_line(aes(x=Year, y=Pred.y), color="red")
 
-lm1 <- lm(y.pred1 ~ lpj.g.pha2$AGB )
-summary(lm1)
-ci1 <- data.frame(predict(lm1, newdata=lpj.g.pha2, interval="confidence"))
-summary(ci1)
-
-plot( y.pred1 ~ lpj.g.pha2$AGB)
-	lines(ci1$fit ~ lpj.g.pha2$AGB, col="red")
-	lines(ci1$lwr ~ lpj.g.pha2$AGB, lty="dashed", col="blue")
-	lines(ci1$upr ~ lpj.g.pha2$AGB, lty="dashed", col="blue")
-# -----------------------
-
-# -----------------------
-# 50-Yr Model, AGB
-# -----------------------
-# lpj.g.pha2 <- lpj.g.pha[complete.cases(lpj.g.pha),]
-y      <- lpj.g.pha2$AGB.50
-n      <- nrow(lpj.g.pha2)
-TEMP   <- lpj.g.pha2$Temp.50
-PRECIP <- lpj.g.pha2$Precip.50
-CO2    <- lpj.g.pha2$CO2.50
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "tau", "sigma", "mu")
-# params <- c("beta", "sigma")
-
-
-m50 <- jags(data=list(y=y, n=n, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2), parameters.to.save=params, n.chains=3, n.iter=5000, n.burnin=1000, model.file=interactions, DIC=F)
-
-m50b <- as.mcmc(m50)
-summary(m50b[,which(!substr(dimnames(m50b[[1]])[[2]], 1, 2)=="mu")])
-
-plot(m50b[,which(!substr(dimnames(m50b[[1]])[[2]], 1, 2)=="mu")])
-
-pulls <- 5000
-y.predict50 <- array(dim=c(n, pulls))
-
-for(i in 1:pulls){
-	c <- sample(1:length(m50b), 1, replace=T)    # randomly pick a chain
-	r <- sample(1:nrow(m50b[[c]]), 1, replace=T) # randomly pick an iteration 
-
-	y.predict50[,r] <- m50b[[c]][r,"beta0"] + 
-					  m50b[[c]][r,"beta1"]*TEMP*PRECIP*CO2+
-					  m50b[[c]][r,"beta2"]*TEMP*PRECIP + 
-					  m50b[[c]][r,"beta3"]*TEMP*CO2 + 
-					  m50b[[c]][r,"beta4"]*PRECIP*CO2 + 
-					  m50b[[c]][r,"beta5"]*TEMP + 
-					  m50b[[c]][r,"beta6"]*PRECIP + 
-					  m50b[[c]][r,"beta7"]*CO2
-}
-
-
-y.pred50 <- apply(y.predict50, 1, mean, na.rm=T)
-y.lb50 <- apply(y.predict50, 1, quantile, 0.025, na.rm=T)
-y.ub50 <- apply(y.predict50, 1, quantile, 0.975, na.rm=T)
-
-summary(y.pred50)
-par(mfrow=c(1,1))
-plot(AGB.50 ~ Year, data=lpj.g.pha2, type="l", lwd=2, ylab="AGB", xlab="Year")
-	lines(y.pred50 ~ lpj.g.pha2$Year, type="l", lwd=1, col="red")
-	lines(y.lb50 ~ lpj.g.pha2$Year, type="l", lwd=1, col="blue", lty="dashed")
-	lines(y.ub50 ~ lpj.g.pha2$Year, type="l", lwd=1, col="blue", lty="dashed")
-
-
-lm50 <- lm(y.pred50 ~ lpj.g.pha2$AGB.50)
-summary(lm50)
-ci50 <- data.frame(predict(lm50, newdata=lpj.g.pha2, interval="confidence"))
-summary(ci50)
-
-plot( y.pred50 ~ lpj.g.pha2$AGB.50)
-	lines(ci50$fit ~ lpj.g.pha2$AGB.50, col="red")
-	lines(ci50$lwr ~ lpj.g.pha2$AGB.50, lty="dashed", col="blue")
-	lines(ci50$upr ~ lpj.g.pha2$AGB.50, lty="dashed", col="blue")
-# -----------------------
-
-
-# -----------------------
-# 100-Yr Model, AGB
-# -----------------------
-# lpj.g.pha2 <- lpj.g.pha[complete.cases(lpj.g.pha),]
-y      <- lpj.g.pha2$AGB.100
-n      <- nrow(lpj.g.pha2)
-TEMP   <- lpj.g.pha2$Temp.100
-PRECIP <- lpj.g.pha2$Precip.100
-CO2    <- lpj.g.pha2$CO2.100
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "tau", "sigma", "mu")
-# params <- c("beta", "sigma")
-
-
-m100 <- jags(data=list(y=y, n=n, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2), parameters.to.save=params, n.chains=3, n.iter=5000, n.burnin=1000, model.file=interactions, DIC=F)
-
-m100b <- as.mcmc(m100)
-summary(m100b[,which(!substr(dimnames(m100b[[1]])[[2]], 1, 2)=="mu")])
-
-plot(m100b[,which(!substr(dimnames(m100b[[1]])[[2]], 1, 2)=="mu")])
-
-pulls <- 10000
-y.predict100 <- array(dim=c(n, pulls))
-
-for(i in 1:pulls){
-	c <- sample(1:length(m100b), 1, replace=T)    # randomly pick a chain
-	r <- sample(1:nrow(m100b[[c]]), 1, replace=T) # randomly pick an iteration 
-
-	y.predict100[,r] <- m100b[[c]][r,"beta0"] + 
-					  m100b[[c]][r,"beta1"]*TEMP*PRECIP*CO2+
-					  m100b[[c]][r,"beta2"]*TEMP*PRECIP + 
-					  m100b[[c]][r,"beta3"]*TEMP*CO2 + 
-					  m100b[[c]][r,"beta4"]*PRECIP*CO2 + 
-					  m100b[[c]][r,"beta5"]*TEMP + 
-					  m100b[[c]][r,"beta6"]*PRECIP + 
-					  m100b[[c]][r,"beta7"]*CO2
-}
-
-
-y.pred100 <- apply(y.predict100, 1, mean, na.rm=T)
-y.lb100 <- apply(y.predict100, 1, quantile, 0.025, na.rm=T)
-y.ub100 <- apply(y.predict100, 1, quantile, 0.975, na.rm=T)
-
-summary(y.pred100)
-par(mfrow=c(1,1))
-plot(AGB.100 ~ Year, data=lpj.g.pha2, type="l", lwd=2, ylab="AGB", xlab="Year")
-	lines(y.pred100 ~ lpj.g.pha2$Year, type="l", lwd=1, col="red")
-	lines(y.lb100 ~ lpj.g.pha2$Year, type="l", lwd=1, col="blue", lty="dashed")
-	lines(y.ub100 ~ lpj.g.pha2$Year, type="l", lwd=1, col="blue", lty="dashed")
-
-
-lm100 <- lm(y.pred100 ~ lpj.g.pha2$AGB.100)
-summary(lm100)
-ci100 <- data.frame(predict(lm100, newdata=lpj.g.pha2, interval="confidence"))
-summary(ci100)
-
-plot(y.pred100 ~ lpj.g.pha2$AGB.100)
-	lines(ci100$fit ~ lpj.g.pha2$AGB.100, col="red")
-	lines(ci100$lwr ~ lpj.g.pha2$AGB.100, lty="dashed", col="blue")
-	lines(ci100$upr ~ lpj.g.pha2$AGB.100, lty="dashed", col="blue")
-# -----------------------
-
-# -----------------------
-# 250-Yr Model, AGB
-# -----------------------
-# lpj.g.pha2 <- lpj.g.pha[complete.cases(lpj.g.pha),]
-y      <- lpj.g.pha2$AGB.250
-n      <- nrow(lpj.g.pha2)
-TEMP   <- lpj.g.pha2$Temp.250
-PRECIP <- lpj.g.pha2$Precip.250
-CO2    <- lpj.g.pha2$CO2.250
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "tau", "sigma", "mu")
-# params <- c("beta", "sigma")
-
-
-m250 <- jags(data=list(y=y, n=n, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2), parameters.to.save=params, n.chains=3, n.iter=5000, n.burnin=1000, model.file=interactions, DIC=F)
-
-m250b <- as.mcmc(m250)
-summary(m250b[,which(!substr(dimnames(m250b[[1]])[[2]], 1, 2)=="mu")])
-
-plot(m250b[,which(!substr(dimnames(m250b[[1]])[[2]], 1, 2)=="mu")])
-
-pulls <- 25000
-y.predict250 <- array(dim=c(n, pulls))
-
-for(i in 1:pulls){
-	c <- sample(1:length(m250b), 1, replace=T)    # randomly pick a chain
-	r <- sample(1:nrow(m250b[[c]]), 1, replace=T) # randomly pick an iteration 
-
-	y.predict250[,r] <- m250b[[c]][r,"beta0"] + 
-					  m250b[[c]][r,"beta1"]*TEMP*PRECIP*CO2+
-					  m250b[[c]][r,"beta2"]*TEMP*PRECIP + 
-					  m250b[[c]][r,"beta3"]*TEMP*CO2 + 
-					  m250b[[c]][r,"beta4"]*PRECIP*CO2 + 
-					  m250b[[c]][r,"beta5"]*TEMP + 
-					  m250b[[c]][r,"beta6"]*PRECIP + 
-					  m250b[[c]][r,"beta7"]*CO2
-}
-
-
-y.pred250 <- apply(y.predict250, 1, mean, na.rm=T)
-y.lb250 <- apply(y.predict250, 1, quantile, 0.025, na.rm=T)
-y.ub250 <- apply(y.predict250, 1, quantile, 0.975, na.rm=T)
-
-summary(y.pred250)
-par(mfrow=c(1,1))
-plot(AGB.250 ~ Year, data=lpj.g.pha2, type="l", lwd=2, ylab="AGB", xlab="Year")
-	lines(y.pred250 ~ lpj.g.pha2$Year, type="l", lwd=1, col="red")
-	lines(y.lb250 ~ lpj.g.pha2$Year, type="l", lwd=1, col="blue", lty="dashed")
-	lines(y.ub250 ~ lpj.g.pha2$Year, type="l", lwd=1, col="blue", lty="dashed")
-
-lm250a <- lm(AGB.250 ~ Temp.250*Precip.250*CO2.250, data=lpj.g.pha2)
-summary(lm250a)
-
-lm250 <- lm(y.pred250 ~ lpj.g.pha2$AGB.250)
-summary(lm250)
-ci250 <- data.frame(predict(lm250, newdata=lpj.g.pha2, interval="confidence"))
-summary(ci250)
-
-plot(y.pred250 ~ lpj.g.pha2$AGB.250)
-	lines(ci250$fit ~ lpj.g.pha2$AGB.250, col="red")
-	lines(ci250$lwr ~ lpj.g.pha2$AGB.250, lty="dashed", col="blue")
-	lines(ci250$upr ~ lpj.g.pha2$AGB.250, lty="dashed", col="blue")
-# -----------------------
