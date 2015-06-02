@@ -38,12 +38,12 @@ fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figure
 # ----------------------------------------
 # Ecosystem Model Outputs
 ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
-ecosys$Model.Order <- recode(ecosys$Model, "'ed2'='1'; 'ed2.lu'='2'; 'clm45'='3'; 'lpj.wsl'='4'; 'lpj.guess'='5'; 'jules.stat'='6'; 'SiB'='7'; 'linkages'='8'")
-levels(ecosys$Model.Order) <- c("ED2", "ED2-LU", "CLM4.5", "LPJ-WSL", "LPJ-GUESS", "JULES", "SiBCASA", "LINKAGES")
+ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
+levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 summary(ecosys)
 
 # CO2 Record
-nc.co2 <- nc_open("~/Dropbox/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
+nc.co2 <- nc_open("~/Desktop/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
 co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
 nc_close(nc.co2)
 
@@ -52,9 +52,11 @@ ecosys <- merge(ecosys, co2.ann)
 summary(ecosys)
 
 # Colors used for graphing
-model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
-model.colors$Model.Order <- recode(model.colors$Model, "'ED2'='1'; 'ED2-LU'='2'; 'CLM4.5'='3'; 'LPJ-WSL'='4'; 'LPJ-GUESS'='5'; 'JULES'='6'; 'SiBCASA'='7'; 'LINKAGES'='8'")
-levels(model.colors$Model.Order)[1:8] <- c("ED2", "ED2-LU", "CLM4.5", "LPJ-WSL", "LPJ-GUESS", "JULES", "SiBCASA", "LINKAGES")
+model.colors <- read.csv("~/Desktop/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
+levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+model.colors
+
 model.colors <- model.colors[order(model.colors$Model.Order),]
 model.colors
 # ----------------------------------------
@@ -295,24 +297,27 @@ summary(lpj.g)
 # test <- gam(AGB ~ s(Year, by=Site), data=lpj.g)
 # summary(test)
 
-gam.lpj.g <- gam(AGB ~ s(CO2) + s(Temp) + s(Precip) + Site - 1, data=lpj.g)
+gam.lpj.g1 <- gam(AGB ~ s(CO2) + s(Temp) + s(Precip) + Site - 1, data=lpj.g)
 gam.lpj.g2 <- gam(AGB ~ s(CO2, by=Site) + s(Temp, by=Site) + s(Precip, by=Site) + Site - 1, data=lpj.g)
 gam.lpj.g3 <- gam(AGB ~ s(Year, by=CO2) + s(Year, by=Temp) + s(Year, by=Precip) + Site - 1, data=lpj.g)
+gam.lpj.g4 <- gam(AGB ~ s(CO2,k=4) + s(Temp,k=4) + s(Precip,k=4) + s(Year, by=Site, k=3) + Site - 1, data=lpj.g)
+gam.lpj.g4a <- gam(AGB ~ s(Year, by=Site, k=3) + Site - 1, data=lpj.g)
 # gam.lpj.g4 <- gamm(AGB ~ s(Year, by=CO2) + s(Year, by=Temp) + s(Year, by=Precip) + Site -1, random=list(Site=~1 + Site), data=lpj.g)
 1
 
 summary(gam.lpj.g1)
 summary(gam.lpj.g2)
 summary(gam.lpj.g3)
-summary(gam.lpj.g4$gam)
+summary(gam.lpj.g4)
+summary(gam.lpj.g4a)
 lpj.g$fit.gam1 <- predict(gam.lpj.g1, newdata=lpj.g)
 lpj.g$fit.gam2 <- predict(gam.lpj.g2, newdata=lpj.g)
 lpj.g$fit.gam3 <- predict(gam.lpj.g3, newdata=lpj.g)
 lpj.g$fit.gam4 <- predict(gam.lpj.g4, newdata=lpj.g)
 summary(lpj.g)
 
-anova(gam.lpj.g1, gam.lpj.g2, gam.lpj.g3, test="Chi")
-AIC(gam.lpj.g1); AIC(gam.lpj.g2); AIC(gam.lpj.g3)
+anova(gam.lpj.g1, gam.lpj.g2, gam.lpj.g3, gam.lpj.g4, test="Chi")
+AIC(gam.lpj.g1); AIC(gam.lpj.g2); AIC(gam.lpj.g3); AIC(gam.lpj.g4)
 # pdf(file.path(fig.dir, "Non-StationaryDrivers_Drivers_Annual.pdf"), width=11, height=8.5)
 # ggplot(data=lpj.g) + facet_wrap(~Site) +
 	# geom_line(aes(x=Year, y=Temp), size=1, color="red") +
@@ -322,16 +327,17 @@ AIC(gam.lpj.g1); AIC(gam.lpj.g2); AIC(gam.lpj.g3)
 	# theme_bw()
 # dev.off()
 
-ggplot(data=lpj.g[lpj.g$Site=="PHA",]) + facet_wrap(~Site) +
+ggplot(data=lpj.g[,]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=AGB), size=2) +
-	geom_line(data=lpj.g.pha, aes(x=Year, y=fit), color="gray75", size=1.5) +
-	geom_line(data=lpj.g.pha, aes(x=Year, y=fit2), color="gray50", size=1.5) +
+	# geom_line(data=lpj.g.pha, aes(x=Year, y=fit), color="gray75", size=1.5) +
+	# geom_line(data=lpj.g.pha, aes(x=Year, y=fit2), color="gray50", size=1.5) +
 	# geom_line(aes(x=Year, y=predict), color="orange") +
-	# geom_line(aes(x=Year, y=fit.gam1), color="purple") +
+	geom_line(aes(x=Year, y=fit.gam1), color="purple") +
 	geom_line(aes(x=Year, y=fit.gam2), color="blue") +
-	# geom_line(aes(x=Year, y=fit.gam3), color="red3") +
-	# geom_line(aes(x=Year, y=fit.gam4), color="green3") +
+	geom_line(aes(x=Year, y=fit.gam3), color="red3") +
+	geom_line(aes(x=Year, y=fit.gam4), color="green3") +
 	ggtitle("Model Responses")
+
 
 
 # par(mfrow=c(4,1))
@@ -351,20 +357,21 @@ summary(gam.lpj.g)
 # Working from examples in predict.gam (?predict.gam)
 # -----------
 # Create the prediction matrix
-Xp <- predict(gam.lpj.g2, newdata=lpj.g, type="lpmatrix")
+Xp <- predict(gam.lpj.g4, newdata=lpj.g, type="lpmatrix")
 summary(Xp)
 
+coef.gam <- coef(gam.lpj.g4)
 # just a quick example of how Xp times the coeff gets the predicted values 
-fit5 <- Xp %*% coef(gam.lpj.g2)
+fit5 <- Xp %*% coef.gam
 summary(fit5)
 
-d=10 # num. terms per effect
-fit.int <- Xp[,1:6] %*% coef(gam.lpj.g2)[1:6]
-fit.co2 <- Xp[,(6+1*d+1-d):(1*d+6)] %*% coef(gam.lpj.g2$gam)[(6+1*d+1-d):(1*d+6)]
-fit.temp <- Xp[,(6+2*d+1-d):(2*d+6)] %*% coef(gam.lpj.g2$gam)[(6+2*d+1-d):(2*d+6)]
-fit.precip <- Xp[,(6+3*d+1-d):(3*d+6)] %*% coef(gam.lpj.g2$gam)[(6+3*d+1-d):(3*d+6)]
+cols.site <- which(substr(names(coef.gam),1,4)=="Site")
+cols.temp <- which(substr(names(coef.gam),1,7)=="s(Temp)")
+cols.precip <- which(substr(names(coef.gam),1,9)=="s(Precip)")
+cols.co2 <- which(substr(names(coef.gam),1,6)=="s(CO2)")
+cols.year <- which(substr(names(coef.gam),1,7)=="s(Year)")
 
-fit.sum <- fit.int + fit.co2 + fit.temp + fit.precip
+fit.sum <- fit.int + fit.co2 + fit.temp + fit.precip + fit.year
 fit.spline <- fit.co2 + fit.temp + fit.precip
 summary(fit.sum)
 summary(fit.spline)
