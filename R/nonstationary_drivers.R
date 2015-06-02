@@ -28,163 +28,184 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/PalEON CR/paleon_mip_site")
+setwd("~/Dropbox/PalEON CR/paleon_mip_site")
 inputs <- "phase1a_output_variables"
-fig.dir <- "~/Desktop/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
-# ----------------------------------------
+fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
 
 # ----------------------------------------
-# Load Data Sets
-# ----------------------------------------
-# Ecosystem Model Outputs
-ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
-ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
-levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
-summary(ecosys)
 
-# CO2 Record
-nc.co2 <- nc_open("~/Desktop/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
-co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
-nc_close(nc.co2)
 
-# Merging CO2 into Model Outputs
-ecosys <- merge(ecosys, co2.ann)
-summary(ecosys)
+# # Note: Commented out because saved as EcosysData.RData 1 June 2015
+# #       (with an increasing number of models, running this every time became cumbersome)
+# # ----------------------------------------
+# # Load Data Sets
+# # ----------------------------------------
+# # Ecosystem Model Outputs
+# ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
+# ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
+# levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+# summary(ecosys)
 
-# Colors used for graphing
-model.colors <- read.csv("~/Desktop/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
-model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
-levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
-model.colors
+# # CO2 Record
+# nc.co2 <- nc_open("~/Dropbox/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
+# co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
+# nc_close(nc.co2)
 
-model.colors <- model.colors[order(model.colors$Model.Order),]
-model.colors
-# ----------------------------------------
+# # Merging CO2 into Model Outputs
+# ecosys <- merge(ecosys, co2.ann)
+# summary(ecosys)
 
-# ----------------------------------------
-# Calculate Deviations from desired reference point
-# Reference Point: 0850-0869 (spinup climate)
-# ----------------------------------------
-vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp")
-vars.climate <- c("Temp", "Precip", "CO2")
+# # Colors used for graphing
+# model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+# model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
+# levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+# model.colors
 
+# model.colors <- model.colors[order(model.colors$Model.Order),]
+# model.colors
+# # ----------------------------------------
+
+# # ----------------------------------------
+# # Calculate Deviations from desired reference point
+# # Reference Point: 0850-0869 (spinup climate)
+# # ----------------------------------------
+# vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp")
+# vars.climate <- c("Temp", "Precip", "CO2")
+
+# # vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
+
+# ref.window <- 850:869
+
+# for(s in unique(ecosys$Site)){
+# for(m in unique(ecosys$Model)){
+# # -----------------------
+# # Model Variabiles -- Relative Change
+# # Deviation = percent above or below the mean for the reference window
+# #             (observed-ref.mean)/ref.mean 
+# # -----------------------
+# for(v in unique(vars)){
+# ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
+# ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".dev")] <- (ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean)/ref.mean
+
+# }
+# # -----------------------
+
+# # -----------------------
+# # Climate Drivers -- Absolute, not relative change
+# # Deviation = absolute deviation from reference window
+# #             observed - ref.mean
+# # -----------------------
+# for(v in unique(vars.climate)){
+# ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
+# ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".abs.dev")] <- ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean
+# }
+# # -----------------------
+# }
+# }
+
+# summary(ecosys)
+# # ----------------------------------------
+
+
+# # ----------------------------------------
+# # Perform Temporal Smoothing on Data
+# # Note: Smoothing is performed over the PREVIOUS 100 years becuase ecosystems 
+# #       cannot respond to what they have not yet experienced
+# # ----------------------------------------
+# vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp", "Temp", "Precip", "CO2")
 # vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
 
-ref.window <- 850:869
+# for(s in unique(ecosys$Site)){
+# for(m in unique(ecosys$Model)){
+# # -----------------------
+# # 10-yr Smoothing
+# # -----------------------
+# ## Non-standardized
+# for(v in vars){
+# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
 
-for(s in unique(ecosys$Site)){
-	for(m in unique(ecosys$Model)){
-		# -----------------------
-		# Model Variabiles -- Relative Change
-		# Deviation = percent above or below the mean for the reference window
-		#             (observed-ref.mean)/ref.mean 
-		# -----------------------
-		for(v in unique(vars)){
-			ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
-			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".dev")] <- (ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean)/ref.mean
+# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
+# }
 
-		}
-		# -----------------------
+# ## Non-standardized
+# for(v in vars.dev){
+# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
+# }
+# # -----------------------
 
-		# -----------------------
-		# Climate Drivers -- Absolute, not relative change
-		# Deviation = absolute deviation from reference window
-		#             observed - ref.mean
-		# -----------------------
-		for(v in unique(vars.climate)){
-			ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
-			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".abs.dev")] <- ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean
-		}
-		# -----------------------
-	}
-}
+# # -----------------------
+# # 50-yr Smoothing
+# # -----------------------
+# ## Non-standardized
+# for(v in vars){
+# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
+# }
 
-summary(ecosys)
+# ## Non-standardized
+# for(v in vars.dev){
+# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
+# }
+# # -----------------------
+
+# # -----------------------
+# # 100-yr Smoothing
+# # -----------------------
+# ## Non-standardized
+# for(v in vars){
+# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
+# }
+
+# ## Non-standardized
+# for(v in vars.dev){
+# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
+# }
+# # -----------------------
+
+# # -----------------------
+# # 250-Year Smoothing
+# # -----------------------
+# ## Non-standardized
+# for(v in vars){
+# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
+# }
+
+# ## Non-standardized
+# for(v in vars.dev){
+# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
+# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
+# }
+# # -----------------------
+
+# }
+# }
+# summary(ecosys)
+# save(ecosys, model.colors, file=file.path(path.data, "EcosysData.Rdata"))
+
+# ----------------------------------------
+# Load processing from previous step
+load(file.path(path.data, "EcosysData.Rdata"))
 # ----------------------------------------
 
-
-# ----------------------------------------
-# Perform Temporal Smoothing on Data
-# Note: Smoothing is performed over the PREVIOUS 100 years becuase ecosystems 
-#       cannot respond to what they have not yet experienced
-# ----------------------------------------
-vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp", "Temp", "Precip", "CO2")
-vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
-
-for(s in unique(ecosys$Site)){
-	for(m in unique(ecosys$Model)){
-		# # -----------------------
-		# # Differencing
-		# # -----------------------
-		# ## Non-standardized
-		# for(v in vars[2]){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".d1")] <- c(NA, diff(temp, lag=1,))
-		# }
-
-		# # -----------------------
-
-
-		# -----------------------
-		# Decadal Smoothing
-		# -----------------------
-		## Non-standardized
-		for(v in vars){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
-		}
-
-		## Non-standardized
-		for(v in vars.dev){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
-		}
-		# -----------------------
-
-		# -----------------------
-		# Centennial Smoothing
-		# -----------------------
-		## Non-standardized
-		for(v in vars){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
-		}
-
-		## Non-standardized
-		for(v in vars.dev){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
-		}
-		# -----------------------
-	}
-}
-summary(ecosys)
 
 # -----------------------
 # Some exploratory Graphing
 # -----------------------
-colors.use <- 
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.6) +
-	geom_line(aes(x=Year, y=AGB.100, color=Model.Order), size=1.5) +
-	scale_color_manual(values=as.vector(model.colors[model.colors$Model %in% unique(ecosys$Model.Order),"color"])) +
-	theme_bw()
+  geom_line(aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.6) +
+  geom_line(aes(x=Year, y=AGB.100, color=Model.Order), size=1.5) +
+  scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+  ggtitle("Annual & Centennial AGB") +
+  theme_bw()
 # -----------------------
+# ----------------------------------------
 
-# -----------------------
-# Subsetting individual models & sites for model prototyping
-# -----------------------
-ed2.pha <- ecosys[ecosys$Model=="ed2" & ecosys$Site=="PHA",]
-summary(ed2.pha)
-
-lpj.g.pha <- ecosys[ecosys$Model=="lpj.guess" & ecosys$Site=="PHA",]
-summary(lpj.g.pha)
-
-lpj.g <- ecosys[ecosys$Model=="lpj.guess",]
-summary(lpj.g)
-# -----------------------
 # ----------------------------------------
 
 
@@ -194,31 +215,23 @@ summary(lpj.g)
 # ----------------------------------------
 library(mgcv)
 
-# summary(lpj.g.pha)
-
-# gam.lpj.g.pha <- gamm(AGB ~ s(Temp, k=3) + s(Precip, k=3) + s(CO2, k=3), data=lpj.g.pha, correlation=corCAR1(form=~Year))
-# summary(gam.lpj.g.pha$gam)
-# summary(gam.lpj.g.pha$lme)
-# gam.lpj.g.pha0 <- gam(AGB ~ s(Temp, k=3) + s(Precip, k=3) + s(CO2, k=3), data=lpj.g.pha)
-# summary(gam.lpj.g.pha0)
-
-# acf(gam.lpj.g.pha0$resid)
-# acf(gam.lpj.g.pha$gam$resid)
 # ------------------------------------------------
 # All Sites: (for 1 site, see model selection script)
 # ------------------------------------------------
-source('~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.R', chdir = TRUE)
-# gam.lpj.g <- gamm(AGB ~ s(Temp, by=Site, k=3) + s(Precip, by=Site, k=3) + s(CO2, by=Site, k=3) + Site - 1, data=lpj.g, correlation=corCAR1(form=~1|Site))
-outdir="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/"
+source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.R', chdir = TRUE)
+outdir="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
 
 # ------------------------
 # LPJ-GUESS
 # ------------------------
-gam.lpj.guess <- model.gam(data=ecosys, model="lpj.guess", response="AGB", k=4, outdir)
+gam.lpj.guess <- model.gam(data=ecosys, model="lpj.guess", scale="", response="AGB", k=4, outdir=outdir)
 summary(gam.lpj.guess)
 summary(gam.lpj.guess$data)
 summary(gam.lpj.guess$gam)
 summary(gam.lpj.guess$weights)
+
+
+
 
 pdf(file.path(fig.dir, "Non-StationaryDrivers_LPJ-GUESS_AGB_Annual_Splines.pdf"), width=11, height=8.5)
 par(mfrow=c(3,6), mar=c(5,5,0.5, 0.5))
