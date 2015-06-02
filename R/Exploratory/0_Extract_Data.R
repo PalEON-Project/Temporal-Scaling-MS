@@ -10,7 +10,7 @@ library(ggplot2)
 library(grid)
 library(nlme)
 
-setwd("~/Dropbox/PalEON CR/paleon_mip_site")
+setwd("~/Desktop/PalEON CR/paleon_mip_site")
 outputs <- "phase1a_output_variables"
 years <- 850:2010
 
@@ -33,59 +33,25 @@ soilcarb <- nc_open(file.path(outputs, "TotSoilCarb.annual.nc"))
 transp <- nc_open(file.path(outputs, "Transp.annual.nc"))
 evap <- nc_open(file.path(outputs, "Evap.annual.nc"))
 
-gpp.sib <- read.csv("phase1a_model_output/Version1_OldMet/Sib-CASA.v0/Sib-CASA_GPP_Month.csv") #kg/m2/s
-agb.sib <- read.csv("phase1a_model_output/Version1_OldMet/Sib-CASA.v0/Sib-CASA_AGB_Month.csv") #kg/m2
-lai.sib <- read.csv("phase1a_model_output/Version1_OldMet/Sib-CASA.v0/Sib-CASA_LAI_Month.csv") #kg/m2
-nee.sib <- read.csv("phase1a_model_output/Version1_OldMet/Sib-CASA.v0/Sib-CASA_NEE_Month.csv") #kg/m2
-npp.sib <- read.csv("phase1a_model_output/Version1_OldMet/Sib-CASA.v0/Sib-CASA_NPP_Month.csv") #kg/m2
-
-summary(agb.sib) 
-
-yr.rows <- seq(1, nrow(gpp.sib)-12, by=12)
-
-gpp.sib.yr <- agb.sib.yr <- lai.sib.yr <- npp.sib.yr <- nee.sib.yr <- data.frame(array(dim=c(nrow(gpp.sib)/12, ncol(gpp.sib))))
-names(gpp.sib.yr) <- names(agb.sib.yr) <- names(lai.sib.yr) <- names(npp.sib.yr) <- names(nee.sib.yr) <- names(gpp.sib)
-
-for(s in 1:ncol(gpp.sib)){
-	gpp.temp <-	agb.temp <- lai.temp <- npp.temp <- nee.temp <- vector()
-	for(i in 1:length(yr.rows)){
-		gpp.temp <- c(gpp.temp, mean(gpp.sib[yr.rows[i]:(yr.rows[i]+11),s],na.rm=T))
-		agb.temp <- c(agb.temp, mean(agb.sib[yr.rows[i]:(yr.rows[i]+11),s], na.rm=T))
-		lai.temp <- c(lai.temp, mean(lai.sib[yr.rows[i]:(yr.rows[i]+11),s], na.rm=T))
-		npp.temp <- c(npp.temp, mean(npp.sib[yr.rows[i]:(yr.rows[i]+11),s], na.rm=T))
-		nee.temp <- c(nee.temp, mean(nee.sib[yr.rows[i]:(yr.rows[i]+11),s], na.rm=T))
-	}
-	gpp.sib.yr[,s] <- c(gpp.temp, NA)
-	agb.sib.yr[,s] <- c(agb.temp, NA)
-	lai.sib.yr[,s] <- c(lai.temp, NA)
-	npp.sib.yr[,s] <- c(npp.temp, NA)
-	nee.sib.yr[,s] <- c(nee.temp, NA)
-}
-summary(gpp.sib.yr)
-summary(agb.sib.yr)
-summary(lai.sib.yr)
-summary(npp.sib.yr)
-summary(nee.sib.yr)
-
 
 sites <- c("PHA", "PHO", "PUN", "PBL", "PDL", "PMB")
-model.names <- c(ncvar_get(gpp, "ModelNames"), "SiB")
+model.names <- c(ncvar_get(gpp, "ModelNames"))
 #sites <- "PHA"
 GPP <- AGB <- LAI <- NPP <- NEE <- TEMP <- PRECIP <- RA <- RH <- SOILMOIST <- SOILCARB <- EVAP <- TRANSP <- list()
 for(i in 1:length(sites)){
-	GPP[[i]] <- data.frame(cbind(t(ncvar_get(gpp, names(gpp$var)[i])), gpp.sib.yr[,i]))
-	AGB[[i]] <- data.frame(cbind(t(ncvar_get(agb, names(agb$var)[i])), agb.sib.yr[,i]))
-	LAI[[i]] <- data.frame(cbind(t(ncvar_get(lai, names(lai$var)[i])), lai.sib.yr[,i]))
-	NPP[[i]] <- data.frame(cbind(t(ncvar_get(npp, names(npp$var)[i])), npp.sib.yr[,i]))
-	NEE[[i]] <- data.frame(cbind(t(ncvar_get(nee, names(nee$var)[i])), nee.sib.yr[,i]))
-	TEMP[[i]] <- data.frame(cbind(t(ncvar_get(temp, names(temp$var)[i])), ncvar_get(temp, names(temp$var)[i])[1,]))
-	PRECIP[[i]] <- data.frame(cbind(t(ncvar_get(precip, names(precip$var)[i])), ncvar_get(precip, names(precip$var)[i])[1,]))
-	RA[[i]] <- data.frame(cbind(t(ncvar_get(auto.resp, names(auto.resp$var)[i]))), SiB=rep(NA, length(nee.sib.yr[,i])))
-	RH[[i]] <- data.frame(cbind(t(ncvar_get(hetero.resp, names(hetero.resp$var)[i]))), SiB=rep(NA, length(nee.sib.yr[,i])))
-	SOILCARB[[i]] <- data.frame(cbind(t(ncvar_get(soilcarb, names(soilcarb$var)[i]))), SiB=rep(NA, length(nee.sib.yr[,i])))
-	SOILMOIST[[i]] <- data.frame(cbind(t(ncvar_get(soilmoist, names(soilmoist$var)[i]))), SiB=rep(NA, length(nee.sib.yr[,i])))
-	EVAP[[i]] <- data.frame(cbind(t(ncvar_get(evap, names(evap$var)[i]))), SiB=rep(NA, length(nee.sib.yr[,i])))
-	TRANSP[[i]] <- data.frame(cbind(t(ncvar_get(transp, names(transp$var)[i]))), SiB=rep(NA, length(nee.sib.yr[,i])))
+	GPP[[i]] <- ncvar_get(gpp, sites[i])
+	AGB[[i]] <- ncvar_get(agb, sites[i])
+	LAI[[i]] <- ncvar_get(agb, sites[i])
+	NPP[[i]] <- ncvar_get(agb, sites[i])
+	NEE[[i]] <- ncvar_get(agb, sites[i])
+	TEMP[[i]] <- ncvar_get(agb, sites[i])
+	PRECIP[[i]] <- ncvar_get(agb, sites[i])
+	RA[[i]] <- ncvar_get(agb, sites[i])
+	RH[[i]] <- ncvar_get(agb, sites[i])
+	SOILCARB[[i]] <- ncvar_get(agb, sites[i])
+	SOILMOIST[[i]] <- ncvar_get(agb, sites[i])
+	EVAP[[i]] <- ncvar_get(agb, sites[i])
+	TRANSP[[i]] <- ncvar_get(agb, sites[i])
 
 	names(GPP[[i]]) <- names(AGB[[i]]) <- names(LAI[[i]]) <- names(NPP[[i]]) <- names(NEE[[i]]) <- names(TEMP[[i]]) <- names(PRECIP[[i]]) <- names(RA[[i]]) <- names(RH[[i]]) <- names(SOILCARB[[i]]) <- names(SOILMOIST[[i]]) <- names(EVAP[[i]]) <- names(TRANSP[[i]]) <- model.names
 	
