@@ -228,7 +228,7 @@ interactions <- function(){
     sigma <- 1/tau
 	tau2 <- 1/tau
 	for(s in 1:ns){		
-		alpha0[s] ~ dnorm(0, tau2)  # + 
+		# alpha0[s] ~ dnorm(0, tau2)  # + 
 		alpha1[s] ~ dnorm(0, tau2)  # + 
 		# alpha2[s] ~ dnorm(0, tau2)  # + 
 		# alpha3[s] ~ dnorm(0, tau2)  # + 
@@ -238,7 +238,8 @@ interactions <- function(){
 		# alpha7[s] ~ dnorm(0, tau2)  # + 
 	}
 	for(i in 1:n){
-		mu[i] <- beta0[T.SCALE[i]]*alpha0[SITE[i]] + 
+#		mu[i] <- beta0[T.SCALE[i]]*alpha0[SITE[i]] + 
+		mu[i] <- beta0[T.SCALE[i]] + 
 				 beta1[T.SCALE[i]]*TEMP[i]*PRECIP[i]*CO2[i] + 
 				 beta2[T.SCALE[i]]*TEMP[i]*PRECIP[i] + 
 				 beta3[T.SCALE[i]]*TEMP[i]*CO2[i] + 
@@ -282,14 +283,14 @@ SITE    <- rep(as.numeric(dat.lpj.g$Site), nt)
 MODELS  <- rep(as.numeric(dat.lpj.g$Model), nt)
 nm	    <- length(unique(MODELS))
 
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7","alpha1", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.lpj.g.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.lpj.g.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.lpj.g <- jags(data=dat.lpj.g.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.lpj.g <- jags(data=dat.lpj.g.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.lpj.g.jags, m.lpj.g, file=filepath(path.data, "Interactions_LPJ-GUESS.RData"))
+save(dat.lpj.g.jags, m.lpj.g, file=file.path(path.data, "Interactions_LPJ-GUESS.RData"))
 # -----------------------
 
 
@@ -313,14 +314,14 @@ SITE    <- rep(as.numeric(dat.lpj.w$Site), nt)
 MODELS  <- rep(as.numeric(dat.lpj.w$Model), nt)
 nm	    <- length(unique(MODELS))
 
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7","alpha1", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.lpj.w.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.lpj.w.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.lpj.w <- jags(data=dat.lpj.w.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.lpj.w <- jags(data=dat.lpj.w.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.lpj.w.jags, m.lpj.w, file=filepath(path.data, "Interactions_LPJ-WSL.RData"))
+save(dat.lpj.w.jags, m.lpj.w, file=file.path(path.data, "Interactions_LPJ-WSL.RData"))
 # -----------------------
 
 
@@ -344,14 +345,14 @@ SITE    <- rep(as.numeric(dat.jules.s$Site), nt)
 MODELS  <- rep(as.numeric(dat.jules.s$Model), nt)
 nm	    <- length(unique(MODELS))
 
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7","alpha1", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.jules.s.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.jules.s.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.jules.s <- jags(data=dat.jules.s.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.jules.s <- jags(data=dat.jules.s.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.jules.s.jags, m.jules.s, file=filepath(path.data, "Interactions_JULES-STATIC.RData"))
+save(dat.jules.s.jags, m.jules.s, file=file.path(path.data, "Interactions_JULES-STATIC.RData"))
 # -----------------------
 
 
@@ -375,14 +376,14 @@ SITE    <- rep(as.numeric(dat.jules.triff$Site), nt)
 MODELS  <- rep(as.numeric(dat.jules.triff$Model), nt)
 nm	    <- length(unique(MODELS))
 
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
+params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "alpha1", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.jules.triff.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.jules.triff.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.jules.triff <- jags(data=dat.jules.triff.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.jules.triff <- jags(data=dat.jules.triff.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.jules.triff.jags, m.jules.triff, file=filepath(path.data, "Interactions_JULES-TRIFFID.RData"))
+save(dat.jules.triff.jags, m.jules.triff, file=file.path(path.data, "Interactions_JULES-TRIFFID.RData"))
 # -----------------------
 
 
@@ -409,11 +410,11 @@ nm	    <- length(unique(MODELS))
 params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.linkages.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.linkages.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.linkages <- jags(data=dat.linkages.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.linkages <- jags(data=dat.linkages.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.linkages.jags, m.linkages, file=filepath(path.data, "Interactions_LINKAGES.RData"))
+save(dat.linkages.jags, m.linkages, file=file.path(path.data, "Interactions_LINKAGES.RData"))
 # -----------------------
 
 
@@ -440,11 +441,11 @@ nm	    <- length(unique(MODELS))
 params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.sibcasa.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.sibcasa.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.sibcasa <- jags(data=dat.sibcasa.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.sibcasa <- jags(data=dat.sibcasa.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.sibcasa.jags, m.sibcasa, file=filepath(path.data, "Interactions_SiBCASA.RData"))
+save(dat.sibcasa.jags, m.sibcasa, file=file.path(path.data, "Interactions_SiBCASA.RData"))
 # -----------------------
 
 
@@ -471,11 +472,11 @@ nm	    <- length(unique(MODELS))
 params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.ed.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.ed.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.ed <- jags(data=dat.ed.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.ed <- jags(data=dat.ed.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.ed.jags, m.ed, file=filepath(path.data, "Interactions_ED.RData"))
+save(dat.ed.jags, m.ed, file=file.path(path.data, "Interactions_ED.RData"))
 # -----------------------
 
 # -----------------------
@@ -501,11 +502,11 @@ nm	    <- length(unique(MODELS))
 params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.ed.lu.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.ed.lu.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.ed.lu <- jags(data=dat.ed.lu.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.ed.lu <- jags(data=dat.ed.lu.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.ed.lu.jags, m.ed.lu, file=filepath(path.data, "Interactions_ED-LU.RData"))
+save(dat.ed.lu.jags, m.ed.lu, file=file.path(path.data, "Interactions_ED-LU.RData"))
 # -----------------------
 
 
@@ -532,11 +533,11 @@ nm	    <- length(unique(MODELS))
 params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.clm.cn.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.clm.cn.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.clm.cn <- jags(data=dat.clm.cn.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.clm.cn <- jags(data=dat.clm.cn.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.clm.cn.jags, m.clm.cn, file=filepath(path.data, "Interactions_CLM-CN.RData"))
+save(dat.clm.cn.jags, m.clm.cn, file=file.path(path.data, "Interactions_CLM-CN.RData"))
 # -----------------------
 
 
@@ -563,11 +564,11 @@ nm	    <- length(unique(MODELS))
 params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7", "sigma", "mu")
 # params <- c("beta", "sigma")
 
-dat.clm.bgc.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE),
+dat.clm.bgc.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-m.clm.bgc <- jags(data=dat.clm.bgc.jags, parameters.to.save=params, n.chains=3, n.iter=50000, n.burnin=25000, model.file=interactions, DIC=F)
+m.clm.bgc <- jags(data=dat.clm.bgc.jags, parameters.to.save=params, n.chains=3, n.iter=2000, n.burnin=500, model.file=interactions, DIC=F)
 
-save(dat.clm.bgc.jags, m.clm.bgc, file=filepath(path.data, "Interactions_CLM-BGC.RData"))
+save(dat.clm.bgc.jags, m.clm.bgc, file=file.path(path.data, "Interactions_CLM-BGC.RData"))
 # -----------------------
 
 # ----------------------------------------
@@ -582,6 +583,8 @@ save(dat.clm.bgc.jags, m.clm.bgc, file=filepath(path.data, "Interactions_CLM-BGC
 # -----------------------
 m.lpj.g2 <- as.mcmc(m.lpj.g)
 summary(m.lpj.g2[,which(!substr(dimnames(m.lpj.g2[[1]])[[2]], 1, 2)=="mu")])
+# summary(m.lpj.g2[,which(substr(dimnames(m.lpj.g2[[1]])[[2]], 1, 2)=="mu")])
+
 
 plot(m.lpj.g2[,which(!substr(dimnames(m.lpj.g2[[1]])[[2]], 1, 2)=="mu")])
 
@@ -605,12 +608,12 @@ for(i in 1:pulls){
 					        m.lpj.g2[[c]][r,paste0("beta4[",t,"]")]*precip.t*co2.t + 
 					        m.lpj.g2[[c]][r,paste0("beta5[",t,"]")]*temp.t + 
 					        m.lpj.g2[[c]][r,paste0("beta6[",t,"]")]*precip.t + 
-					        m.lpj.g2[[c]][r,paste0("beta7[",t,"]")]*co2.t
+					        m.lpj.g2[[c]][r,paste0("beta7[",t,"]")]*co2.t 
 	}
 }
 
 
-lpj.g.analy <- data.frame(Scale=recode(T.SCALE, "'1'='t.001'; '2'='t.050'; '3'='t.100'; '4'='t.250'"), Site=rep(lpj.g2$Site, nt), Year=rep(lpj.g2$Year, nt), AGB=y, CO2=CO2, Temp=TEMP, Precip=PRECIP, Pred.y=apply(y.predict1, 1, mean, na.rm=T), Pred.LB=apply(y.predict1, 1, quantile, 0.025, na.rm=T), Pred.UB=apply(y.predict1, 1, quantile, 0.975, na.rm=T))
+lpj.g.analy <- data.frame(Scale=recode(T.SCALE, "'1'='t.001'; '2'='t.050'; '3'='t.100'; '4'='t.250'"), Site=rep(dat.lpj.g$Site, nt), Year=rep(dat.lpj.g$Year, nt), AGB=y, CO2=CO2, Temp=TEMP, Precip=PRECIP, Pred.y=apply(y.predict1, 1, mean, na.rm=T), Pred.LB=apply(y.predict1, 1, quantile, 0.025, na.rm=T), Pred.UB=apply(y.predict1, 1, quantile, 0.975, na.rm=T))
 
 summary(lpj.g.analy)
 
