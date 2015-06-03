@@ -3,7 +3,7 @@ model.gam <- function(data, model, response, scale="", k=4, outdir){
 	# model    = which model to subset
 	# response = which variable to use as response in the gam
 	# k        = number of knots in the spline
-	# outdir   = where to save the .Rdata.temp file
+	# outdir   = where to save the .Rdata file
 	library(mgcv)
 	
 	# creating a working data.temp frame with just the data.temp we want
@@ -78,7 +78,7 @@ model.gam <- function(data, model, response, scale="", k=4, outdir){
 	# summary(factor.weights)
 	
 	out <- list(data=data.temp, gam=gam1, weights=factor.weights)
-	save(out, file=file.path(outdir, paste0("gam.", model, response, ".Rdata.temp")))
+	save(out, file=file.path(outdir, paste0("gam.", model, response, ".Rdata")))
 	return(out)
 	# -----------
 

@@ -4,7 +4,7 @@ model.site.gam <- function(	data, model, site, response, scale="", k=4, outdir,
 	# model    = which model to subset
 	# response = which variable to use as response in the gam
 	# k        = number of knots in the spline
-	# outdir   = where to save the .Rdata.temp file
+	# outdir   = where to save the .Rdata file
 	# fweights = do we compute the weights for each of the smoothing terms through time? (logical) 
 	# ci.model = do we compute a CI for the model prediction of the response variable? (logical) 
 	# ci.terms = do we compute a CI smoothing terms over the range of our observations? (logical) 
@@ -68,7 +68,7 @@ model.site.gam <- function(	data, model, site, response, scale="", k=4, outdir,
 	# -----------
 	
 	
-	save(out, file=file.path(outdir, paste0("gam.", model, response, ".Rdata.temp")))
+	save(out, file=file.path(outdir, paste0("gam.", model, response, ".Rdata")))
 	return(out)
 	# -----------
 
