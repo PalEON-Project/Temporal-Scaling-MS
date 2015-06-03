@@ -3,7 +3,40 @@
 # Changes in Strength of Interactions with Temporal Scale
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 7 May 2015
-# Last Modified: 7 May 2015 
+# ----------------------------------------
+# -------------------------
+# Objectives & Overview
+# -------------------------
+# Driving Questions: How important are interactions between Temp, Precip, & CO2 and how do they 
+#                    vary with temporal scale?
+# Rationale: The GAMMs get us non-linear response functions that allow temoral variation in what's driving
+#			 patterns in models. However, getting driver interactions in these models is difficult at best.
+# -------------------------
+#
+# -------------------------
+# Data/Results Generation:
+# -------------------------
+# (Fit Bayesian Linear Mixed Model per model)
+# 1) Temporal Grain (Resolution)
+#    -- Fit LMM over constant window with different degrees of smoothing (1 yr - 250 yr)
+# 2) Temporal Extent 
+#	 -- Fit LMM to different windows (30 yrs 1990-2010, 100 yrs 1910-2010, full window)
+# ** Response variables of interest: NPP, possibly dAGB (AGB 1st difference)
+# -------------------------
+#
+# -------------------------
+# Interpretation Analyses:
+# -------------------------
+# 1) Multi-Model Scale Comparison
+#    -- Hypothesis: Interactions among drivers stronger at very fine resolutions (sub-annual, which we can't test)
+#                   and large resolutions where combination of factors determines a relative equilibrium point.  
+#                   At finer & intermediate grains, the interannual variability is too great for the interactions
+#                   to be clear.
+#
+#    -- Analysis: Run mixed-model anova on posterior distributions of interaction coefficients to determine if 
+#                 there are statstically significant trends in temporal scale and differences among levels of
+#                 interactions (i.e. 3-way interaction shows stronger shifts than 2-way, etc)
+# -------------------------
 # ----------------------------------------
 
 # ----------------------------------------
@@ -28,160 +61,11 @@ path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data
 fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
 # ----------------------------------------
 
-# # Note: Commented out because saved as EcosysData.RData 1 June 2015
-# #       (with an increasing number of models, running this every time became cumbersome)
-# # ----------------------------------------
-# # Load Data Sets
-# # ----------------------------------------
-# # Ecosystem Model Outputs
-# ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
-# ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
-# levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
-# summary(ecosys)
-
-# # CO2 Record
-# nc.co2 <- nc_open("~/Dropbox/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
-# co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
-# nc_close(nc.co2)
-
-# # Merging CO2 into Model Outputs
-# ecosys <- merge(ecosys, co2.ann)
-# summary(ecosys)
-
-# # Colors used for graphing
-# model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
-# model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
-# levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
-# model.colors
-
-# model.colors <- model.colors[order(model.colors$Model.Order),]
-# model.colors
-# # ----------------------------------------
-
-# # ----------------------------------------
-# # Calculate Deviations from desired reference point
-# # Reference Point: 0850-0869 (spinup climate)
-# # ----------------------------------------
-# vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp")
-# vars.climate <- c("Temp", "Precip", "CO2")
-
-# # vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
-
-# ref.window <- 850:869
-
-# for(s in unique(ecosys$Site)){
-	# for(m in unique(ecosys$Model)){
-		# # -----------------------
-		# # Model Variabiles -- Relative Change
-		# # Deviation = percent above or below the mean for the reference window
-		# #             (observed-ref.mean)/ref.mean 
-		# # -----------------------
-		# for(v in unique(vars)){
-			# ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
-			# ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".dev")] <- (ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean)/ref.mean
-
-		# }
-		# # -----------------------
-
-		# # -----------------------
-		# # Climate Drivers -- Absolute, not relative change
-		# # Deviation = absolute deviation from reference window
-		# #             observed - ref.mean
-		# # -----------------------
-		# for(v in unique(vars.climate)){
-			# ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
-			# ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".abs.dev")] <- ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean
-		# }
-		# # -----------------------
-	# }
-# }
-
-# summary(ecosys)
-# # ----------------------------------------
-
-
-# # ----------------------------------------
-# # Perform Temporal Smoothing on Data
-# # Note: Smoothing is performed over the PREVIOUS 100 years becuase ecosystems 
-# #       cannot respond to what they have not yet experienced
-# # ----------------------------------------
-# vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp", "Temp", "Precip", "CO2")
-# vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
-
-# for(s in unique(ecosys$Site)){
-	# for(m in unique(ecosys$Model)){
-		# # -----------------------
-		# # 10-yr Smoothing
-		# # -----------------------
-		# ## Non-standardized
-		# for(v in vars){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
-		# }
-
-		# ## Non-standardized
-		# for(v in vars.dev){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
-		# }
-		# # -----------------------
-
-		# # -----------------------
-		# # 50-yr Smoothing
-		# # -----------------------
-		# ## Non-standardized
-		# for(v in vars){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
-		# }
-
-		# ## Non-standardized
-		# for(v in vars.dev){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
-		# }
-		# # -----------------------
-
-		# # -----------------------
-		# # 100-yr Smoothing
-		# # -----------------------
-		# ## Non-standardized
-		# for(v in vars){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
-		# }
-
-		# ## Non-standardized
-		# for(v in vars.dev){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
-		# }
-		# # -----------------------
-
-		# # -----------------------
-		# # 250-Year Smoothing
-		# # -----------------------
-		# ## Non-standardized
-		# for(v in vars){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
-		# }
-
-		# ## Non-standardized
-		# for(v in vars.dev){
-			# temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			# ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
-		# }
-		# # -----------------------
-
-	# }
-# }
-# summary(ecosys)
-# save(ecosys, model.colors, file=file.path(path.data, "EcosysData.Rdata"))
-
 # ----------------------------------------
-# Load processing from previous step
+# Load data files & function scripts
+# ----------------------------------------
+# Ecosys file = organized, post-processed model outputs
+#	generated with 1_generate_ecosys.R
 load(file.path(path.data, "EcosysData.Rdata"))
 # ----------------------------------------
 
