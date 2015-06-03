@@ -14,8 +14,10 @@ model.site.gam <- function(	data, model.name, site, response, scale="", k=4, out
 	source("R/Calculate_GAMM_Posteriors.R")
 
 	# creating a working data.temp frame with just the data.temp we want
+	t.scale <- ifelse(scale=="", "t.001", paste0("t", scale))
+
 	data.temp          <- data[data$Model==model.name & data$Site==site, c("Model", "Updated", "Model.Order", "Site", "Year")]
-	data.temp$Scale    <- as.factor(paste0("t", scale))
+	data.temp$Scale    <- as.factor(t.scale)
 	data.temp$response <- data[data$Model==model.name & data$Site==site, paste0(response, scale)]
 	data.temp$Temp     <- data[data$Model==model.name & data$Site==site, paste0("Temp", scale)]	
 	data.temp$Precip   <- data[data$Model==model.name & data$Site==site, paste0("Precip", scale)]	
@@ -58,7 +60,9 @@ model.site.gam <- function(	data, model.name, site, response, scale="", k=4, out
 	# -----------
 	if(ci.terms==T){
 		n.out = 200
-		new.dat <- data.frame(	Temp  =seq(min(data.temp$Temp),   max(data.temp$Temp),   length.out=n.out),
+		
+		new.dat <- data.frame(Site=rep(site, n.out), Scale=rep(t.scale, n.out),
+							    Temp  =seq(min(data.temp$Temp),   max(data.temp$Temp),   length.out=n.out),
 								Precip=seq(min(data.temp$Precip), max(data.temp$Precip), length.out=n.out),
 								CO2   =seq(min(data.temp$CO2),    max(data.temp$CO2),    length.out=n.out))
 		ci.terms.pred <- post.distns(model.gam=gam1, newdata=new.dat, terms=T, sites=F)
