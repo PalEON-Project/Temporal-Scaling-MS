@@ -1,5 +1,5 @@
 model.site.gam <- function(	data, model, site, response, scale="", k=4, outdir, 
-						  	fweights=T, ci.model=T, ci.termps=T){
+						  	fweights=T, ci.model=T, ci.terms=T){
 	# data     = data frame with data.temp in it
 	# model    = which model to subset
 	# response = which variable to use as response in the gam
@@ -32,14 +32,14 @@ model.site.gam <- function(	data, model, site, response, scale="", k=4, outdir,
 	# Storing the predicted values from the gam
 	data.temp$fit.gam <- predict(gam1$gam, newdata=data.temp)
 
-	out <- list(data=data.temp, gam=gam1)
+	out <- list(data=data.temp, gamm=gam1)
 	# -----------
 	
     # -----------
 	# Calculating the Factor Weights through time
 	# -----------
-	if(fweights=T){	
-		f.weights <- factor.weights(model=gam1, newdata=data.temp); 
+	if(fweights==T){	
+		f.weights <- factor.weights(model=gam1, newdata=data.temp, sites=F); 
 		out[["weights"]] <- f.weights 
 	}	
 	# -----------
@@ -47,8 +47,8 @@ model.site.gam <- function(	data, model, site, response, scale="", k=4, outdir,
     # -----------
 	# Calculating the CI around our response prediction
 	# -----------
-	if(ci.model=T){
-		ci.response <- factor.weights(model=gam1, newdata=data.temp, terms=F)
+	if(ci.model==T){
+		ci.response <- post.distns(model=gam1, newdata=data.temp, terms=F, sites=F)
 		out[["ci.response"]] <- ci.response 
 	}
 	# -----------
@@ -56,19 +56,19 @@ model.site.gam <- function(	data, model, site, response, scale="", k=4, outdir,
     # -----------
 	# Calculating the CI around our response prediction
 	# -----------
-	if(ci.terms=T){
-		n.out = 100
+	if(ci.terms==T){
+		n.out = 200
 		new.dat <- data.frame(	Temp  =seq(min(data.temp$Temp),   max(data.temp$Temp),   length.out=n.out),
 								Precip=seq(min(data.temp$Precip), max(data.temp$Precip), length.out=n.out),
 								CO2   =seq(min(data.temp$CO2),    max(data.temp$CO2),    length.out=n.out))
-		ci.terms.pred <- factor.weights(model=gam1, newdata=new.dat, terms=T)
+		ci.terms.pred <- post.distns(model=gam1, newdata=new.dat, terms=T, sites=F)
 
 		out[["ci.terms"]] <- ci.terms.pred 
 	}	
 	# -----------
 	
 	
-	save(out, file=file.path(outdir, paste0("gam.", model, response, ".Rdata")))
+	save(out, file=file.path(outdir, paste("gamm", model, response, scale, site, "Rdata", sep=".")))
 	return(out)
 	# -----------
 
