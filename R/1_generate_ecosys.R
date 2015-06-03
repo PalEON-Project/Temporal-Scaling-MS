@@ -35,6 +35,8 @@ fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figure
 ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
 ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
 levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+# Something's weird with Transpiration, so lets just get rid of it
+ecosys <- ecosys[,!(names(ecosys)=="Transp")]
 summary(ecosys)
 
 # CO2 Record
@@ -57,10 +59,11 @@ model.colors
 # ----------------------------------------
 
 # ----------------------------------------
+# Standardizations:
 # Calculate Deviations from desired reference point
 # Reference Point: 0850-0869 (spinup climate)
 # ----------------------------------------
-vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp")
+vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap")
 vars.climate <- c("Temp", "Precip", "CO2")
 
 # vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
@@ -69,6 +72,12 @@ ref.window <- 850:869
 
 for(s in unique(ecosys$Site)){
 	for(m in unique(ecosys$Model)){
+
+		# -----------------------
+		# AGB 1st difference		
+		# -----------------------
+		ecosys[ecosys$Site==s & ecosys$Model==m,"AGB.diff"] <- c(NA, diff(ecosys[ecosys$Site==s & ecosys$Model==m,"AGB"]))
+
 		# -----------------------
 		# Model Variabiles -- Relative Change
 		# Deviation = percent above or below the mean for the reference window
@@ -103,8 +112,8 @@ summary(ecosys)
 # Note: Smoothing is performed over the PREVIOUS 100 years becuase ecosystems 
 #       cannot respond to what they have not yet experienced
 # ----------------------------------------
-vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Transp", "Temp", "Precip", "CO2")
-vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
+vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "Temp", "Precip", "CO2")
+vars.dev <- c("AGB.diff", paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
 
 for(s in unique(ecosys$Site)){
 	for(m in unique(ecosys$Model)){
@@ -115,13 +124,13 @@ for(s in unique(ecosys$Site)){
 		for(v in vars){
 			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
 
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollapply(temp, FUN=mean, width=10, align="right", fill=NA)
 		}
 
-		## Non-standardized
+		## Standardized
 		for(v in vars.dev){
 			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollmean(temp, k=10, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".10")] <- rollapply(temp, FUN=mean, width=10, align="right", fill=NA)
 		}
 		# -----------------------
 
@@ -131,13 +140,13 @@ for(s in unique(ecosys$Site)){
 		## Non-standardized
 		for(v in vars){
 			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollapply(temp, FUN=mean, width=50, align="right", fill=NA)
 		}
 
-		## Non-standardized
+		## Standardized
 		for(v in vars.dev){
 			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollmean(temp, k=50, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".50")] <- rollapply(temp, FUN=mean, width=50, align="right", fill=NA)
 		}
 		# -----------------------
 
@@ -147,13 +156,13 @@ for(s in unique(ecosys$Site)){
 		## Non-standardized
 		for(v in vars){
 			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollapply(temp, FUN=mean, width=100, align="right", fill=NA)
 		}
 
-		## Non-standardized
+		## Standardized
 		for(v in vars.dev){
 			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollmean(temp, k=100, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".100")] <- rollapply(temp, FUN=mean, width=100, align="right", fill=NA)
 		}
 		# -----------------------
 
@@ -163,13 +172,13 @@ for(s in unique(ecosys$Site)){
 		## Non-standardized
 		for(v in vars){
 			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollapply(temp, FUN=mean, width=250, align="right", fill=NA)
 		}
 
-		## Non-standardized
+		## Standardized
 		for(v in vars.dev){
 			temp <- ecosys[ecosys$Model==m & ecosys$Site==s, v]
-			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollmean(temp, k=250, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s, paste0(v, ".250")] <- rollapply(temp, FUN=mean, width=250, align="right", fill=NA)
 		}
 		# -----------------------
 
