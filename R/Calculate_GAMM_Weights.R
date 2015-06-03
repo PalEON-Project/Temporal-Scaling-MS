@@ -1,14 +1,14 @@
-factor.weights <- function(model, newdata, sites=F){
-	# If the model is a mixed model (gamm) rather than a normal gam, extract just the gam portion
-	if(class(model)[[1]]=="gamm") model <- model$gam
+factor.weights <- function(model.gam, newdata, sites=F){
+	# If the model.gam is a mixed model.gam (gamm) rather than a normal gam, extract just the gam portion
+	if(class(model.gam)[[1]]=="gamm") model.gam <- model.gam$gam
 	# -----------
 	# calculating the weights for each of the factors
 	# -----------
 	# Create the prediction matrix
-	Xp <- predict(model, newdata=newdata, type="lpmatrix")
+	Xp <- predict(model.gam, newdata=newdata, type="lpmatrix")
 
-	fit <- Xp %*% coef(model) # The full predicted values; used for model QA/QC
-	coef.gam <- coef(model) # the gam coefficients
+	fit <- Xp %*% coef(model.gam) # The full predicted values; used for model.gam QA/QC
+	coef.gam <- coef(model.gam) # the gam coefficients
 	
 	# Some handy column indices
 	cols.site <- if(sites==T) which(substr(names(coef.gam),1,4)=="Site") else 1
@@ -29,13 +29,13 @@ factor.weights <- function(model, newdata, sites=F){
 
 	# Calculated the SD around each smoother
 	if(sites==T){
-		sd.int<- rowSums(Xp[,cols.site]   %*% model$Vp[cols.site, cols.site]    *Xp[,cols.site]    )^0.5
+		sd.int<- rowSums(Xp[,cols.site]   %*% model.gam$Vp[cols.site, cols.site]    *Xp[,cols.site]    )^0.5
 	} else {
-		sd.int<-    sum (Xp[,cols.site]    *  model$Vp[cols.site, cols.site]    *Xp[,cols.site]    )^0.5
+		sd.int<-    sum (Xp[,cols.site]    *  model.gam$Vp[cols.site, cols.site]    *Xp[,cols.site]    )^0.5
 	}
-	sd.temp   <- rowSums(Xp[,cols.temp]   %*% model$Vp[cols.temp, cols.temp]    *Xp[,cols.temp]    )^0.5
-	sd.precip <- rowSums(Xp[,cols.precip] %*% model$Vp[cols.precip, cols.precip]*Xp[, cols.precip] )^0.5
-	sd.co2    <- rowSums(Xp[,cols.co2]    %*% model$Vp[cols.co2, cols.co2]      *Xp[, cols.co2]    )^0.5
+	sd.temp   <- rowSums(Xp[,cols.temp]   %*% model.gam$Vp[cols.temp, cols.temp]    *Xp[,cols.temp]    )^0.5
+	sd.precip <- rowSums(Xp[,cols.precip] %*% model.gam$Vp[cols.precip, cols.precip]*Xp[, cols.precip] )^0.5
+	sd.co2    <- rowSums(Xp[,cols.co2]    %*% model.gam$Vp[cols.co2, cols.co2]      *Xp[, cols.co2]    )^0.5
 
 	# Summing the fixed effects to do QA/QC and throwing a warning if it's not very close to the predicted values
 	fit.sum <- fit.int + fit.co2 + fit.temp + fit.precip
