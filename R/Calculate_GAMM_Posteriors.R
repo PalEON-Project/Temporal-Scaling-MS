@@ -32,15 +32,16 @@ post.distns <- function(model.gam, newdata, n=1000, n2=25, terms=T, sites=F, lwr
 		sim.precip <- Xp[,cols.precip] %*% t(Rbeta[,cols.precip]) 
 		sim.co2    <- Xp[,cols.co2]    %*% t(Rbeta[,cols.co2]) 
 		
-		df.out <- list()
-		df.out[["Temp"]] <- data.frame(Temp=newdata$Temp, mean=apply(sim.temp, 1, mean), lwr=apply(sim.temp, 1, quantile, lwr), upr=apply(sim.temp, 1, quantile, upr))
-		df.out[["Precip"]] <- data.frame(Precip=newdata$Precip, mean=apply(sim.precip, 1, mean), lwr=apply(sim.precip, 1, quantile, lwr), upr=apply(sim.precip, 1, quantile, upr))
-		df.out[["CO2"]] <- data.frame(CO2=newdata$CO2, mean=apply(sim.co2, 1, mean), lwr=apply(sim.co2, 1, quantile, lwr), upr=apply(sim.co2, 1, quantile, upr))
+		out.temp <- data.frame(Site=newdata$Site, Scale=newdata$Scale, Effect="Temp", x=newdata$Temp, mean=apply(sim.temp, 1, mean), lwr=apply(sim.temp, 1, quantile, lwr), upr=apply(sim.temp, 1, quantile, upr))
+		out.precip <- data.frame(Site=newdata$Site, Scale=newdata$Scale, Effect="Precip", x=newdata$Precip, mean=apply(sim.precip, 1, mean), lwr=apply(sim.precip, 1, quantile, lwr), upr=apply(sim.precip, 1, quantile, upr))
+		out.co2 <- data.frame(Site=newdata$Site, Scale=newdata$Scale, Effect="CO2", x=newdata$CO2, mean=apply(sim.co2, 1, mean), lwr=apply(sim.co2, 1, quantile, lwr), upr=apply(sim.co2, 1, quantile, upr))
+
+		df.out <- rbind(out.temp, out.precip, out.co2)
 
 	} else {
 		sim1 <- Xp %*% t(Rbeta) # simulates n predictions of the response variable in the model.gam
 		
-		df.out <- data.frame(Year=newdata$Year, Temp=newdata$Temp, Precip=newdata$Precip, CO2=newdata$CO2, mean=apply(sim1, 1, mean), lwr=apply(sim1, 1, quantile, lwr), upr=apply(sim1, 1, quantile, upr))
+		df.out <- data.frame(Site=newdata$Site, Scale=newdata$Scale, Year=newdata$Year, Temp=newdata$Temp, Precip=newdata$Precip, CO2=newdata$CO2, mean=apply(sim1, 1, mean), lwr=apply(sim1, 1, quantile, lwr), upr=apply(sim1, 1, quantile, upr))
 	}
 
 	return(df.out)
