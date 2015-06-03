@@ -68,10 +68,9 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON CR/paleon_mip_site")
-inputs <- "phase1a_output_variables"
-fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
+fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
 # ----------------------------------------
 
 
@@ -89,7 +88,6 @@ load(file.path(path.data, "EcosysData.Rdata"))
 #		  overal model fitting with random site effects very slow
 source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.site.R', chdir = TRUE)
 source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.R', chdir = TRUE)
-
 # ----------------------------------------
 
 
@@ -102,6 +100,24 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
   scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
   ggtitle("Annual & Centennial AGB") +
   theme_bw()
+
+# quantile(ecosys$AGB.diff, c(0.025, 0.33, 0.67, 0.975), na.rm=T)
+ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+  # geom_line(aes(x=Year, y=AGB.diff, color=Model.Order), size=1, alpha=0.6) +
+  geom_line(aes(x=Year, y=AGB.diff.100, color=Model.Order), size=1.5) +
+  scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+  scale_y_continuous(limits=quantile(ecosys$AGB.diff.100, c(0.025, 0.975), na.rm=T)) +
+  ggtitle("Annual & Centennial dAGB") +
+  theme_bw()
+
+ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+  geom_line(aes(x=Year, y=NPP, color=Model.Order), size=1, alpha=0.6) +
+  geom_line(aes(x=Year, y=NPP.100, color=Model.Order), size=1.5) +
+  scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+  # scale_y_continuous(limits=quantile(ecosys$NPP.100, c(0.025, 0.975), na.rm=T)) +
+  ggtitle("Annual & Centennial NPP") +
+  theme_bw()
+
 # -----------------------
 
 # ----------------------------------------
@@ -120,81 +136,88 @@ outdir="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
 # ------------------------
 # LPJ-GUESS
 # ------------------------
-gam.lpj.guess <- model.gam(data=ecosys, model="lpj.guess", scale="", response="AGB", k=4, outdir=outdir)
-summary(gam.lpj.guess)
-summary(gam.lpj.guess$data)
-summary(gam.lpj.guess$gam)
-summary(gam.lpj.guess$weights)
+gam.lpj.guess.pha <- model.site.gam(data=ecosys, model="lpj.guess", site="PHA", scale="", response="AGB.diff", k=4, outdir=outdir, fweights=T, ci.model=T, ci.terms=T)
+summary(gam.lpj.guess.pha)
+summary(gam.lpj.guess.pha$data)
+summary(gam.lpj.guess.pha$gam$gam)
+	acf(resid(gam.lpj.guess.pha$gam$lme))
+	plot(gam.lpj.guess.pha$gam$gam, pages=1, residuals=T)
 
-
-
-
-pdf(file.path(fig.dir, "Non-StationaryDrivers_LPJ-GUESS_AGB_Annual_Splines.pdf"), width=11, height=8.5)
-par(mfrow=c(3,6), mar=c(5,5,0.5, 0.5))
-plot(gam.lpj.guess$gam)
+summary(gam.lpj.guess.pha$ci.response)
+	col.model <- model.colors[model.colors$Model.Order %in% unique(gam.lpj.guess.pha$data$Model.Order),"color"]
+pdf(file.path(fig.dir, "GAMM_ResponsePrediction_LPJ-GUESS_dAGB_PHA_0850-2010.pdf"))
+	ggplot(data=gam.lpj.guess.pha$ci.response) + theme_bw() +
+		geom_line(data=gam.lpj.guess.pha$data, aes(x=Year, y=response)) +
+		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
+		geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
+		labs(title="dAGB, 1 yr: LPJ-GUESS, PHA", x="Year", y="dAGB")
 dev.off()
 
-lm.lpj.g <- lm(fit.gam ~ response, data=gam.lpj.guess$data)
-summary(lm.lpj.g)
-
-ggplot(data=gam.lpj.guess$data) + # facet_wrap(~Site) +
-	geom_point(aes(x=response, y=fit.gam, color=Site), size=2) +
-	geom_abline(intercept=0, slope=1, color="gray50", linetype="dashed") +
-	labs(x="Observed", y="Modeled", title="Non-Stationary Drivers of AGB, LPJ-GUESS, Annual") +
-	theme_bw() + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
-
-pdf(file.path(fig.dir, "Non-StationaryDrivers_LPJ-GUESS_AGB_Annual_0850-2010.pdf"), width=11, height=8.5)
-ggplot(data=gam.lpj.guess$weights) + facet_wrap(~Site) +
-	geom_line(data=gam.lpj.guess$data, aes(x=Year, y=response), color="gray50", size=2) +
-	geom_line(data=gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA",], aes(x=Year, y=fit), 
-			  color=rgb(abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA","temp"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA","co2"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA","precip"])), size=4) +
-	geom_line(data=gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHO",], aes(x=Year, y=fit), 
-			  color=rgb(abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHO","temp"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHO","co2"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHO","precip"])), size=4) +
-	geom_line(data=gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PUN",], aes(x=Year, y=fit), 
-			  color=rgb(abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PUN","temp"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PUN","co2"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PUN","precip"])), size=4) +
-	geom_line(data=gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PBL",], aes(x=Year, y=fit), 
-			  color=rgb(abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PBL","temp"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PBL","co2"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PBL","precip"])), size=4) +
-	geom_line(data=gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PDL",], aes(x=Year, y=fit), 
-			  color=rgb(abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PDL","temp"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PDL","co2"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PDL","precip"])), size=4) +
-	geom_line(data=gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PMB",], aes(x=Year, y=fit), 
-			  color=rgb(abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PMB","temp"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PMB","co2"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PMB","precip"])), size=4) +
-	labs(x="Year", y="AGB kg/m2", title="Non-Stationary Drivers of AGB, LPJ-GUESS, Annual") +
-	theme_bw() + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
+pdf(file.path(fig.dir, "GAMM_ResponsePrediction_LPJ-GUESS_dAGB_PHA_1900-2010.pdf"))
+	ggplot(data=gam.lpj.guess.pha$ci.response) + theme_bw() +
+		geom_line(data=gam.lpj.guess.pha$data, aes(x=Year, y=response)) +
+		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
+		geom_line(aes(x=Year, y=mean), size=1, color= col.model) +
+		scale_x_continuous(limits=c(1900, 2010)) +
+		labs(title="dAGB, 1 yr: LPJ-GUESS, PHA", x="Year", y="dAGB")
 dev.off()
 
-pdf(file.path(fig.dir, "Non-StationaryDrivers_LPJ-GUESS_AGB_Annual_1850-2010.pdf"), width=11, height=8.5)
-ggplot(data=gam.lpj.guess$data[gam.lpj.guess$data$Site=="PHA" & gam.lpj.guess$data$Year>=1850,]) + facet_wrap(~Site) +
-	geom_line(aes(x=Year, y=response), color="gray50", size=2) +
-	geom_line(data=gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA" & gam.lpj.guess$weights$Year>= 1850,], aes(x=Year, y=fit), 
-			  color=rgb(abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA" & gam.lpj.guess$weights$Year>= 1850,"temp"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA" & gam.lpj.guess$weights$Year>= 1850,"co2"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA" & gam.lpj.guess$weights$Year>= 1850,"precip"])), size=4) +
-	labs(x="Year", y="AGB kg/m2", title="Non-Stationary Drivers of AGB, LPJ-GUESS, Annual") +
+summary(gam.lpj.guess.pha$ci.terms)
+	temp1 <- data.frame(Effect="Temp", x=gam.lpj.guess.pha$ci.terms$Temp$Temp, mean=gam.lpj.guess.pha$ci.terms$Temp$mean, lwr=gam.lpj.guess.pha$ci.terms$Temp$lwr, upr=gam.lpj.guess.pha$ci.terms$Temp$upr)
+	precip1 <- data.frame(Effect="Precip", x=gam.lpj.guess.pha$ci.terms$Precip$Precip*sec2yr, mean=gam.lpj.guess.pha$ci.terms$Precip$mean, lwr=gam.lpj.guess.pha$ci.terms$Precip$lwr, upr=gam.lpj.guess.pha$ci.terms$Precip$upr)
+	co21 <- data.frame(Effect="CO2", x=gam.lpj.guess.pha$ci.terms$CO2$CO2, mean=gam.lpj.guess.pha$ci.terms$CO2$mean, lwr=gam.lpj.guess.pha$ci.terms$CO2$lwr, upr=gam.lpj.guess.pha$ci.terms$CO2$upr)
+	effects <- rbind(temp1, precip1, co21)
+
+pdf(file.path(fig.dir, "GAMM_DriverEffects_LPJ-GUESS_dAGB_PHA.pdf"))
+	ggplot(data=effects) + facet_wrap(~Effect, scales="free_x",ncol=2) + theme_bw() +
+		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Effect), alpha=0.5) +
+		geom_line(aes(x=x, y=mean, color=Effect), size=2) +
+		geom_hline(yintercept=0, linetype="dashed") +
+		scale_color_manual(values=c("red2", "blue", "green3")) +
+		scale_fill_manual(values=c("red2", "blue", "green3")) +
+		labs(title="Driver Effects: LPJ-GUESS, PHA", y="Effect Size") +
+		guides(color=F, fill=F)
+dev.off()
+
+summary(gam.lpj.guess.pha$weights)
+# gam.lpj.guess.pha$weights$Year <- gam.lpj.guess.pha$data$Year
+
+pdf(file.path(fig.dir, "GAMM_DriverTime_LPJ-GUESS_dAGB_PHA_0850-2010.pdf"), width=11, height=8.5)
+ggplot(data= gam.lpj.guess.pha$weights) + facet_wrap(~Site) +
+	geom_line(data= gam.lpj.guess.pha$data, aes(x=Year, y=response), color="gray50", alpha=0.5, size=2) +
+	# geom_line(aes(x=Year, y=fit, color=rgb(abs(weight.temp), abs(weight.co2), abs(weight.precip))), size=4) + 
+	geom_line(aes(x=Year, y=fit),
+			  color=rgb(abs(gam.lpj.guess.pha$weights$weight.temp),
+			  			abs(gam.lpj.guess.pha$weights$weight.co2),
+			  			abs(gam.lpj.guess.pha$weights$weight.precip)), size=2) +
+	labs(x="Year", y="dAGB kg/m2", title="Drivers through Time: LPJ-GUESS, PHA, 0850-2010") +
 	theme_bw() + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
 dev.off()
 
 
-# 600 years pre-1850 at PHA
-pdf(file.path(fig.dir, "Non-StationaryDrivers_LPJ-GUESS_AGB_Annual_1350-1850.pdf"), width=11, height=8.5)
-ggplot(data=gam.lpj.guess$data[gam.lpj.guess$data$Site=="PHA" & gam.lpj.guess$data$Year>=1350 & gam.lpj.guess$data$Year<=1850,]) + facet_wrap(~Site) +
-	geom_line(aes(x=Year, y=response), color="gray50", size=2) +
-	geom_line(data=gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA" & gam.lpj.guess$data$Year>=1350 & gam.lpj.guess$data$Year<=1850,], aes(x=Year, y=fit), 
-			  color=rgb(abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA" & gam.lpj.guess$data$Year>=1350 & gam.lpj.guess$data$Year<=1850,"temp"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA" & gam.lpj.guess$data$Year>=1350 & gam.lpj.guess$data$Year<=1850,"co2"]),
-			  			abs(gam.lpj.guess$weights[gam.lpj.guess$weights$Site=="PHA" & gam.lpj.guess$data$Year>=1350 & gam.lpj.guess$data$Year<=1850,"precip"])), size=4) +
-	labs(x="Year", y="AGB kg/m2", title="Non-Stationary Drivers of AGB, LPJ-GUESS, Annual") +
+pdf(file.path(fig.dir, "GAMM_DriverTime_LPJ-GUESS_dAGB_PHA_1900-2010.pdf"), width=11, height=8.5)
+ggplot(data= gam.lpj.guess.pha$weights) + facet_wrap(~Site) +
+	geom_line(data= gam.lpj.guess.pha$data, aes(x=Year, y=response), color="gray50", alpha=0.5, size=2) +
+	# geom_line(aes(x=Year, y=fit, color=rgb(abs(weight.temp), abs(weight.co2), abs(weight.precip))), size=4) + 
+	geom_line(aes(x=Year, y=fit),
+			  color=rgb(abs(gam.lpj.guess.pha$weights$weight.temp),
+			  			abs(gam.lpj.guess.pha$weights$weight.co2),
+			  			abs(gam.lpj.guess.pha$weights$weight.precip)), size=2) +
+	scale_x_continuous(limits=c(1900,2010)) +
+	labs(x="Year", y="dAGB kg/m2", title="Drivers through Time: LPJ-GUESS, PHA, 1900-2010") +
+	theme_bw() + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
+dev.off()
+
+pdf(file.path(fig.dir, "GAMM_DriverTime_LPJ-GUESS_dAGB_PHA_1800-1900.pdf"), width=11, height=8.5)
+ggplot(data= gam.lpj.guess.pha$weights) + facet_wrap(~Site) +
+	geom_line(data= gam.lpj.guess.pha$data, aes(x=Year, y=response), color="gray50", alpha=0.5, size=2) +
+	# geom_line(aes(x=Year, y=fit, color=rgb(abs(weight.temp), abs(weight.co2), abs(weight.precip))), size=4) + 
+	geom_line(aes(x=Year, y=fit),
+			  color=rgb(abs(gam.lpj.guess.pha$weights$weight.temp),
+			  			abs(gam.lpj.guess.pha$weights$weight.co2),
+			  			abs(gam.lpj.guess.pha$weights$weight.precip)), size=2) +
+	scale_x_continuous(limits=c(1800,1900)) +
+	labs(x="Year", y="dAGB kg/m2", title="Drivers through Time: LPJ-GUESS, PHA, 1800-1900") +
 	theme_bw() + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
 dev.off()
 
