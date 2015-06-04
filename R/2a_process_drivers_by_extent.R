@@ -51,7 +51,7 @@
 # ----------------------------------------
 library(ncdf4)
 library(lme4)
-library(R2jags)
+# library(R2jags)
 library(ggplot2); library(grid)
 library(car)
 library(zoo)
@@ -200,11 +200,11 @@ for(t in 1:length(scales)){
 } # end extent
 	save(mod.out, file=file.path(out.dir, paste("gamm", m.name, v, "Rdata", sep=".")))
 	# assign(paste("gamm", m.name, v, sep="."), mod.out)
+col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
 
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v, "_0850-2010", ".pdf")))
-	col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
-	# ggplot(data= mod.out$ci.response) + facet_wrap(~Scale, scales="free") + theme_bw() +
- ggplot(data=mod.out$ci.response[mod.out$ci.response$Scale=="t.001",]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
+print(
+ggplot(data=mod.out$ci.response[mod.out$ci.response$Scale=="t.001",]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
  		geom_line(data= mod.out$data[mod.out$data$Scale=="t.001",], aes(x=Year, y=response), alpha=0.5) +
 		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 		geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
@@ -212,12 +212,13 @@ pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v
 		# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
 		# scale_fill_manual(values=col.model) +
 		# scale_color_manual(values=col.model) +		
-		labs(title=paste0(var, ": ", m.name), x="Year", y=var)
+		labs(title=paste0(var, ": ", m.order), x="Year", y=var)
+)
 dev.off()
 
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v, "_1990-2010", ".pdf")))
-	col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
-	ggplot(data=mod.out$ci.response[mod.out$ci.response$Scale=="t.001",]) + facet_wrap(~Site, scales="free") + theme_bw() +
+print(	
+ggplot(data=mod.out$ci.response[mod.out$ci.response$Scale=="t.001",]) + facet_wrap(~Site, scales="free") + theme_bw() +
  		geom_line(data=mod.out$data[mod.out$data$Scale=="t.001",], aes(x=Year, y=response), size=1.5, alpha=0.5) +
 		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
 		geom_line(aes(x=Year, y=mean, color=Extent), size=1) +
@@ -225,19 +226,21 @@ pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v
 		# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 		# scale_fill_manual(values=col.model) +
 		# scale_color_manual(values=col.model) +		
-		labs(title=paste0(var, ": ", m.name), x="Year", y=var)
+		labs(title=paste0(var, ": ", m.order), x="Year", y=var)
+)
 dev.off()
 
 
 pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Extent_", m.order, "_", v, ".pdf")))
-	# ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +
- 	ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Scale=="t.001",]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
+print(
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Scale=="t.001",]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
 		geom_line(aes(x=x, y=mean, color=Extent), size=2) +
 		geom_hline(yintercept=0, linetype="dashed") +
 		# scale_color_manual(values=c("red2", "blue", "green3")) +
 		# scale_fill_manual(values=c("red2", "blue", "green3")) +
 		labs(title=paste0("Driver Effects: ",m.order), y="Effect Size") # +
 		# theme(legend.position=c(0.75,0.3), legend.text=element_text(size=rel(1)), legend.title=element_text(size=rel(1)), legend.key.size=unit(1.5, "line"))
+)
 dev.off()
 
 

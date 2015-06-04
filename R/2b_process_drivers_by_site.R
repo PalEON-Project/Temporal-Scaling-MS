@@ -149,8 +149,8 @@ t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
 
 extent <- c(850, 2010)
 
-out.dir   <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms/LPJ-GUESS/"
-fig.dir  <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures/gamms/LPJ-GUESS/"
+# out.dir   <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms/LPJ-GUESS/"
+# fig.dir  <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures/gamms/LPJ-GUESS/"
 
 for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
@@ -164,6 +164,8 @@ for(m in 1:length(model.name)){
 	print(" ")
 	print(       "      ----------------------      ")
 	print(paste0("------ Processing Model: ",m.name, " ------"))
+	print(paste0("------ Fig Dir: ",fig.dir, " ------"))
+	print(paste0("------ Dat Dir: ",out.dir, " ------"))
 
 for(v in var){
 	print(" ")
@@ -204,103 +206,58 @@ for(s in 1:length(sites)){
 } # end scales
 	save(mod.out, file=file.path(out.dir, paste("gamm", m.name, v, "Rdata", sep=".")))
 	# assign(paste("gamm", model.name, var, sep="."), mod.out)
-} # end var
-} # end model
 
-# save(mod.out.AGB.diff, file=file.path(out.dir, "mod.out.dAGB.Rdata"))
-# save(mod.out.NPP, file=file.path(out.dir, "mod.out.NPP.Rdata"))
 
-summary(mod.out)
-summary(mod.out$data)
+# summary(mod.out)
+# summary(mod.out$data)
+col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
 
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Site_", m.order, "_", v, "_0850-2010", ".pdf")))
-	col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
+print(
 	ggplot(data= mod.out$ci.response) + facet_grid(Scale~Site, scales="free") + theme_bw() +
 		geom_line(data= mod.out$data, aes(x=Year, y=response), alpha=0.5) +
 		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 		geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
-		scale_x_continuous(limits=c(850,2010)) +
+		scale_x_continuous(limits=c(850,2010), breaks=c(1300,1800)) +
 		# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
 		# scale_fill_manual(values=col.model) +
 		# scale_color_manual(values=col.model) +		
 		labs(title=paste0(var, ": ", m.order, " 0850-2010"), x="Year", y=var)
+		)
 dev.off()
 
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Site_", m.order, "_", v, "_1900-2010", ".pdf")))
-	col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
+print(
 	ggplot(data= mod.out$ci.response) + facet_grid(Scale~Site, scales="free") + theme_bw() +
 		geom_line(data= mod.out$data, aes(x=Year, y=response), size=1.5, alpha=0.5) +
 		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 		geom_line(aes(x=Year, y=mean), size=1, color= col.model) +
-		scale_x_continuous(limits=c(1901,2010)) +
+		scale_x_continuous(limits=c(1901,2010), breaks=c(1925,1975)) +
 		# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 		# scale_fill_manual(values=col.model) +
 		# scale_color_manual(values=col.model) +		
 		labs(title=paste0(var, ": ", m.order, " 1900-2010"), x="Year", y=var)
+		)
 dev.off()
 
 
-summary(mod.out$ci.terms)
+# summary(mod.out$ci.terms)
 
 pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Site_", m.order, "_", v, ".pdf")))
-	# ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +
- 	# ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Scale=="t.001",]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
+print(
  	ggplot(data=mod.out$ci.terms[,]) + facet_wrap(Scale ~ Effect, scales="free", ncol=3) + theme_bw() +		
  		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
 		geom_line(aes(x=x, y=mean, color=Site), size=2) +
 		geom_hline(yintercept=0, linetype="dashed") +
 		# scale_color_manual(values=c("red2", "blue", "green3")) +
 		# scale_fill_manual(values=c("red2", "blue", "green3")) +
-		labs(title=paste0("Driver Effects: ",m.order), y="Effect Size") # +
-		# theme(legend.position=c(0.75,0.3), legend.text=element_text(size=rel(1)), legend.title=element_text(size=rel(1)), legend.key.size=unit(1.5, "line"))
+		labs(title=paste0("Driver Effects: ",m.order), y="Effect Size")  +
+		theme(axis.text.x=element_text(angle=0, color="black", size=rel(0.5)), axis.text.y=element_text(color="black", size=rel(0.5)), axis.title.x=element_text(face="bold", size=rel(0.75)),  axis.title.y=element_text(face="bold", size=rel(0.75)))
+)
 dev.off()
 
-# pdf(file.path(fig.dir, "GAMM_DriverEffects_LPJ-GUESS_NPP_CO2.pdf"))
-	# # ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +
- 	# ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +		
- 		# geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
-		# geom_line(aes(x=x, y=mean, color=Site), size=2) +
-		# geom_hline(yintercept=0, linetype="dashed") +
-		# # scale_color_manual(values=c("red2", "blue", "green3")) +
-		# # scale_fill_manual(values=c("red2", "blue", "green3")) +
-		# labs(title="Driver Effects: LPJ-GUESS", y="Effect Size", x="CO2") # +
-		# # theme(legend.position=c(0.75,0.3), legend.text=element_text(size=rel(1)), legend.title=element_text(size=rel(1)), legend.key.size=unit(1.5, "line"))
-# dev.off()
-
-# pdf(file.path(fig.dir, "GAMM_DriverEffects_LPJ-GUESS_NPP_Temp.pdf"))
-	# # ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +
- 	# ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="Temp",]) + 
- 		# # facet_grid(Effect ~ Scale, scales="free") + theme_bw() +		
-		# facet_grid(Scale ~ Effect, scales="free") + theme_bw() +		
- 		# geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
-		# geom_line(aes(x=x, y=mean, color=Site), size=2) +
-		# geom_hline(yintercept=0, linetype="dashed") +
-		# # scale_color_manual(values=c("red2", "blue", "green3")) +
-		# # scale_fill_manual(values=c("red2", "blue", "green3")) +
-		# labs(title="Driver Effects: LPJ-GUESS", y="Effect Size", x="Temp (K)") # +
-		# # theme(legend.position=c(0.75,0.3), legend.text=element_text(size=rel(1)), legend.title=element_text(size=rel(1)), legend.key.size=unit(1.5, "line"))
-# dev.off()
-
-# pdf(file.path(fig.dir, "GAMM_DriverEffects_LPJ-GUESS_NPP_Precip.pdf"))
-	# # ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +
- 	# ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="Precip",]) + 
- 		# # facet_grid(Effect ~ Scale, scales="free") + theme_bw() +		
-		# facet_grid(Scale ~ Effect, scales="free") + theme_bw() +		
- 		# geom_ribbon(aes(x=x, ymin=lwr*sec2yr, ymax=upr*sec2yr, fill=Site), alpha=0.5) +
-		# geom_line(aes(x=x, y=mean*sec2yr, color=Site), size=2) +
-		# geom_hline(yintercept=0, linetype="dashed") +
-		# # scale_color_manual(values=c("red2", "blue", "green3")) +
-		# # scale_fill_manual(values=c("red2", "blue", "green3")) +
-		# labs(title="Driver Effects: LPJ-GUESS", y="Effect Size", x="Precip (mm/yr)") # +
-		# # theme(legend.position=c(0.75,0.3), legend.text=element_text(size=rel(1)), legend.title=element_text(size=rel(1)), legend.key.size=unit(1.5, "line"))
-# dev.off()
-
-# summary(gam.lpj.guess.pha$weights)
-# gam.lpj.guess.pha$weights$Year <- gam.lpj.guess.pha$data$Year
-
-# site="PHA"
-# df=mod.out
 pdf(file.path(fig.dir, paste0("GAMM_DriverTime_Site_", m.order, "_", v, "_0850-2010.pdf")))
+print(
 ggplot(data= mod.out$weights) + facet_grid(Scale~Site, scales="free") +
 	geom_line(data= mod.out$data, aes(x=Year, y=response), color="gray50", alpha=0.5, size=2) +
 	rgb.line2(df=mod.out, site="PHA", scale="t.001", size=2) +
@@ -339,13 +296,15 @@ ggplot(data= mod.out$weights) + facet_grid(Scale~Site, scales="free") +
 	rgb.line2(df=mod.out, site="PMB", scale="t.100", size=2) +
 	rgb.line2(df=mod.out, site="PMB", scale="t.250", size=2) +
 
-	labs(x="Year", y="NPP kgC/m2/s", title="Drivers through Time: LPJ-GUESS, 0850-2010") +
-	scale_x_continuous(limits=c(850,2010)) +
+	labs(x="Year", y=v, title=paste0("Driver Effects through Time: ",m.order, ", 0850-2010")) +
+	scale_x_continuous(limits=c(850,2010), breaks=c(1300,1800)) +
 	scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
-	theme_bw() + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
+	theme_bw() # + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
+)
 dev.off()
 
 pdf(file.path(fig.dir, paste0("GAMM_DriverTime_Site_", m.order, "_", v, "_1900-2010.pdf")))
+print(
 ggplot(data= mod.out$weights) + facet_grid(Scale~Site, scales="free") +
 	geom_line(data= mod.out$data, aes(x=Year, y=response), color="gray50", alpha=0.5, size=2) +
 	rgb.line2(df=mod.out, site="PHA", scale="t.001", size=2) +
@@ -384,13 +343,15 @@ ggplot(data= mod.out$weights) + facet_grid(Scale~Site, scales="free") +
 	rgb.line2(df=mod.out, site="PMB", scale="t.100", size=2) +
 	rgb.line2(df=mod.out, site="PMB", scale="t.250", size=2) +
 
-	labs(x="Year", y="NPP kgC/m2/s", title="Drivers through Time: LPJ-GUESS, 1900-2010") +
-	scale_x_continuous(limits=c(1900,2010)) +
+	labs(x="Year", y=v, title=paste0("Driver Effects through Time: ",m.order, ", 1900-2010")) +
+	scale_x_continuous(limits=c(1900,2010), breaks=c(1925,1975)) +
 	scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-	theme_bw() + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
+	theme_bw() # + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
+)
 dev.off()
 
 pdf(file.path(fig.dir, paste0("GAMM_DriverTime_Site_", m.order, "_", v, "_1800-1900.pdf")))
+print(
 ggplot(data= mod.out$weights) + facet_grid(Scale~Site, scales="free") +
 	geom_line(data= mod.out$data, aes(x=Year, y=response), color="gray50", alpha=0.5, size=2) +
 	rgb.line2(df=mod.out, site="PHA", scale="t.001", size=2) +
@@ -429,14 +390,19 @@ ggplot(data= mod.out$weights) + facet_grid(Scale~Site, scales="free") +
 	rgb.line2(df=mod.out, site="PMB", scale="t.100", size=2) +
 	rgb.line2(df=mod.out, site="PMB", scale="t.250", size=2) +
 
-	labs(x="Year", y="NPP kgC/m2/s", title="Drivers through Time: LPJ-GUESS, 1800-1900") +
-	scale_x_continuous(limits=c(1800,1900)) +
+	labs(x="Year", y=v, title=paste0("Driver Effects through Time: ",m.order, ", 1800-1900")) +
+	scale_x_continuous(limits=c(1800,1900), breaks=c(1825,1875)) +
 	scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1800 & mod.out$data$Year<=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-	theme_bw() + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
+	theme_bw() #+ theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
+)
 dev.off()
 
 } # end var
 } # end model
+
+# save(mod.out.AGB.diff, file=file.path(out.dir, "mod.out.dAGB.Rdata"))
+# save(mod.out.NPP, file=file.path(out.dir, "mod.out.NPP.Rdata"))
+
 
 # ------------------------
 
