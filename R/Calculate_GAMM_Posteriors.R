@@ -20,7 +20,7 @@ post.distns <- function(model.gam, newdata, n=1000, terms=T, sites=F, lwr=0.025,
 	Xp <- predict(model.gam, newdata=newdata, type="lpmatrix")
 
 	# Some handy column indices
-	cols.site <- if(sites==T) which(substr(names(coef.gam),1,4)=="Site") else 1
+	cols.site   <- which(substr(names(coef.gam),1,4)=="Site" | substr(names(coef.gam),1,11)=="(Intercept)")
 	cols.temp   <- which(substr(names(coef.gam),1,7)=="s(Temp)")
 	cols.precip <- which(substr(names(coef.gam),1,9)=="s(Precip)")
 	cols.co2    <- which(substr(names(coef.gam),1,6)=="s(CO2)")

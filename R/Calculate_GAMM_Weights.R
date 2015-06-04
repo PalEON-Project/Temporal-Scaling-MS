@@ -11,7 +11,7 @@ factor.weights <- function(model.gam, newdata, extent, sites=F){
 	coef.gam <- coef(model.gam) # the gam coefficients
 	
 	# Some handy column indices
-	cols.site <- if(sites==T) which(substr(names(coef.gam),1,4)=="Site") else 1
+	cols.site   <- which(substr(names(coef.gam),1,4)=="Site" | substr(names(coef.gam),1,11)=="(Intercept)")
 	cols.temp   <- which(substr(names(coef.gam),1,7)=="s(Temp)")
 	cols.precip <- which(substr(names(coef.gam),1,9)=="s(Precip)")
 	cols.co2    <- which(substr(names(coef.gam),1,6)=="s(CO2)")
