@@ -1,5 +1,6 @@
-model.site.gam <- function(	data, model.name, site, response, scale="", k=4, outdir, 
-						  	fweights=T, ci.model=T, ci.terms=T){
+model.site.gam <- function(	data, model.name, site, response, scale="", extent=c(850,2010), k=4, 
+						  	fweights=T, ci.model=T, ci.terms=T,
+						  	write.out=T, outdir=""){
 	# data     = data frame with data.temp in it
 	# model.name    = which model.name to subset
 	# response = which variable to use as response in the gam
@@ -16,7 +17,7 @@ model.site.gam <- function(	data, model.name, site, response, scale="", k=4, out
 	# creating a working data.temp frame with just the data.temp we want
 	t.scale <- ifelse(scale=="", "t.001", paste0("t", scale))
 
-	data.temp          <- data[data$Model==model.name & data$Site==site, c("Model", "Updated", "Model.Order", "Site", "Year")]
+	data.temp          <- data[data$Model==model.name & data$Site==site, c("Model", "Updated", "Model.Order", "Site", "Extent", "Year")]
 	data.temp$Scale    <- as.factor(t.scale)
 	data.temp$response <- data[data$Model==model.name & data$Site==site, paste0(response, scale)]
 	data.temp$Temp     <- data[data$Model==model.name & data$Site==site, paste0("Temp", scale)]	
@@ -63,7 +64,9 @@ model.site.gam <- function(	data, model.name, site, response, scale="", k=4, out
 	if(ci.terms==T){
 		n.out = 200
 		
-		new.dat <- data.frame(Site=rep(site, n.out), Scale=rep(t.scale, n.out),
+		new.dat <- data.frame(	Site=rep(site, n.out), 
+								Extent=as.factor(paste(extent[1], extent[2], sep="-")),
+								Scale=rep(t.scale, n.out),
 							    Temp  =seq(min(data.temp$Temp,   na.rm=T), max(data.temp$Temp,   na.rm=T), length.out=n.out),
 								Precip=seq(min(data.temp$Precip, na.rm=T), max(data.temp$Precip, na.rm=T), length.out=n.out),
 								CO2   =seq(min(data.temp$CO2,    na.rm=T), max(data.temp$CO2,    na.rm=T), length.out=n.out))
@@ -74,7 +77,7 @@ model.site.gam <- function(	data, model.name, site, response, scale="", k=4, out
 	# -----------
 	
 	
-	save(out, file=file.path(outdir, paste("gamm", model.name, response, ifelse(scale=="","001", scale), site, "Rdata", sep=".")))
+	if(write.out==T) save(out, file=file.path(outdir, paste("gamm", model.name, response, ifelse(scale=="","001", scale), site, "Rdata", sep=".")))
 	return(out)
 	# -----------
 

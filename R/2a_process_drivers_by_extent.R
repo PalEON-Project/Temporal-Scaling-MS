@@ -68,9 +68,9 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Desktop/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
+fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
 # ----------------------------------------
 
 
@@ -86,9 +86,9 @@ load(file.path(path.data, "EcosysData.Rdata"))
 # 	predict.gamm.mode.R		= function to get overal m.name responses with random site effects 
 # 	Note: these two functions were split because they now incorporate AR1 autocorrelation that can make the 
 #		  overal m.name fitting with random site effects very slow
-source('~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.site.R', chdir = TRUE)
-source('~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.R', chdir = TRUE)
-source('~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/GAMM_Plots.R', chdir = TRUE)
+source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.site.R', chdir = TRUE)
+source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.R', chdir = TRUE)
+source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/GAMM_Plots.R', chdir = TRUE)
 # ----------------------------------------
 
 
@@ -131,8 +131,8 @@ library(mgcv)
 # ------------------------------------------------
 # All Sites: (for 1 site, see m.name selection script)
 # ------------------------------------------------
-data.base="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms"
-fig.base="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms"
+data.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms"
+fig.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms"
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Extent
@@ -202,27 +202,27 @@ for(t in 1:length(scales)){
 	# assign(paste("gamm", m.name, v, sep="."), mod.out)
 
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v, "_0850-2010", ".pdf")))
-	col.model <- model.colors[model.colors$Model.Order %in% unique(gamm.lpj.guess$data$Model.Order),"color"]
-	# ggplot(data= gamm.lpj.guess$ci.response) + facet_wrap(~Scale, scales="free") + theme_bw() +
- ggplot(data=gamm.lpj.guess$ci.response[gamm.lpj.guess$ci.response$Scale=="t.001",]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
- 		geom_line(data= gamm.lpj.guess$data[gamm.lpj.guess$data$Scale=="t.001",], aes(x=Year, y=response), alpha=0.5) +
+	col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
+	# ggplot(data= mod.out$ci.response) + facet_wrap(~Scale, scales="free") + theme_bw() +
+ ggplot(data=mod.out$ci.response[mod.out$ci.response$Scale=="t.001",]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
+ 		geom_line(data= mod.out$data[mod.out$data$Scale=="t.001",], aes(x=Year, y=response), alpha=0.5) +
 		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 		geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 		# scale_x_continuous(limits=c(850,2010)) +
-		# scale_y_continuous(limits=quantile(gamm.lpj.guess$data$response, c(0.01, 0.99),na.rm=T)) +
+		# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
 		# scale_fill_manual(values=col.model) +
 		# scale_color_manual(values=col.model) +		
 		labs(title=paste0(var, ": ", m.name), x="Year", y=var)
 dev.off()
 
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v, "_1990-2010", ".pdf")))
-	col.model <- model.colors[model.colors$Model.Order %in% unique(df$data$Model.Order),"color"]
-	ggplot(data=gamm.lpj.guess$ci.response[gamm.lpj.guess$ci.response$Scale=="t.001",]) + facet_wrap(~Site, scales="free") + theme_bw() +
- 		geom_line(data=gamm.lpj.guess$data[gamm.lpj.guess$data$Scale=="t.001",], aes(x=Year, y=response), size=1.5, alpha=0.5) +
+	col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
+	ggplot(data=mod.out$ci.response[mod.out$ci.response$Scale=="t.001",]) + facet_wrap(~Site, scales="free") + theme_bw() +
+ 		geom_line(data=mod.out$data[mod.out$data$Scale=="t.001",], aes(x=Year, y=response), size=1.5, alpha=0.5) +
 		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
 		geom_line(aes(x=Year, y=mean, color=Extent), size=1) +
 		scale_x_continuous(limits=c(1990,2010)) +
-		# scale_y_continuous(limits=quantile(gamm.lpj.guess$data[gamm.lpj.guess$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+		# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 		# scale_fill_manual(values=col.model) +
 		# scale_color_manual(values=col.model) +		
 		labs(title=paste0(var, ": ", m.name), x="Year", y=var)
@@ -230,8 +230,8 @@ dev.off()
 
 
 pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Extent_", m.order, "_", v, ".pdf")))
-	# ggplot(data=gamm.lpj.guess$ci.terms[gamm.lpj.guess$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +
- 	ggplot(data=gamm.lpj.guess$ci.terms[gamm.lpj.guess$ci.terms$Scale=="t.001",]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
+	# ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +
+ 	ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Scale=="t.001",]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
 		geom_line(aes(x=x, y=mean, color=Extent), size=2) +
 		geom_hline(yintercept=0, linetype="dashed") +
 		# scale_color_manual(values=c("red2", "blue", "green3")) +
@@ -244,6 +244,6 @@ dev.off()
 } # end var
 } # end model
 
-# save(gamm.lpj.guess.AGB.diff, file=file.path(out.dir, "gamm.lpj.guess.dAGB.Rdata"))
-# save(gamm.lpj.guess.NPP, file=file.path(out.dir, "gamm.lpj.guess.NPP.Rdata"))
+# save(mod.out.AGB.diff, file=file.path(out.dir, "mod.out.dAGB.Rdata"))
+# save(mod.out.NPP, file=file.path(out.dir, "mod.out.NPP.Rdata"))
 
