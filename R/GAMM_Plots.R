@@ -19,3 +19,13 @@ rgb.line <- function(df, site, size){
                         abs(df$weights[df$weights$Site==site, "weight.precip"])), size=size)
 
 }
+
+
+rgb.line2 <- function(df, site, size, scale){
+	
+	geom_line(data=df$weights[!is.na(df$weights$fit) & df$weights$Site==site & df$weights$Scale==scale, ], aes(x=Year, y=fit),
+	          color=rgb(abs(df$weights[!is.na(df$weights$fit) & df$weights$Site==site & df$weights$Scale==scale, "weight.temp"]),
+                        abs(df$weights[!is.na(df$weights$fit) & df$weights$Site==site & df$weights$Scale==scale, "weight.co2"]),
+                        abs(df$weights[!is.na(df$weights$fit) & df$weights$Site==site & df$weights$Scale==scale, "weight.precip"])), size=size)
+
+}

@@ -28,7 +28,9 @@ model.site.gam <- function(	data, model.name, site, response, scale="", k=4, out
 	# Running the basic model.name
 	# -----------
 	# Running the gamm; note this now has AR1 temporal autocorrelation
-	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) , data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0,sing.tol=1e-20))
+	# control=list(niterEM=0,opt="optim")
+	# gam2 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k), data=data.temp)
 	print(summary(gam1$gam))	
 
 	# Storing the predicted values from the gam
@@ -62,9 +64,9 @@ model.site.gam <- function(	data, model.name, site, response, scale="", k=4, out
 		n.out = 200
 		
 		new.dat <- data.frame(Site=rep(site, n.out), Scale=rep(t.scale, n.out),
-							    Temp  =seq(min(data.temp$Temp),   max(data.temp$Temp),   length.out=n.out),
-								Precip=seq(min(data.temp$Precip), max(data.temp$Precip), length.out=n.out),
-								CO2   =seq(min(data.temp$CO2),    max(data.temp$CO2),    length.out=n.out))
+							    Temp  =seq(min(data.temp$Temp,   na.rm=T), max(data.temp$Temp,   na.rm=T), length.out=n.out),
+								Precip=seq(min(data.temp$Precip, na.rm=T), max(data.temp$Precip, na.rm=T), length.out=n.out),
+								CO2   =seq(min(data.temp$CO2,    na.rm=T), max(data.temp$CO2,    na.rm=T), length.out=n.out))
 		ci.terms.pred <- post.distns(model.gam=gam1, newdata=new.dat, terms=T, sites=F)
 
 		out[["ci.terms"]] <- ci.terms.pred 
