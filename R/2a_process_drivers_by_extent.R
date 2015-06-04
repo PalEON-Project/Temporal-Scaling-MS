@@ -201,7 +201,7 @@ for(t in 1:length(scales)){
 	save(mod.out, file=file.path(out.dir, paste("gamm", m.name, v, "Rdata", sep=".")))
 	# assign(paste("gamm", m.name, v, sep="."), mod.out)
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_", m.order, "_", v, "_0850-2010", ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v, "_0850-2010", ".pdf")))
 	col.model <- model.colors[model.colors$Model.Order %in% unique(gamm.lpj.guess$data$Model.Order),"color"]
 	# ggplot(data= gamm.lpj.guess$ci.response) + facet_wrap(~Scale, scales="free") + theme_bw() +
  ggplot(data=gamm.lpj.guess$ci.response[gamm.lpj.guess$ci.response$Scale=="t.001",]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
@@ -215,7 +215,7 @@ pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_", m.order, "_", v, "_085
 		labs(title=paste0(var, ": ", m.name), x="Year", y=var)
 dev.off()
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_", m.order, "_", v, "_1990-2010", ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v, "_1990-2010", ".pdf")))
 	col.model <- model.colors[model.colors$Model.Order %in% unique(df$data$Model.Order),"color"]
 	ggplot(data=gamm.lpj.guess$ci.response[gamm.lpj.guess$ci.response$Scale=="t.001",]) + facet_wrap(~Site, scales="free") + theme_bw() +
  		geom_line(data=gamm.lpj.guess$data[gamm.lpj.guess$data$Scale=="t.001",], aes(x=Year, y=response), size=1.5, alpha=0.5) +
@@ -229,7 +229,7 @@ pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_", m.order, "_", v, "_199
 dev.off()
 
 
-pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_", m.order, "_", v, ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Extent_", m.order, "_", v, ".pdf")))
 	# ggplot(data=gamm.lpj.guess$ci.terms[gamm.lpj.guess$ci.terms$Effect=="CO2",]) + facet_grid(Effect ~ Scale, scales="free") + theme_bw() +
  	ggplot(data=gamm.lpj.guess$ci.terms[gamm.lpj.guess$ci.terms$Scale=="t.001",]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
 		geom_line(aes(x=x, y=mean, color=Extent), size=2) +
