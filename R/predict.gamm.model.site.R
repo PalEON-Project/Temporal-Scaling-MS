@@ -29,8 +29,8 @@ model.site.gam <- function(	data, model.name, site, response, scale="", extent=c
 	# Running the basic model.name
 	# -----------
 	# Running the gamm; note this now has AR1 temporal autocorrelation
-	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) , data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0,sing.tol=1e-20))
-	# control=list(niterEM=0,opt="optim")
+	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) , data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+	# control=list(niterEM=0,sing.tol=1e-20)
 	# gam2 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k), data=data.temp)
 	print(summary(gam1$gam))	
 

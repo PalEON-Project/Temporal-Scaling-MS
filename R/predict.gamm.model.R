@@ -30,8 +30,10 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	#   regardless of the site.  
 	#   Pros: Generalized and helps characterize the basic model.name
 	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
-	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0,sing.tol=1e-20))
-	print(summary(gam1$gam))	
+	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+	# control=list(niterEM=0,sing.tol=1e-20)
+  #control=list(opt="optim")
+  print(summary(gam1$gam))	
 
 	# Storing the predicted values from the gam
 	data.temp$fit.gam <- predict(gam1$gam, newdata= data.temp)
