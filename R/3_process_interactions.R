@@ -229,7 +229,7 @@ plot(out.mcmc)
 dev.off()
 
 # Write a data frame with the coefficient 95% ci from the full jags output
-coefs.out <- data.frame(var=row.names(summary(out.mcmc)$quantiles), mean=summary(out.mcmc)$statistics[,"Mean"], CI.025=summary(out.mcmc)$quantiles[,"2.5%"], CI.975=summary(out.mcmc)$quantiles[,"97.5%"])
+coefs.out <- data.frame(Model=m.name, var=row.names(summary(out.mcmc)$quantiles), mean=summary(out.mcmc)$statistics[,"Mean"], CI.025=summary(out.mcmc)$quantiles[,"2.5%"], CI.975=summary(out.mcmc)$quantiles[,"97.5%"])
 coefs.out$Scale <- as.factor(ifelse(substr(coefs.out$var,1,4)=="beta", substr(coefs.out$var,7,7), NA))
 coefs.out$Scale <- recode(coefs.out$Scale, "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'")
 coefs.out$var2 <- as.factor(substr(coefs.out$var, 1, 5))
@@ -241,7 +241,7 @@ out[["ci.coeff"]] <- coefs.out
 # -----------------------
 # Pull from the MCMC iterations
 # -----------------------
-pulls <- 500
+pulls <- 250
 y.predict1 <- array(dim=c(n, pulls))
 betas.samp <- data.frame(array(dim=c(n,0)))
 
@@ -279,10 +279,11 @@ for(i in 1:pulls){
 	}
 }
 
-out.analy <- data.frame(Scale=recode(T.SCALE, "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"), Site=rep(dat$Site, nt), Year=rep(dat$Year, nt), Response=y, CO2=CO2, Temp=TEMP, Precip=PRECIP, Pred.y=apply(y.predict1, 1, mean, na.rm=T), Pred.LB=apply(y.predict1, 1, quantile, 0.025, na.rm=T), Pred.UB=apply(y.predict1, 1, quantile, 0.975, na.rm=T))
+out.analy <- data.frame(Model=m.name, Scale=recode(T.SCALE, "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"), Site=rep(dat$Site, nt), Year=rep(dat$Year, nt), Response=y, CO2=CO2, Temp=TEMP, Precip=PRECIP, Pred.y=apply(y.predict1, 1, mean, na.rm=T), Pred.LB=apply(y.predict1, 1, quantile, 0.025, na.rm=T), Pred.UB=apply(y.predict1, 1, quantile, 0.975, na.rm=T))
 
 betas.samp2 <- stack(betas.samp)[,c(2,1)]
 names(betas.samp2) <- c("beta.name", "value")
+betas.samp2$Model <- as.factor(m.name)
 betas.samp2$Beta <- as.factor(substr(betas.samp2$beta.name, 1, 5))
 betas.samp2$Scale <- as.factor(recode(substr(betas.samp2$beta.name,7,7), "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"))
 betas.samp2$Interaction <- betas.samp2$Beta
@@ -315,7 +316,9 @@ ggplot(betas.samp2[,]) + facet_grid(Interaction~., scales="free") +
 )
 dev.off()
 
-save(m.out, file=file.path(data.base, paste0("Interactions_", m.order, "_", v, ".RData")))
+# summary(eval(parse(text=(paste("mcmc", m.name, v, sep=".")))))
+# assign(paste("mcmc", m.name, v, sep="."), out)
+save(out, file=file.path(data.base, paste0("Interactions_", m.order, "_", v, ".RData")))
 # save(dat.jags, m.lpj.g, file=file.path(path.data, "Interactions_LPJ-GUESS.RData"))
 # -----------------------
 
