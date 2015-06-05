@@ -9,3 +9,4 @@ R/.Rhistory
 
 *.RData
  Figures/*
+.Rhistory
