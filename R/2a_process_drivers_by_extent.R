@@ -68,9 +68,9 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+setwd("~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+path.data <- "~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
+fig.dir <- "~/Desktop/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
 # ----------------------------------------
 
 
@@ -86,9 +86,16 @@ load(file.path(path.data, "EcosysData.Rdata"))
 # 	predict.gamm.mode.R		= function to get overal m.name responses with random site effects 
 # 	Note: these two functions were split because they now incorporate AR1 autocorrelation that can make the 
 #		  overal m.name fitting with random site effects very slow
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.site.R', chdir = TRUE)
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.R', chdir = TRUE)
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/GAMM_Plots.R', chdir = TRUE)
+source('~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.site.R', chdir = TRUE)
+source('~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.R', chdir = TRUE)
+source('~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/GAMM_Plots.R', chdir = TRUE)
+
+
+# Read in model color scheme
+model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
+levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+model.colors
 # ----------------------------------------
 
 
@@ -131,8 +138,8 @@ library(mgcv)
 # ------------------------------------------------
 # All Sites: (for 1 site, see m.name selection script)
 # ------------------------------------------------
-data.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms"
-fig.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms"
+data.base="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms"
+fig.base="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms"
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Extent
@@ -141,6 +148,12 @@ fig.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/
 sites    <- unique(ecosys$Site)
 model.name    <- unique(ecosys$Model)
 model.order   <- unique(ecosys$Model.Order)
+
+#### crashed on jules.triffid at one point; need to re-run that one alone
+# model.name <- model.name[5:length(model.name)]
+# model.order <- model.order[5:length(model.order)]
+
+
 var <- c("NPP", "AGB.diff")
 # scale    <- ""
 scales <- c("", ".10", ".50", ".100", ".250")
@@ -148,7 +161,7 @@ scales <- c("", ".10", ".50", ".100", ".250")
 t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
 extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
 
-for(m in 1:length(model.name)){
+for(m in 10:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 	out.dir   <- file.path(data.base, m.order, "ByExtent")
@@ -160,6 +173,8 @@ for(m in 1:length(model.name)){
 	print(" ")
 	print(       "      ----------------------      ")
 	print(paste0("------ Processing Model: ",m.name, " ------"))
+
+  if(m.name=="jules.stat") var <- "NPP" else var <- c("NPP", "AGB.diff")
 
 for(v in var){
 	print(" ")
