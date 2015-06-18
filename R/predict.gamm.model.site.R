@@ -53,8 +53,9 @@ model.site.gam <- function(	data, model.name, site, response, scale="", extent=c
 	# Calculating the CI around our response prediction
 	# -----------
 	if(ci.model==T){
-		ci.response <- post.distns(model.gam=gam1, newdata=data.temp, terms=F, sites=F)
-		out[["ci.response"]] <- ci.response 
+		ci.response <- post.distns(model.gam=gam1, model.name=model.name, newdata=data.temp, terms=F, sites=F)
+		out[["ci.response"]] <- ci.response$ci 
+		out[["sim.response"]] <- ci.response$sims 
 	}
 	# -----------
 	
@@ -70,9 +71,10 @@ model.site.gam <- function(	data, model.name, site, response, scale="", extent=c
 							    Temp  =seq(min(data.temp$Temp,   na.rm=T), max(data.temp$Temp,   na.rm=T), length.out=n.out),
 								Precip=seq(min(data.temp$Precip, na.rm=T), max(data.temp$Precip, na.rm=T), length.out=n.out),
 								CO2   =seq(min(data.temp$CO2,    na.rm=T), max(data.temp$CO2,    na.rm=T), length.out=n.out))
-		ci.terms.pred <- post.distns(model.gam=gam1, newdata=new.dat, terms=T, sites=F)
+		ci.terms.pred <- post.distns(model.gam=gam1, model.name=model.name, newdata=new.dat, terms=T, sites=F)
 
-		out[["ci.terms"]] <- ci.terms.pred 
+		out[["ci.terms"]] <- ci.terms.pred$ci 
+		out[["sim.terms"]] <- ci.terms.pred$sims 
 	}	
 	# -----------
 	

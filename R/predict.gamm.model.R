@@ -1,10 +1,11 @@
 model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), k=4, 
-						  	fweights=T, ci.model=T, ci.terms=T,
+						  	fweights=T, ci.model=T, ci.terms=T, n=250
 						  	write.out=T, outdir){
 	# data     = data frame with data.temp in it
 	# model.name    = which model.name to subset
 	# response = which variable to use as response in the gam
 	# k        = number of knots in the spline
+	# n        = number of simulations for generating confidence intervals
 	# outdir   = where to save the .Rdata file
 	library(mgcv)
 	source("R/Calculate_GAMM_Weights.R")
@@ -28,9 +29,10 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	# This is different from model.site.gam in that it has an added random site slope.
 	#	This random effect lets us gauge the overall model.name response to our fixed effects 
 	#   regardless of the site.  
-	#   Pros: Generalized and helps characterize the basic model.name
+	#   Pros: Generalized and helps characterize the basic model responses
 	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
-	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+	# gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	# control=list(niterEM=0,sing.tol=1e-20)
   #control=list(opt="optim")
   print(summary(gam1$gam))	
@@ -43,7 +45,7 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	# Calculating the Factor Weights through time
 	# -----------
 	if(fweights==T){	
-		f.weights <- factor.weights(model.gam=gam1, newdata=data.temp, extent=extent, sites=T); 
+		f.weights <- factor.weights(model.gam=gam1, model.name=model.name, newdata=data.temp, extent=extent, sites=T); 
 		out[["weights"]] <- f.weights 
 	}	
 	# -----------
@@ -52,8 +54,10 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	# Calculating the CI around our response prediction
 	# -----------
 	if(ci.model==T){
-		ci.response <- post.distns(model.gam=gam1, newdata=data.temp, terms=F, sites=T)
-		out[["ci.response"]] <- ci.response 
+		ci.response <- post.distns(model.gam=gam1, model.name=model.name, n=n, newdata=data.temp, terms=F, sites=T)
+		out[["ci.response"]] <- ci.response$ci 
+		out[["sim.response"]] <- ci.response$sims 
+
 	}
 	# -----------
 	
@@ -78,9 +82,10 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 							    Temp  =rep(seq(min(data.temp$Temp,   na.rm=T), max(data.temp$Temp,   na.rm=T), length.out=n.out), ns),
 								Precip=rep(seq(min(data.temp$Precip, na.rm=T), max(data.temp$Precip, na.rm=T), length.out=n.out), ns),
 								CO2   =rep(seq(min(data.temp$CO2,    na.rm=T), max(data.temp$CO2,    na.rm=T), length.out=n.out),ns))
-		ci.terms.pred <- post.distns(model.gam=gam1, newdata=new.dat, terms=T, sites=T)
+		ci.terms.pred <- post.distns(model.gam=gam1, model.name=model.name, n=n, newdata=new.dat, terms=T, sites=T)
 
-		out[["ci.terms"]] <- ci.terms.pred 
+		out[["ci.terms"]] <- ci.terms.pred$ci 
+		out[["sim.terms"]] <- ci.terms.pred$sims 
 	}	
 	# -----------
 	if(write.out==T) save(out, file=file.path(outdir, paste("gamm", model.name, response, ifelse(scale=="",".001", scale), "AllSites", "Rdata", sep=".")))

@@ -1,4 +1,4 @@
-factor.weights <- function(model.gam, newdata, extent, sites=F){
+factor.weights <- function(model.gam, model.name, newdata, extent, sites=F){
 	# If the model.gam is a mixed model.gam (gamm) rather than a normal gam, extract just the gam portion
 	if(class(model.gam)[[1]]=="gamm") model.gam <- model.gam$gam
 	# -----------
@@ -47,7 +47,7 @@ factor.weights <- function(model.gam, newdata, extent, sites=F){
 	fit.spline2 <- abs(fit.co2) + abs(fit.temp) + abs(fit.precip)
 
 	# Factor weights are determined by the relative strength of Temp, Precip, & CO2
-	df.weights <- data.frame(Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year, Temp=newdata$Temp, Precip=newdata$Precip, CO2=newdata$CO2, fit=fit, fit.intercept=fit.int, fit.temp=fit.temp, fit.precip=fit.precip, fit.co2=fit.co2, sd.temp=sd.temp, sd.precip=sd.precip, sd.co2=sd.co2,  fit.spline=fit.spline, weight.co2=fit.co2/fit.spline2, weight.temp=fit.temp/fit.spline2, weight.precip=fit.precip/fit.spline2)
+	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year, Temp=newdata$Temp, Precip=newdata$Precip, CO2=newdata$CO2, fit=fit, fit.intercept=fit.int, fit.temp=fit.temp, fit.precip=fit.precip, fit.co2=fit.co2, sd.temp=sd.temp, sd.precip=sd.precip, sd.co2=sd.co2,  fit.spline=fit.spline, weight.co2=fit.co2/fit.spline2, weight.temp=fit.temp/fit.spline2, weight.precip=fit.precip/fit.spline2)
 	# # Add in a couple factors that are useful if predicting on the old data
 	# if(!is.null(newdata$Year)) df.weights$Year <- newdata$Year 
 	# if(!is.null(newdata$Site)) df.weights$Year <- newdata$Site 
