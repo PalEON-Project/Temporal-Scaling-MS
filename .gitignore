@@ -10,3 +10,5 @@ R/.Rhistory
 *.RData
  Figures/*
 .Rhistory
+
+*.pdf
