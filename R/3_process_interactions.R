@@ -66,6 +66,12 @@ fig.dir <- "~/Desktop/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figure
 # Ecosys file = organized, post-processed model outputs
 #	generated with 1_generate_ecosys.R
 load(file.path(path.data, "EcosysData.Rdata"))
+
+# Read in model color scheme
+model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
+levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+model.colors
 # ----------------------------------------
 
 
@@ -160,7 +166,7 @@ scales <- c("", ".10", ".50", ".100", ".250")
 t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
 extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
 
-for(m in 1:length(model.name)){
+for(m in 10:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 	out.dir   <- file.path(data.base)
@@ -172,6 +178,8 @@ for(m in 1:length(model.name)){
 	print(" ")
 	print(       "      ----------------------      ")
 	print(paste0("------ Processing Model: ",m.name, " ------"))
+
+    if(m.name=="jules.stat") var <- "NPP" else var <- c("NPP", "AGB.diff")
 
 for(v in var){
 	print(" ")
@@ -224,7 +232,7 @@ print(summary(out.mcmc))
 # row.names(summary(out.mcmc)$quantiles)
 # # summary(out.mcmc[,which(substr(dimnames(out.mcmc[[1]])[[2]], 1, 2)=="mu")])
 # summary(out.mcmc)$statistics
-pdf(file.path(fig.dir, paste0("Interactions_TracePlots_", m.order, ".pdf")))
+pdf(file.path(fig.dir, paste0("Interactions_TracePlots_", m.order, "_", v, ".pdf")))
 plot(out.mcmc)
 dev.off()
 
@@ -296,7 +304,7 @@ out[["predicted"]] <- out.analy
 
 col.model <- model.colors[model.colors$Model.Order %in% unique(dat$Model.Order),"color"]
 
-pdf(file.path(fig.dir, paste0("Interactions_TimeFit_", m.order, ".pdf")))
+pdf(file.path(fig.dir, paste0("Interactions_TimeFit_", m.order, "_", v, ".pdf")))
 print(
 ggplot(data=out.analy) + facet_grid(Site ~ Scale) +
 	geom_line(aes(x=Year, y=Response), siz=2)+
@@ -306,7 +314,7 @@ ggplot(data=out.analy) + facet_grid(Site ~ Scale) +
 )
 dev.off()
 
-pdf(file.path(fig.dir, paste0("Interactions_BetasScale_", m.order, ".pdf")))
+pdf(file.path(fig.dir, paste0("Interactions_BetasScale_", m.order, "_", v, ".pdf")))
 print(
 ggplot(betas.samp2[,]) + facet_grid(Interaction~., scales="free") +
 	geom_hline(aes(yintercept=0), color="black") +
