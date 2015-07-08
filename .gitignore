@@ -9,6 +9,7 @@ R/.Rhistory
 
 *.RData
  Figures/*
+ Figures/**
 .Rhistory
 
 *.pdf
