@@ -46,7 +46,7 @@ post.distns <- function(model.gam, model.name, newdata, n, terms=T, sites=F, lwr
 		df.out <- rbind(out.temp, out.precip, out.co2)
 
 		# Creating a data frame storing all the simulations for more robust analyses
-		sim.bind <- rbind(sim.temp, simp.precip, sim.co2)
+		sim.bind <- rbind(sim.temp, sim.precip, sim.co2)
 
 		df.sim <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Effect=c(rep("Temp", length(newdata$Temp)), rep("Precip", length(newdata$Precip)), rep("CO2", length(newdata$CO2))), x=c(newdata$Temp, newdata$Precip, newdata$CO2))
 		df.sim <- cbind(df.sim, sim.bind)

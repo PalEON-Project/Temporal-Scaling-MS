@@ -1,6 +1,6 @@
 model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), k=4, 
-						  	fweights=T, ci.model=T, ci.terms=T, n=250
-						  	write.out=T, outdir){
+						  	fweights=T, ci.model=T, ci.terms=T, n=250,
+						  	write.out=T, outdir, control=list()){
 	# data     = data frame with data.temp in it
 	# model.name    = which model.name to subset
 	# response = which variable to use as response in the gam
@@ -8,8 +8,8 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	# n        = number of simulations for generating confidence intervals
 	# outdir   = where to save the .Rdata file
 	library(mgcv)
-	source("R/Calculate_GAMM_Weights.R")
-	source("R/Calculate_GAMM_Posteriors.R")
+	source("R/0_Calculate_GAMM_Weights.R")
+	source("R/0_Calculate_GAMM_Posteriors.R")
 
 	# creating a working data.temp frame with just the data.temp we want
 	# creating a working data.temp frame with just the data.temp we want
@@ -31,10 +31,9 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	#   regardless of the site.  
 	#   Pros: Generalized and helps characterize the basic model responses
 	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
-	# gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
-	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
-	# control=list(niterEM=0,sing.tol=1e-20)
-  #control=list(opt="optim")
+
+	# Each of the models is having different stability issues
+	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=control)
   print(summary(gam1$gam))	
 
 	# Storing the predicted values from the gam
@@ -65,7 +64,7 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	# Calculating the CI around our response prediction
 	# -----------
 	if(ci.terms==T){
-		n.out = 200
+		n.out = n
 		sites.dat <- unique(data.temp$Site)
 		ns        <- length(sites.dat)
 		for(i in 1:ns){

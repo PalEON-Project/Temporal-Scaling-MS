@@ -68,9 +68,9 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+path.data <- "~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
+fig.dir <- "~/Desktop/Research/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
 # ----------------------------------------
 
 
@@ -86,14 +86,14 @@ load(file.path(path.data, "EcosysData.Rdata"))
 # 	predict.gamm.mode.R		= function to get overal model.name responses with random site effects 
 # 	Note: these two functions were split because they now incorporate AR1 autocorrelation that can make the 
 #		  overal model.name fitting with random site effects very slow
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.site.R', chdir = TRUE)
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/predict.gamm.model.R', chdir = TRUE)
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/GAMM_Plots.R', chdir = TRUE)
+source('~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_predict.gamm.model.site.R', chdir = TRUE)
+source('~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_predict.gamm.model.R', chdir = TRUE)
+source('~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_GAMM_Plots.R', chdir = TRUE)
 
 
 
 # Read in model color scheme
-model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+model.colors <- read.csv("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
 model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
 levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 model.colors
@@ -141,8 +141,8 @@ library(mgcv)
 # ------------------------------------------------
 # All Sites: (for 1 site, see model.name selection script)
 # ------------------------------------------------
-data.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms"
-fig.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms"
+data.base="~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms"
+fig.base="~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms"
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Site
@@ -158,8 +158,8 @@ t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
 
 extent <- c(850, 2010)
 
-# out.dir   <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms/LPJ-GUESS/"
-# fig.dir  <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures/gamms/LPJ-GUESS/"
+# out.dir   <- "~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms/LPJ-GUESS/"
+# fig.dir  <- "~/Desktop/Research/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures/gamms/LPJ-GUESS/"
 
 for(m in 1:length(model.name)){
 	m.name  <- model.name[m]

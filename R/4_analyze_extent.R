@@ -40,72 +40,72 @@ library(zoo)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Desktop/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Data/"
-# fig.dir <- "~/Desktop/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+path.data <- "~/Desktop/Research/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Data/"
+# fig.dir <- "~/Desktop/Research/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
 # ----------------------------------------
 
-# ----------------------------------------
-# Load data files & function scripts
-# ----------------------------------------
-# #------------
-# # Putting all the models into 1 object
-# #------------
-# models <- dir(file.path(path.data, "gamms_byModel"))
+----------------------------------------
+Load data files & function scripts
+----------------------------------------
+#------------
+# Putting all the models into 1 object
+#------------
+models <- dir(file.path(path.data, "gamms_byModel"))
 
-# # By Extent
-# for(m in 1:length(models)){
-	# path.temp <- file.path(path.data, "gamms_byModel", models[m], "byExtent")
-	# dir.temp <- dir(path.temp, "NPP")
-	# load(file.path(path.temp, dir.temp))
+# By Extent
+for(m in 1:length(models)){
+	path.temp <- file.path(path.data, "gamms_byModel", models[m], "byExtent")
+	dir.temp <- dir(path.temp, "NPP")
+	load(file.path(path.temp, dir.temp))
 
-	# model       <- unique(mod.out$data$Model)
-	# model.order <- unique(mod.out$data$Model.Order)
+	model       <- unique(mod.out$data$Model)
+	model.order <- unique(mod.out$data$Model.Order)
 
-	# mod.out$weights$Model           <- model
-	# mod.out$weights$Model.Order     <- model.order
-	# mod.out$ci.response$Model       <- model
-	# mod.out$ci.response$Model.Order <- model.order
-	# mod.out$ci.terms$Model          <- model
-	# mod.out$ci.terms$Model.Order    <- model.order
+	mod.out$weights$Model           <- model
+	mod.out$weights$Model.Order     <- model.order
+	mod.out$ci.response$Model       <- model
+	mod.out$ci.response$Model.Order <- model.order
+	mod.out$ci.terms$Model          <- model
+	mod.out$ci.terms$Model.Order    <- model.order
 
-	# if(m == 1){
-		# mod.extent <- mod.out[1:4]
-	# } else { 
-		# mod.extent$data           <- rbind(mod.extent$data, mod.out$data)
-		# mod.extent$weights        <- rbind(mod.extent$weights, mod.out$weights)
-		# mod.extent$ci.response    <- rbind(mod.extent$ci.response, mod.out$ci.response)
-		# mod.extent$ci.terms       <- rbind(mod.extent$ci.terms, mod.out$ci.terms)
-	# }
-# }
-# save(mod.extent, file=file.path(path.data, "GAMM_byExtent_AllModels.RData"))
+	if(m == 1){
+		mod.extent <- mod.out[1:4]
+	} else { 
+		mod.extent$data           <- rbind(mod.extent$data, mod.out$data)
+		mod.extent$weights        <- rbind(mod.extent$weights, mod.out$weights)
+		mod.extent$ci.response    <- rbind(mod.extent$ci.response, mod.out$ci.response)
+		mod.extent$ci.terms       <- rbind(mod.extent$ci.terms, mod.out$ci.terms)
+	}
+}
+save(mod.extent, file=file.path(path.data, "GAMM_byExtent_AllModels.RData"))
 
-# # By Site
-# for(m in 1:length(models)){
-	# path.temp <- file.path(path.data, "gamms_byModel", models[m], "bySite")
-	# dir.temp <- dir(path.temp, "NPP")
-	# load(file.path(path.temp, dir.temp))
+# By Site
+for(m in 1:length(models)){
+	path.temp <- file.path(path.data, "gamms_byModel", models[m], "bySite")
+	dir.temp <- dir(path.temp, "NPP")
+	load(file.path(path.temp, dir.temp))
 
-	# model       <- unique(mod.out$data$Model)
-	# model.order <- unique(mod.out$data$Model.Order)
+	model       <- unique(mod.out$data$Model)
+	model.order <- unique(mod.out$data$Model.Order)
 
-	# mod.out$weights$Model           <- model
-	# mod.out$weights$Model.Order     <- model.order
-	# mod.out$ci.response$Model       <- model
-	# mod.out$ci.response$Model.Order <- model.order
-	# mod.out$ci.terms$Model          <- model
-	# mod.out$ci.terms$Model.Order    <- model.order
+	mod.out$weights$Model           <- model
+	mod.out$weights$Model.Order     <- model.order
+	mod.out$ci.response$Model       <- model
+	mod.out$ci.response$Model.Order <- model.order
+	mod.out$ci.terms$Model          <- model
+	mod.out$ci.terms$Model.Order    <- model.order
 
-	# if(m == 1){
-		# mod.site <- mod.out[1:4]
-	# } else { 
-		# mod.site$data           <- rbind(mod.site$data, mod.out$data)
-		# mod.site$weights        <- rbind(mod.site$weights, mod.out$weights)
-		# mod.site$ci.response    <- rbind(mod.site$ci.response, mod.out$ci.response)
-		# mod.site$ci.terms       <- rbind(mod.site$ci.terms, mod.out$ci.terms)
-	# }
-# }
-# save(mod.site, file=file.path(path.data, "GAMM_bySite_AllModels.RData"))
+	if(m == 1){
+		mod.site <- mod.out[1:4]
+	} else { 
+		mod.site$data           <- rbind(mod.site$data, mod.out$data)
+		mod.site$weights        <- rbind(mod.site$weights, mod.out$weights)
+		mod.site$ci.response    <- rbind(mod.site$ci.response, mod.out$ci.response)
+		mod.site$ci.terms       <- rbind(mod.site$ci.terms, mod.out$ci.terms)
+	}
+}
+save(mod.site, file=file.path(path.data, "GAMM_bySite_AllModels.RData"))
 
 # #------------
 
@@ -114,7 +114,7 @@ load(file.path(path.data, "GAMM_byExtent_AllModels.RData"))
 load(file.path(path.data, "GAMM_bySite_AllModels.RData"))
 
 # Read in model color scheme
-model.colors <- read.csv("~/Desktop/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+model.colors <- read.csv("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
 model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
 levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 model.colors <- model.colors[order(model.colors$Model.Order),]

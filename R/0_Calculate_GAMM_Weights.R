@@ -18,7 +18,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, sites=F){
 
 	# calculating the smoother for each effect
 	if(sites==T) {
-		fit.int<- Xp[,cols.site]   %*% coef.gam[cols.site] # Note: no matrix multiplication because it's 1 x 1
+		fit.int<- Xp[,cols.site]   %*% coef.gam[cols.site] 
 
 	} else {
 		fit.int<- Xp[,cols.site]    *  coef.gam[cols.site] # Note: no matrix multiplication because it's 1 x 1
