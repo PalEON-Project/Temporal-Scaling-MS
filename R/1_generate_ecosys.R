@@ -21,10 +21,10 @@ library(zoo)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON CR/paleon_mip_site")
+setwd("~/Desktop/Dropbox/PalEON CR/paleon_mip_site")
 inputs <- "phase1a_output_variables"
-path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+path.data <- "~/Desktop/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
+fig.dir <- "~/Desktop/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
 # ----------------------------------------
 # Note: Commented out because saved as EcosysData.RData 1 June 2015
 #       (with an increasing number of models, running this every time became cumbersome)
@@ -40,7 +40,7 @@ ecosys <- ecosys[,!(names(ecosys)=="Transp")]
 summary(ecosys)
 
 # CO2 Record
-nc.co2 <- nc_open("~/Dropbox/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
+nc.co2 <- nc_open("~/Desktop/Dropbox/PalEON CR/paleon_mip_site/env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
 co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
 nc_close(nc.co2)
 
@@ -49,7 +49,7 @@ ecosys <- merge(ecosys, co2.ann)
 summary(ecosys)
 
 # Colors used for graphing
-model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+model.colors <- read.csv("~/Desktop/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
 model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
 levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 model.colors
@@ -186,4 +186,79 @@ for(s in unique(ecosys$Site)){
 }
 summary(ecosys)
 save(ecosys, model.colors, file=file.path(path.data, "EcosysData.Rdata"))
+# ----------------------------------------
 
+
+
+# ----------------------------------------
+# Making Some general Figures that are handy
+# ----------------------------------------
+load(file.path(path.data, "EcosysData.Rdata"))
+
+# Note: CLM-BGC is wrong, so lets exclude it for now
+ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
+col.model <- paste(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])
+# col.model <- paste(model.colors[,"color"])
+
+# Plotting NPP by model & site
+pdf(file.path(fig.dir, "NPP_Annual_AllSites_AllModels.pdf"))
+ggplot(data=ecosys) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=NPP, color=Model)) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "NPP_Annual_PHA_AllModels.pdf"))
+ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=NPP, color=Model)) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "NPP_Annual_Century_AllSites_AllModels.pdf"))
+ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
+	geom_line(aes(x=Year, y=NPP.100, color=Model), size=1.5) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "NPP_Annual_PHA_AllModels.pdf"))
+ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
+	geom_line(aes(x=Year, y=NPP.100, color=Model), size=2) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+# ---------------------------
+# Plotting AGB by model & site
+pdf(file.path(fig.dir, "AGB_Annual_AllSites_AllModels.pdf"))
+ggplot(data=ecosys) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=AGB, color=Model)) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "AGB_Annual_PHA_AllModels.pdf"))
+ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=AGB, color=Model)) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "AGB_Annual_Century_AllSites_AllModels.pdf"))
+ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+	geom_line (aes(x=Year, y=AGB, color=Model), size=0.5, alpha=0.3) +
+	geom_line(aes(x=Year, y=AGB.100, color=Model), size=1.5) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "AGB_Annual_PHA_AllModels.pdf"))
+ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=AGB, color=Model), size=0.5, alpha=0.3) +
+	geom_line(aes(x=Year, y=AGB.100, color=Model), size=2) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
