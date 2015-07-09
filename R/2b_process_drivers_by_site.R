@@ -141,8 +141,8 @@ library(mgcv)
 # ------------------------------------------------
 # All Sites: (for 1 site, see model.name selection script)
 # ------------------------------------------------
-data.base="~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms"
-fig.base="~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms"
+data.base="~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms_byModel"
+fig.base="~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms_byModel"
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Site
