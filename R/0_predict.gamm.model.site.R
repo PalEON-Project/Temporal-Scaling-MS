@@ -44,7 +44,7 @@ model.site.gam <- function(	data, model.name, site, response, scale="", extent=c
 	# Calculating the Factor Weights through time
 	# -----------
 	if(fweights==T){	
-		f.weights <- factor.weights(model.gam=gam1, model.name=model.name, newdata=data.temp, extent=extent, sites=F); 
+		f.weights <- factor.weights(model.gam=gam1, model.name=model.name, newdata=data.temp, extent=extent, vars=c("Temp", "Precip", "CO2"), sites=F); 
 		out[["weights"]] <- f.weights 
 	}	
 	# -----------

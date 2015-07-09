@@ -1,4 +1,4 @@
-factor.weights <- function(model.gam, model.name, newdata, extent, sites=F){
+factor.weights <- function(model.gam, model.name, newdata, extent, vars, sites=F){
 	# If the model.gam is a mixed model.gam (gamm) rather than a normal gam, extract just the gam portion
 	if(class(model.gam)[[1]]=="gamm") model.gam <- model.gam$gam
 	# -----------
@@ -11,54 +11,63 @@ factor.weights <- function(model.gam, model.name, newdata, extent, sites=F){
 	coef.gam <- coef(model.gam) # the gam coefficients
 	
 	# Some handy column indices
-	cols.site   <- which(substr(names(coef.gam),1,4)=="Site" | substr(names(coef.gam),1,11)=="(Intercept)")
-	cols.temp   <- which(substr(names(coef.gam),1,7)=="s(Temp)")
-	cols.precip <- which(substr(names(coef.gam),1,9)=="s(Precip)")
-	cols.co2    <- which(substr(names(coef.gam),1,6)=="s(CO2)")
+	cols.list <- list(Site = which(substr(names(coef.gam),1,4)=="Site" | substr(names(coef.gam),1,11)=="(Intercept)"))
+	for(v in vars){
+		cols.list[[v]] <- which(substr(names(coef.gam),1,(nchar(v)+3))==paste0("s(",v,")"))
+	}
 
-	# calculating the smoother for each effect
+	# calculating the smoother for each effect; 
+	# now storing everything in a data frame
+	gam.fits <- data.frame(intercept=vector(length=nrow(newdata)))
+
 	if(sites==T) {
-		fit.int<- Xp[,cols.site]   %*% coef.gam[cols.site] 
+		gam.fits[,"intercept"] <- as.vector(Xp[,cols.list[["Site"]]]   %*% coef.gam[cols.list[["Site"]]] )
 
 	} else {
-		fit.int<- Xp[,cols.site]    *  coef.gam[cols.site] # Note: no matrix multiplication because it's 1 x 1
+		gam.fits[["intercept"]] <- as.vector(t(Xp[,cols.list[["Site"]]]    *  coef.gam[cols.list[["Site"]]])) # Note: no matrix multiplication because it's 1 x 1
 	}
-	fit.temp   <- Xp[,cols.temp]   %*% coef.gam[cols.temp]
-	fit.precip <- Xp[,cols.precip] %*% coef.gam[cols.precip]
-	fit.co2    <- Xp[,cols.co2]    %*% coef.gam[cols.co2]
+
+	for(v in vars){
+		gam.fits[,v] <- as.vector(Xp[,cols.list[[v]]]   %*% coef.gam[cols.list[[v]]])
+	}
 
 	# Calculated the SD around each smoother
+	gam.sd <- data.frame(intercept=vector(length=nrow(newdata)))
 	if(sites==T){
-		sd.int<- rowSums(Xp[,cols.site]   %*% model.gam$Vp[cols.site, cols.site]    *Xp[,cols.site]    )^0.5
+		gam.sd[,"intercept"] <- rowSums(Xp[,cols.list[["Site"]]] %*% model.gam$Vp[cols.list[["Site"]], cols.list[["Site"]]] * Xp[,cols.list[["Site"]]] )^0.5
 	} else {
-		sd.int<-    sum (Xp[,cols.site]    *  model.gam$Vp[cols.site, cols.site]    *Xp[,cols.site]    )^0.5
+		gam.sd[,"intercept"] <-    sum (Xp[,cols.list[["Site"]]]  *  model.gam$Vp[cols.list[["Site"]], cols.list[["Site"]]] * Xp[,cols.list[["Site"]]] )^0.5
 	}
-	sd.temp   <- rowSums(Xp[,cols.temp]   %*% model.gam$Vp[cols.temp, cols.temp]    *Xp[,cols.temp]    )^0.5
-	sd.precip <- rowSums(Xp[,cols.precip] %*% model.gam$Vp[cols.precip, cols.precip]*Xp[, cols.precip] )^0.5
-	sd.co2    <- rowSums(Xp[,cols.co2]    %*% model.gam$Vp[cols.co2, cols.co2]      *Xp[, cols.co2]    )^0.5
+	for(v in vars){
+		gam.sd[,v] <- as.vector(rowSums(Xp[,cols.list[[v]]] %*% model.gam$Vp[cols.list[[v]], cols.list[[v]]] * Xp[,cols.list[[v]]] )^0.5)
+	}
 
 	# Summing the fixed effects to do QA/QC and throwing a warning if it's not very close to the predicted values
-	fit.sum <- fit.int + fit.co2 + fit.temp + fit.precip
-	fit.spline <- fit.co2 + fit.temp + fit.precip
+	fit.sum <- rowSums(gam.fits)
+	fit.spline <- rowSums(gam.fits[,2:ncol(gam.fits)])
 	if(max(abs(fit - fit.sum),na.rm=T)>1e-4) print("***** WARNING: sum of fixed effects not equal to predicted value *****")
 
 	# summing the absolute values to get the weights for each fixed effect
-	fit.sum2 <- abs(fit.int) + abs(fit.co2) + abs(fit.temp) + abs(fit.precip)
-	fit.spline2 <- abs(fit.co2) + abs(fit.temp) + abs(fit.precip)
+	fit.sum2 <- rowSums(abs(gam.fits[,]))
+	fit.spline2 <- rowSums(abs(gam.fits[,2:ncol(gam.fits)]))
 
 	# Factor weights are determined by the relative strength of Temp, Precip, & CO2
-	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year, Temp=newdata$Temp, Precip=newdata$Precip, CO2=newdata$CO2, fit=fit, fit.intercept=fit.int, fit.temp=fit.temp, fit.precip=fit.precip, fit.co2=fit.co2, sd.temp=sd.temp, sd.precip=sd.precip, sd.co2=sd.co2,  fit.spline=fit.spline, weight.co2=fit.co2/fit.spline2, weight.temp=fit.temp/fit.spline2, weight.precip=fit.precip/fit.spline2)
-	# # Add in a couple factors that are useful if predicting on the old data
-	# if(!is.null(newdata$Year)) df.weights$Year <- newdata$Year 
-	# if(!is.null(newdata$Site)) df.weights$Year <- newdata$Site 
-
+	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year)
+	for(v in vars){
+		df.weights[,paste("fit", v, sep=".")   ] <- gam.fits[,v]
+		df.weights[,paste( "sd", v, sep=".")   ] <- gam.sd[,v]
+		df.weights[,paste("weight", v, sep=".")] <- gam.fits[,v]	/fit.spline2
+	}
+	
 	# doing a little bit of handy-dandy calculation to give a flag as to which factor is given the greatest weight in a given year
-	rows.na <- which(is.na(df.weights$weight.co2))	
-	rows.seq <- 1:nrow(df.weights) 
-	for(i in rows.seq[!(rows.seq %in% rows.na)]){
-		fweight <- abs(df.weights[i,c("weight.co2", "weight.temp", "weight.precip")])
+	# rows.na <- which(is.na(df.weights$weight.co2))	
+	# rows.seq <- 1:nrow(df.weights) 
+	# for(i in rows.seq[!(rows.seq %in% rows.na)]){
+	cols.weights <- which(substr(names(df.weights),1,6)=="weight")
+	for(i in 1:nrow(df.weights)){
+		fweight <- abs(df.weights[i,cols.weights])
 		df.weights[i,"max"] <- max(fweight,na.rm=T)
-		df.weights[i,"factor.max"] <- c("co2", "temp", "precip")[which(fweight==max(fweight))]
+		df.weights[i,"factor.max"] <- vars[which(fweight==max(fweight))]
 	}
 	df.weights$factor.max <- as.factor(df.weights$factor.max)
 	# summary(df.weights)

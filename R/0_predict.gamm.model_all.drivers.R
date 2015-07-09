@@ -1,7 +1,7 @@
-model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), k=4, 
+process.gamm <- function(gamm.model, data, model.name, response, vars, scale="", extent=c(850,2010), k=4, 
 						  	fweights=T, ci.model=T, ci.terms=T, n=250,
 						  	write.out=T, outdir, control=list()){
-	# data     = data frame with data.temp in it
+	# data     = data frame with data in it
 	# model.name    = which model.name to subset
 	# response = which variable to use as response in the gam
 	# k        = number of knots in the spline
@@ -10,18 +10,6 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	library(mgcv)
 	source("R/0_Calculate_GAMM_Weights.R")
 	source("R/0_Calculate_GAMM_Posteriors.R")
-
-	# creating a working data.temp frame with just the data.temp we want
-	# creating a working data.temp frame with just the data.temp we want
-	t.scale <- ifelse(scale=="", "t.001", paste0("t", scale))
-
-	data.temp          <- data[data$Model==model.name, c("Model", "Updated", "Model.Order", "Site", "Extent", "Year")]
-	data.temp$Scale    <- as.factor(t.scale)
-	data.temp$response <- data[data$Model==model.name, paste0(response, scale)]
-	data.temp$Temp     <- data[data$Model==model.name, paste0("Temp", scale)]	
-	data.temp$Precip   <- data[data$Model==model.name, paste0("Precip", scale)]	
-	data.temp$CO2      <- data[data$Model==model.name, paste0("CO2", scale)]	
-	
     # -----------
 	# Running the basic model.name
 	# -----------
@@ -32,19 +20,16 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	#   Pros: Generalized and helps characterize the basic model responses
 	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
 
-	# Each of the models is having different stability issues
-	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=control)
-  print(summary(gam1$gam))	
 
 	# Storing the predicted values from the gam
-	data.temp$fit.gam <- predict(gam1$gam, newdata= data.temp)
+	data$fit.gam <- predict(gamm.model$gam, newdata= data)
 	
-	out <- list(data=data.temp, gamm=gam1)
+	out <- list(data=data, gamm=gamm.model)
     # -----------
 	# Calculating the Factor Weights through time
 	# -----------
 	if(fweights==T){	
-		f.weights <- factor.weights(model.gam=gam1, model.name=model.name, newdata=data.temp, extent=extent, vars=c("Temp", "Precip", "CO2"), sites=T); 
+		f.weights <- factor.weights(model.gam=gamm.model, model.name=model.name, newdata=data, extent=extent, vars=vars, sites=T); 
 		out[["weights"]] <- f.weights 
 	}	
 	# -----------
@@ -53,7 +38,7 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	# Calculating the CI around our response prediction
 	# -----------
 	if(ci.model==T){
-		ci.response <- post.distns(model.gam=gam1, model.name=model.name, n=n, newdata=data.temp, vars=c("Temp", "Precip", "CO2"), terms=F, sites=T)
+		ci.response <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=data, vars=vars, terms=F, sites=T)
 		out[["ci.response"]] <- ci.response$ci 
 		out[["sim.response"]] <- ci.response$sims 
 
@@ -65,7 +50,7 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	# -----------
 	if(ci.terms==T){
 		n.out = n
-		sites.dat <- unique(data.temp$Site)
+		sites.dat <- unique(data$Site)
 		ns        <- length(sites.dat)
 		for(i in 1:ns){
 			if(i == 1){ 
@@ -77,11 +62,12 @@ model.gam <- function(data, model.name, response, scale="", extent=c(850,2010), 
 	
 		new.dat <- data.frame(	Site=site.vec,
 								Extent=as.factor(paste(extent[1], extent[2], sep="-")), 
-								Scale=rep(t.scale, n.out*ns),
-							    Temp  =rep(seq(min(data.temp$Temp,   na.rm=T), max(data.temp$Temp,   na.rm=T), length.out=n.out), ns),
-								Precip=rep(seq(min(data.temp$Precip, na.rm=T), max(data.temp$Precip, na.rm=T), length.out=n.out), ns),
-								CO2   =rep(seq(min(data.temp$CO2,    na.rm=T), max(data.temp$CO2,    na.rm=T), length.out=n.out),ns))
-		ci.terms.pred <- post.distns(model.gam=gam1, model.name=model.name, n=n, newdata=new.dat, vars=c("Temp", "Precip", "CO2"), terms=T, sites=T)
+								Scale=rep(t.scale, n.out*ns))
+		for(v in vars){
+			new.dat[,v] <- rep(seq(min(data[,v],   na.rm=T), max(data$[,v],   na.rm=T), length.out=n.out), ns)
+		}								
+								
+		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T, sites=T)
 
 		out[["ci.terms"]] <- ci.terms.pred$ci 
 		out[["sim.terms"]] <- ci.terms.pred$sims 
