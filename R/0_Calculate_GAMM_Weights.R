@@ -38,6 +38,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars, sites=F
 	} else {
 		gam.sd[,"intercept"] <-    sum (Xp[,cols.list[["Site"]]]  *  model.gam$Vp[cols.list[["Site"]], cols.list[["Site"]]] * Xp[,cols.list[["Site"]]] )^0.5
 	}
+
 	for(v in vars){
 		gam.sd[,v] <- as.vector(rowSums(Xp[,cols.list[[v]]] %*% model.gam$Vp[cols.list[[v]], cols.list[[v]]] * Xp[,cols.list[[v]]] )^0.5)
 	}

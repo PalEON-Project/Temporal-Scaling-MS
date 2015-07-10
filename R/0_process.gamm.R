@@ -1,4 +1,4 @@
-process.gamm <- function(gamm.model, data, model.name, response, vars, scale="", extent=c(850,2010), k=4, 
+process.gamm <- function(gamm.model, data, model.name, response, vars, scale="t.001", extent=c(850,2010), 
 						  	fweights=T, ci.model=T, ci.terms=T, n=250,
 						  	write.out=T, outdir, control=list()){
 	# data     = data frame with data in it
@@ -10,20 +10,7 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, scale="",
 	library(mgcv)
 	source("R/0_Calculate_GAMM_Weights.R")
 	source("R/0_Calculate_GAMM_Posteriors.R")
-    # -----------
-	# Running the basic model.name
-	# -----------
-	# Running the gamm; note this now has AR1 temporal autocorrelation
-	# This is different from model.site.gam in that it has an added random site slope.
-	#	This random effect lets us gauge the overall model.name response to our fixed effects 
-	#   regardless of the site.  
-	#   Pros: Generalized and helps characterize the basic model responses
-	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
 
-
-	# Storing the predicted values from the gam
-	data$fit.gam <- predict(gamm.model$gam, newdata= data)
-	
 	out <- list(data=data, gamm=gamm.model)
     # -----------
 	# Calculating the Factor Weights through time
@@ -62,9 +49,9 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, scale="",
 	
 		new.dat <- data.frame(	Site=site.vec,
 								Extent=as.factor(paste(extent[1], extent[2], sep="-")), 
-								Scale=rep(t.scale, n.out*ns))
+								Scale=rep(scale, n.out*ns))
 		for(v in vars){
-			new.dat[,v] <- rep(seq(min(data[,v],   na.rm=T), max(data$[,v],   na.rm=T), length.out=n.out), ns)
+			new.dat[,v] <- rep(seq(min(data[,v],   na.rm=T), max(data[,v],   na.rm=T), length.out=n.out), ns)
 		}								
 								
 		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T, sites=T)

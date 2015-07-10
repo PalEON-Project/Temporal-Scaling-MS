@@ -67,8 +67,8 @@ sec2yr <- 1*60*60*24*365
 # Set Directories
 # ----------------------------------------
 setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+dat.base="Data/gamms_byModel"
+fig.base="Figures/gamms_byModel"
 # ----------------------------------------
 
 
@@ -77,20 +77,19 @@ fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figure
 # ----------------------------------------
 # Ecosys file = organized, post-processed m.name outputs
 #	generated with 1_generate_ecosys.R
-load(file.path(path.data, "EcosysData.Rdata"))
+load(file.path("Data", "EcosysData.Rdata"))
 
 # Scripts to run the gamms to predict a response variable as a function of Temp, Precip, & CO2
 # 	predict.gamm.model.site.R = function to run a single 1 site - m.name combo at a time (fit curves independently)
 # 	predict.gamm.mode.R		= function to get overal m.name responses with random site effects 
 # 	Note: these two functions were split because they now incorporate AR1 autocorrelation that can make the 
 #		  overal m.name fitting with random site effects very slow
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_predict.gamm.model.site.R', chdir = TRUE)
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_predict.gamm.model.R', chdir = TRUE)
-source('~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_GAMM_Plots.R', chdir = TRUE)
+source('R/0_process.gamm.R', chdir = TRUE)
+source('R/0_GAMM_Plots.R', chdir = TRUE)
 
 
 # Read in model color scheme
-model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+# model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
 model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
 levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 model.colors
@@ -136,44 +135,15 @@ library(mgcv)
 # ------------------------------------------------
 # All Sites: (for 1 site, see m.name selection script)
 # ------------------------------------------------
-data.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms_byModel"
-fig.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms_byModel"
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Extent
 # ------------------------
 # Setting up a loop for 1 m.name, 1 temporal scale
-sites    <- unique(ecosys$Site)
-model.name    <- unique(ecosys$Model)
-model.order   <- unique(ecosys$Model.Order)
-
-#### crashed on jules.triffid at one point; need to re-run that one alone
-# model.name <- model.name[5:length(model.name)]
-# model.order <- model.order[5:length(model.order)]
-
-
-# var <- c("NPP", "AGB.diff")
-var <- "NPP"
-# scale    <- ""
-scales <- c("", ".10", ".50", ".100", ".250")
-# scales <- c(".100")
-t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
-extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
-extent <- c(850, 2010)
-# -----------------
-# Models are having varying stability issues in the gamm, so lets explicitly state 
-# which set of gamm/lme controls to use
-# Note: because each model uses different sets of drivers, we're jsut going to run them completely separately so we can explicitly state what's in it
-# -----------------
-control0 <- list()
-control1 <- list(sing.tol=1e-20, opt="optim")
-control2 <- list(niterEM=0,sing.tol=1e-20)
-control3 <- list(niterEM=0, sing.tol=1e-20, opt="optim")
-
-# NPP Settings
-control.settings <- data.frame(Model=model.name, Control=c(rep("control3", 4), "control1", rep("control3", 2), rep("control1", 3)))
-# ed2 = control3
-
+sites       <- unique(ecosys$Site)
+model.name  <- unique(ecosys$Model)
+model.order <- unique(ecosys$Model.Order)
+scales      <- unique(ecosys$Scale)
 
 # -----------------
 # Matrix of Models and Drivers
@@ -187,50 +157,76 @@ control.settings <- data.frame(Model=model.name, Control=c(rep("control3", 4), "
 # psurf   X     X        X       X                             X             X           X
 # qair    X     X        X       X                             X             X           X
 # co2     X     X        X       X        X         X          X             X           X
-# Ndep                           X
+# Ndep                   ?       ?
 
-
-
-
-# ----------------------------------------
-# ED2
-# ----------------------------------------
-# creating a working data.temp frame with just the data.temp we want
-# creating a working data.temp frame with just the data.temp we want
- k=4
-for(v in var){
-	print(" ")
-	print(" ")
-	print(       "      ----------------------      ")
-	print(paste0("------ Processing Variable: ",v, " ------"))
-	ecosys2 <- ecosys[ecosys$Model=="ed2" & ecosys$Year >= 1900, ]
-	ecosys2$Extent <- as.factor(paste(min(ecosys$Year), max(ecosys$Year), sep="-"))
+k=4
+response <- "NPP"
+predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 	
+for(m in 1:length(model.name)){
+	print("-------------------------------------")
+	print("-------------------------------------")
+	print("-------------------------------------")
+	print(paste0("------ Processing Model: ", model.order[m], " ------"))
+	m.name  <- model.name[m]
+	m.order <- model.order[m]
+
+	fig.dir <- file.path(fig.base, m.order, "AllDrivers")
+	dat.dir <- file.path(dat.base, m.order, "AllDrivers")
 for(t in 1:length(scales)){
 	print(       "-------------------------------------")
-	print(paste0("------ Processing Scale: ", t.scales[t], " ------"))
+	print(paste0("------ Processing Scale: ", scales[t], " ------"))
 
-	t.scale <- ifelse(scale=="", "t.001", paste0("t", scale))
+	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==scales[t], c("Model", "Updated", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
+	
+	# Making a note of the extent
+	ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
+	data.temp$Extent <- as.factor(ext)
 
-	data.temp          <- ecosys2[, c("Model", "Updated", "Model.Order", "Site", "Extent", "Year")]
-	data.temp$Scale    <- as.factor(t.scale)
-	data.temp$response <- ecosys2[, paste0(v, scales[t])]
-	
-	# These are the drivers used in each model
-	# predictors <- c("tair", "precipf", "swdown", "lwdown", "wind", "psurf", "qair", "co2")
- 	predictors <- c("Temp", "Precip", "CO2")
-	for(p in predictors){
-		data.temp[,p]  <- ecosys2[,paste0(p, scales[t])]
-	}
-	
+    # -----------
+	# Running the gamm; note this now has AR1 temporal autocorrelation
+	# -----------
+	# Running the gamm; note this now has AR1 temporal autocorrelation
+	# This is different from model.site.gam in that it has an added random site slope.
+	#	This random effect lets us gauge the overall model.name response to our fixed effects 
+	#   regardless of the site.  
+	#   Pros: Generalized and helps characterize the basic model responses
+	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
+
+	# Select which set of predictors based on which model it is
 	# Each of the models is having different stability issues
-	gam1 <- gamm(response ~ s(Temp, k=k) + s(Precip, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
-  print(summary(gam1$gam))	
+	if(substr(m.name,1,2)=="ed"){
+		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+	}
+	if(substr(m.name,1,3)=="clm") {
+		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+	}
+	if(substr(m.name,1,3)=="lpj") {
+		predictors <- c("tair", "precipf", "swdown", "CO2")
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+	}
+	if(substr(m.name,1,3)=="jul") {
+		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+	}
+	if(substr(m.name,1,3)=="sib") {
+		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+	}
+	if(substr(m.name,1,3)=="lin") {
+		predictors <- c("tair", "precipf")
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+	}
+    print(summary(gam1$gam))	
 
+	# Storing the predicted values from the gam
+	data.temp$fit.gam <- predict(gam1$gam, newdata=data.temp)
 
-	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=extent, scale=scales[t], response=v, vars=predictors, k=4, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T, control=control1)
+	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=scales[t], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
 	
-	if(t==1 & e==1) {
+	if(t==1) {
 		mod.out <- list()
 		mod.out$data         <- mod.temp$data
 		mod.out$weights      <- mod.temp$weights
@@ -238,7 +234,7 @@ for(t in 1:length(scales)){
 		mod.out$sim.response <- mod.temp$sim.response
 		mod.out$ci.terms     <- mod.temp$ci.terms
 		mod.out$sim.terms    <- mod.temp$sim.terms
-		mod.out[[paste("gamm", paste0(extent[1], "-", extent[2]), t.scales[t], sep=".")]] <- mod.temp$gamm
+		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
 	} else {
 		mod.out$data         <- rbind(mod.out$data,         mod.temp$data)
 		mod.out$weights      <- rbind(mod.out$weights,      mod.temp$weights)
@@ -246,58 +242,56 @@ for(t in 1:length(scales)){
 		mod.out$sim.response <- rbind(mod.out$sim.response, mod.temp$sim.response)
 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     mod.temp$ci.terms)
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    mod.temp$sim.terms)
-		mod.out[[paste("gamm", paste0(extent[1], "-", extent[2]), t.scales[t], sep=".")]] <- mod.temp$gamm
+		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
 	}
 	
-	} # end scales
-} # end extent
-	save(mod.out, file=file.path(out.dir, paste("gamm", m.name, v, "Rdata", sep=".")))
-	# assign(paste("gamm", m.name, v, sep="."), mod.out)
-col.model <- model.colors[model.colors$Model.Order %in% unique(mod.out$data$Model.Order),"color"]
+} # end scales
+save(mod.out, file=file.path(dat.dir, paste("gamm", m.name, response, "Rdata", sep=".")))
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v, "_0850-2010", ".pdf")))
+m.order <- unique(mod.out$data$Model.Order)
+col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
+
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_", m.order, "_", response, "_0850-2010", ".pdf")))
 print(
-ggplot(data=mod.out$ci.response[mod.out$ci.response$Scale=="t.001",]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
- 		geom_line(data= mod.out$data[mod.out$data$Scale=="t.001",], aes(x=Year, y=response), alpha=0.5) +
-		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
-		geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
-		# scale_x_continuous(limits=c(850,2010)) +
-		# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
-		# scale_fill_manual(values=col.model) +
-		# scale_color_manual(values=col.model) +		
-		labs(title=paste0(var, ": ", m.order), x="Year", y=var)
+ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
+	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
+	# scale_x_continuous(limits=c(850,2010)) +
+	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=col.model) +
+	# scale_color_manual(values=col.model) +		
+	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
 )
 dev.off()
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_Extent_", m.order, "_", v, "_1990-2010", ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_", m.order, "_", response, "_1900-2010", ".pdf")))
 print(	
-ggplot(data=mod.out$ci.response[mod.out$ci.response$Scale=="t.001",]) + facet_wrap(~Site, scales="free") + theme_bw() +
- 		geom_line(data=mod.out$data[mod.out$data$Scale=="t.001",], aes(x=Year, y=response), size=1.5, alpha=0.5) +
-		geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
-		geom_line(aes(x=Year, y=mean, color=Extent), size=1) +
-		scale_x_continuous(limits=c(1990,2010)) +
-		# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-		# scale_fill_manual(values=col.model) +
-		# scale_color_manual(values=col.model) +		
-		labs(title=paste0(var, ": ", m.order), x="Year", y=var)
+ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
+	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
+	scale_x_continuous(limits=c(1900,2010)) +
+	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=col.model) +
+	# scale_color_manual(values=col.model) +		
+	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
 )
 dev.off()
 
 
-pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Extent_", m.order, "_", v, ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_", m.order, "_", response, ".pdf")))
 print(
-ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Scale=="t.001",]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
-		geom_line(aes(x=x, y=mean, color=Extent), size=2) +
-		geom_hline(yintercept=0, linetype="dashed") +
-		# scale_color_manual(values=c("red2", "blue", "green3")) +
-		# scale_fill_manual(values=c("red2", "blue", "green3")) +
-		labs(title=paste0("Driver Effects: ",m.order), y="Effect Size") # +
-		# theme(legend.position=c(0.75,0.3), legend.text=element_text(size=rel(1)), legend.title=element_text(size=rel(1)), legend.key.size=unit(1.5, "line"))
+ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Scale), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Scale), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	# scale_color_manual(values=c("red2", "blue", "green3")) +
+	# scale_fill_manual(values=c("red2", "blue", "green3")) +
+	labs(title=paste0("Driver Effects: ",m.order), y="Effect Size") # +
 )
 dev.off()
 
-
-} # end var
 } # end model
 
 # save(mod.out.AGB.diff, file=file.path(out.dir, "mod.out.dAGB.Rdata"))
