@@ -208,7 +208,7 @@ for(s in 1:length(sites)){
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="jul") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
@@ -220,7 +220,7 @@ for(s in 1:length(sites)){
 	}
 	if(substr(m.name,1,3)=="lin") {
 		predictors <- c("tair", "precipf")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	}
     print(summary(gam1$gam))	
 
@@ -254,7 +254,7 @@ save(mod.out, file=file.path(dat.dir, paste("gamm", m.name, response, "Rdata", s
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_", m.order, "_", response, "_0850-2010", ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Site_", m.order, "_", response, "_0850-2010", ".pdf")))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
@@ -268,7 +268,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + th
 )
 dev.off()
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_", m.order, "_", response, "_1900-2010", ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Site_", m.order, "_", response, "_1900-2010", ".pdf")))
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
@@ -283,7 +283,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + th
 dev.off()
 
 
-pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_", m.order, "_", response, ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_Site_", m.order, "_", response, ".pdf")))
 for(p in predictors){
 print(
 ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Scale, scales="free") + theme_bw() +		
@@ -297,7 +297,10 @@ ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Scale,
 }
 dev.off()
 
-pdf(file.path(fig.dir, paste0("GAMM_DriverTime_AllDrivers_Site_", m.order, "_", v, "_0850-2010.pdf")))
+# Note: We're going to have trouble with Linkages because CO2 is missing
+if(is.null(mod.out$weights$weight.CO2)) mod.out$weights$weight.CO2 <- 0
+
+pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Time_Site_", m.order, "_", v, "_0850-2010.pdf")))
 print(
 ggplot(data= mod.out$weights) + facet_grid(Site~Scale, scales="free") +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
