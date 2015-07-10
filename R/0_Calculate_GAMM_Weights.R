@@ -1,4 +1,4 @@
-factor.weights <- function(model.gam, model.name, newdata, extent, vars, sites=F){
+factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	# If the model.gam is a mixed model.gam (gamm) rather than a normal gam, extract just the gam portion
 	if(class(model.gam)[[1]]=="gamm") model.gam <- model.gam$gam
 	# -----------
@@ -20,7 +20,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars, sites=F
 	# now storing everything in a data frame
 	gam.fits <- data.frame(intercept=vector(length=nrow(newdata)))
 
-	if(sites==T) {
+	if(length(cols.list[["Site"]])>1) {
 		gam.fits[,"intercept"] <- as.vector(Xp[,cols.list[["Site"]]]   %*% coef.gam[cols.list[["Site"]]] )
 
 	} else {
@@ -33,7 +33,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars, sites=F
 
 	# Calculated the SD around each smoother
 	gam.sd <- data.frame(intercept=vector(length=nrow(newdata)))
-	if(sites==T){
+	if(length(cols.list[["Site"]])>1){
 		gam.sd[,"intercept"] <- rowSums(Xp[,cols.list[["Site"]]] %*% model.gam$Vp[cols.list[["Site"]], cols.list[["Site"]]] * Xp[,cols.list[["Site"]]] )^0.5
 	} else {
 		gam.sd[,"intercept"] <-    sum (Xp[,cols.list[["Site"]]]  *  model.gam$Vp[cols.list[["Site"]], cols.list[["Site"]]] * Xp[,cols.list[["Site"]]] )^0.5
@@ -53,7 +53,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars, sites=F
 	fit.spline2 <- rowSums(abs(gam.fits[,2:ncol(gam.fits)]))
 
 	# Factor weights are determined by the relative strength of Temp, Precip, & CO2
-	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year)
+	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year, fit.full=fit)
 	for(v in vars){
 		df.weights[,paste("fit", v, sep=".")   ] <- gam.fits[,v]
 		df.weights[,paste( "sd", v, sep=".")   ] <- gam.sd[,v]

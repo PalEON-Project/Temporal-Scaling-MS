@@ -1,4 +1,4 @@
-post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, sites=F, lwr=0.025, upr=0.975){
+post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, lwr=0.025, upr=0.975){
 	# Note: this function can be used to generate a 95% CI on the full model.gam OR terms
 
 	# -----------

@@ -1,5 +1,5 @@
 process.gamm <- function(gamm.model, data, model.name, response, vars, scale="t.001", extent=c(850,2010), 
-						  	fweights=T, ci.model=T, ci.terms=T, n=250,
+						  	fweights=T, sites=T, ci.model=T, ci.terms=T, n=250,
 						  	write.out=T, outdir, control=list()){
 	# data     = data frame with data in it
 	# model.name    = which model.name to subset
@@ -16,7 +16,7 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, scale="t.
 	# Calculating the Factor Weights through time
 	# -----------
 	if(fweights==T){	
-		f.weights <- factor.weights(model.gam=gamm.model, model.name=model.name, newdata=data, extent=extent, vars=vars, sites=T); 
+		f.weights <- factor.weights(model.gam=gamm.model, model.name=model.name, newdata=data, extent=extent, vars=vars); 
 		out[["weights"]] <- f.weights 
 	}	
 	# -----------
@@ -25,7 +25,7 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, scale="t.
 	# Calculating the CI around our response prediction
 	# -----------
 	if(ci.model==T){
-		ci.response <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=data, vars=vars, terms=F, sites=T)
+		ci.response <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=data, vars=vars, terms=F)
 		out[["ci.response"]] <- ci.response$ci 
 		out[["sim.response"]] <- ci.response$sims 
 
@@ -54,7 +54,7 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, scale="t.
 			new.dat[,v] <- rep(seq(min(data[,v],   na.rm=T), max(data[,v],   na.rm=T), length.out=n.out), ns)
 		}								
 								
-		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T, sites=T)
+		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T)
 
 		out[["ci.terms"]] <- ci.terms.pred$ci 
 		out[["sim.terms"]] <- ci.terms.pred$sims 
