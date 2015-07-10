@@ -2,7 +2,7 @@
 # Temporal Scaling Analyses
 # Non-constant driver effects through time
 # Christy Rollinson, crollinson@gmail.com
-# Date Created: 7 May 2015
+# Date Created: 10 July 2015
 # ----------------------------------------
 # -------------------------
 # Objectives & Overview
@@ -171,55 +171,56 @@ for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 
-	fig.dir <- file.path(fig.base, m.order, "AllDrivers")
-	dat.dir <- file.path(dat.base, m.order, "AllDrivers")
+	fig.dir <- file.path(fig.base, m.order, "AllDrivers_bySite")
+	dat.dir <- file.path(dat.base, m.order, "AllDrivers_bySite")
 for(t in 1:length(scales)){
 	print(       "-------------------------------------")
 	print(paste0("------ Processing Scale: ", scales[t], " ------"))
 
-	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==scales[t], c("Model", "Updated", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
+for(s in 1:length(sites)){
+	print(paste0("------ Processing Site: ", sites[s], " ------"))
+
+	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==scales[t] & ecosys$Site==sites[s], c("Model", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
 	# Making a note of the extent
 	ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
 	data.temp$Extent <- as.factor(ext)
-
+	
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
-	data.temp <- data.temp[complete.cases(data.temp),]
-
+	data.temp <- data.temp[!is.na(data.temp[,response]),]
     # -----------
 	# Running the gamm; note this now has AR1 temporal autocorrelation
 	# -----------
 	# Running the gamm; note this now has AR1 temporal autocorrelation
-	# This is different from model.site.gam in that it has an added random site slope.
-	#	This random effect lets us gauge the overall model.name response to our fixed effects 
-	#   regardless of the site.  
-	#   Pros: Generalized and helps characterize the basic model responses
-	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
+	# This version removes the random site effect because we're running it independently to get the best possible
+	#   fit for each site
+	#   Pros: fast, site-specific curves
+	#   Cons: If we try to generalize across sites, we're probably committing pseudo replciation
 
 	# Select which set of predictors based on which model it is
 	# Each of the models is having different stability issues
 	if(substr(m.name,1,2)=="ed"){
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="clm") {
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="jul") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="sib") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="lin") {
 		predictors <- c("tair", "precipf")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
 	}
     print(summary(gam1$gam))	
 
@@ -228,7 +229,7 @@ for(t in 1:length(scales)){
 
 	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=scales[t], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
 	
-	if(t==1) {
+	if(t==1 & s==1) {
 		mod.out <- list()
 		mod.out$data         <- mod.temp$data
 		mod.out$weights      <- mod.temp$weights
@@ -246,7 +247,7 @@ for(t in 1:length(scales)){
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    mod.temp$sim.terms)
 		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
 	}
-	
+} # end sites	
 } # end scales
 save(mod.out, file=file.path(dat.dir, paste("gamm", m.name, response, "Rdata", sep=".")))
 
@@ -283,14 +284,63 @@ dev.off()
 
 
 pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_", m.order, "_", response, ".pdf")))
+for(p in predictors){
 print(
-ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
-	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Scale), alpha=0.5) +
-	geom_line(aes(x=x, y=mean, color=Scale), size=2) +
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Scale, scales="free") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Site), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	# scale_color_manual(values=c("red2", "blue", "green3")) +
 	# scale_fill_manual(values=c("red2", "blue", "green3")) +
-	labs(title=paste0("Driver Effects: ",m.order), y="Effect Size") # +
+	labs(title=paste0("Driver Effects: ", p, ": ", m.order), y=paste0(p, " Effect Size")) # +
+)
+}
+dev.off()
+
+pdf(file.path(fig.dir, paste0("GAMM_DriverTime_AllDrivers_Site_", m.order, "_", v, "_0850-2010.pdf")))
+print(
+ggplot(data= mod.out$weights) + facet_grid(Site~Scale, scales="free") +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
+
+	labs(x="Year", y=response, title=paste0("Driver Effects through Time: ",m.order, ", ", ext)) +
+	# scale_x_continuous(limits=c(850,2010), breaks=c(1300,1800)) +
+	scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
+	theme_bw() # + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
 )
 dev.off()
 
