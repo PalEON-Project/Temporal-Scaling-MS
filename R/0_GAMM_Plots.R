@@ -22,3 +22,48 @@ rgb.line <- function(df, size, y, red, green, blue){
                         abs(df.temp$blue)), size=size)
 
 }
+
+
+plot.weights.time <- function(df, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf", xmin=min(df$Year), xmax=max(df$Year), breaks=seq(min(df$Year), max(df$Year), by=(max(df$Year)-min(df$Year))/5)[2:5], plot.labs=labs(x="Year"), formats=theme_bw()){
+ggplot(data=df) + facet_grid(Site~Scale, scales="free") +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
+	rgb.line(df=df[df$Scale=="t.001" & df$Site=="PHA",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.010" & df$Site=="PHA",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.050" & df$Site=="PHA",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.100" & df$Site=="PHA",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.250" & df$Site=="PHA",], size=2, y=y, red=red, green=green, blue=blue) +
+
+	rgb.line(df=df[df$Scale=="t.001" & df$Site=="PHO",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.010" & df$Site=="PHO",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.050" & df$Site=="PHO",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.100" & df$Site=="PHO",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.250" & df$Site=="PHO",], size=2, y=y, red=red, green=green, blue=blue) +
+
+	rgb.line(df=df[df$Scale=="t.001" & df$Site=="PUN",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.010" & df$Site=="PUN",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.050" & df$Site=="PUN",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.100" & df$Site=="PUN",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.250" & df$Site=="PUN",], size=2, y=y, red=red, green=green, blue=blue) +
+
+	rgb.line(df=df[df$Scale=="t.001" & df$Site=="PBL",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.010" & df$Site=="PBL",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.050" & df$Site=="PBL",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.100" & df$Site=="PBL",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.250" & df$Site=="PBL",], size=2, y=y, red=red, green=green, blue=blue) +
+
+	rgb.line(df=df[df$Scale=="t.001" & df$Site=="PDL",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.010" & df$Site=="PDL",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.050" & df$Site=="PDL",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.100" & df$Site=="PDL",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.250" & df$Site=="PDL",], size=2, y=y, red=red, green=green, blue=blue) +
+
+	rgb.line(df=df[df$Scale=="t.001" & df$Site=="PMB",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.010" & df$Site=="PMB",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.050" & df$Site=="PMB",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.100" & df$Site=="PMB",], size=2, y=y, red=red, green=green, blue=blue) +
+	rgb.line(df=df[df$Scale=="t.250" & df$Site=="PMB",], size=2, y=y, red=red, green=green, blue=blue) +
+	scale_x_continuous(limits=c(xmin,xmax), breaks=breaks) +
+	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99), na.rm=T)) +
+	plot.labs + formats
+}
+

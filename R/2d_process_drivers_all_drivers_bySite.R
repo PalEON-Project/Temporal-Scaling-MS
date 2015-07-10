@@ -300,51 +300,10 @@ dev.off()
 # Note: We're going to have trouble with Linkages because CO2 is missing
 if(is.null(mod.out$weights$weight.CO2)) mod.out$weights$weight.CO2 <- 0
 
-pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Time_Site_", m.order, "_", v, "_0850-2010.pdf")))
-print(
-ggplot(data= mod.out$weights) + facet_grid(Site~Scale, scales="free") +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PHA",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PHO",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PUN",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PBL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PDL",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.001" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.010" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.050" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.100" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-	rgb.line(df=mod.out$weights[mod.out$weights$Scale=="t.250" & mod.out$weights$Site=="PMB",], size=2, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf") +
-
-	labs(x="Year", y=response, title=paste0("Driver Effects through Time: ",m.order, ", ", ext)) +
-	# scale_x_continuous(limits=c(850,2010), breaks=c(1300,1800)) +
-	scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
-	theme_bw() # + theme(axis.text.x=element_text(angle=0, color="black", size=rel(1.25)), axis.text.y=element_text(color="black", size=rel(1.25)), axis.title.x=element_text(face="bold", size=rel(1.5), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(1.5), vjust=1), plot.title=element_text(face="bold", size=rel(2)))
-)
+pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Time_Site_", m.order, "_", response, "_0850-2010.pdf")))
+print(plot.weights.time(df=mod.out$weights, xmin=851, xmax=2010, breaks=c(1000, 1250, 1500, 1750, 2000), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 0850 - 2010"))) )
+print(plot.weights.time(df=mod.out$weights, xmin=1800, xmax=1900, breaks=c(1825, 1850, 1875), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 1800 - 1900"))) )
+print( plot.weights.time(df=mod.out$weights, xmin=1900, xmax=2010, breaks=c(1925, 1950, 1975), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 1900 - 2010"))) )
 dev.off()
 
 } # end model
