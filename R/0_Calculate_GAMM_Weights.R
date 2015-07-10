@@ -44,20 +44,20 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	}
 
 	# Summing the fixed effects to do QA/QC and throwing a warning if it's not very close to the predicted values
-	fit.sum <- rowSums(gam.fits)
-	fit.spline <- rowSums(gam.fits[,2:ncol(gam.fits)])
+	fit.sum <- rowSums(gam.fits, na.rm=T)
+	fit.spline <- rowSums(gam.fits[,2:ncol(gam.fits)], na.rm=T)
 	if(max(abs(fit - fit.sum),na.rm=T)>1e-4) print("***** WARNING: sum of fixed effects not equal to predicted value *****")
 
 	# summing the absolute values to get the weights for each fixed effect
-	fit.sum2 <- rowSums(abs(gam.fits[,]))
-	fit.spline2 <- rowSums(abs(gam.fits[,2:ncol(gam.fits)]))
+	fit.sum2 <- rowSums(abs(gam.fits[,]), na.rm=T)
+	fit.spline2 <- rowSums(abs(gam.fits[,2:ncol(gam.fits)]), na.rm=T)
 
 	# Factor weights are determined by the relative strength of Temp, Precip, & CO2
 	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year, fit.full=fit)
 	for(v in vars){
 		df.weights[,paste("fit", v, sep=".")   ] <- gam.fits[,v]
 		df.weights[,paste( "sd", v, sep=".")   ] <- gam.sd[,v]
-		df.weights[,paste("weight", v, sep=".")] <- gam.fits[,v]	/fit.spline2
+		df.weights[,paste("weight", v, sep=".")] <- gam.fits[,v]/fit.spline2
 	}
 	
 	# doing a little bit of handy-dandy calculation to give a flag as to which factor is given the greatest weight in a given year
@@ -67,7 +67,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	cols.weights <- which(substr(names(df.weights),1,6)=="weight")
 	for(i in 1:nrow(df.weights)){
 		fweight <- abs(df.weights[i,cols.weights])
-		df.weights[i,"max"] <- max(fweight,na.rm=T)
+		df.weights[i,"max"] <- max(fweight, na.rm=T)
 		df.weights[i,"factor.max"] <- vars[which(fweight==max(fweight))]
 	}
 	df.weights$factor.max <- as.factor(df.weights$factor.max)
