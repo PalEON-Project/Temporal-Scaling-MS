@@ -12,20 +12,13 @@ plot.time.ci <- function(df, model.name, var, scale, yrs=c(850,2010)){
 		labs(title=paste0(var, ", ", ifelse(scale=="", "  1", scale), "yr: ", model.name), x="Year", y=var)
 }
 
-rgb.line <- function(df, site, size){
-	geom_line(data=df$weights[df$weights$Site==site, ], aes(x=Year, y=fit),
-	          color=rgb(abs(df$weights[df$weights$Site==site, "weight.temp"]),
-                        abs(df$weights[df$weights$Site==site, "weight.co2"]),
-                        abs(df$weights[df$weights$Site==site, "weight.precip"])), size=size)
-
-}
-
-
-rgb.line2 <- function(df, site, size, scale){
-	
-	geom_line(data=df$weights[!is.na(df$weights$fit) & df$weights$Site==site & df$weights$Scale==scale, ], aes(x=Year, y=fit),
-	          color=rgb(abs(df$weights[!is.na(df$weights$fit) & df$weights$Site==site & df$weights$Scale==scale, "weight.temp"]),
-                        abs(df$weights[!is.na(df$weights$fit) & df$weights$Site==site & df$weights$Scale==scale, "weight.co2"]),
-                        abs(df$weights[!is.na(df$weights$fit) & df$weights$Site==site & df$weights$Scale==scale, "weight.precip"])), size=size)
+rgb.line <- function(df, size, y, red, green, blue){
+	df.temp       <- df[, c("Year", "Site", "Scale", y, red, green, blue)]
+	names(df.temp) <- c("Year", "Site", "Scale", "y", "red", "green", "blue")
+	 
+	geom_line(data=df.temp, aes(x=Year, y=y),
+	          color=rgb(abs(df.temp$red),
+                        abs(df.temp$green),
+                        abs(df.temp$blue)), size=size)
 
 }
