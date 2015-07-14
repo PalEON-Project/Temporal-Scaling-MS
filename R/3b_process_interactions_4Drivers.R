@@ -55,9 +55,9 @@ library(zoo)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Desktop/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
+fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
 # ----------------------------------------
 
 # ----------------------------------------
@@ -104,14 +104,22 @@ model.colors
 interactions <- function(){
 	# Priors
 	for(t in 1:nt){	
-		beta0[t] ~ dnorm(0, 1.0E-2)
-		beta1[t] ~ dnorm(0, 1.0E-2)
-		beta2[t] ~ dnorm(0, 1.0E-2)
-		beta3[t] ~ dnorm(0, 1.0E-2)
-		beta4[t] ~ dnorm(0, 1.0E-2)
-		beta5[t] ~ dnorm(0, 1.0E-2)
-		beta6[t] ~ dnorm(0, 1.0E-2)
-		beta7[t] ~ dnorm(0, 1.0E-2)
+		beta00[t] ~ dnorm(0, 1.0E-2)
+		beta01[t] ~ dnorm(0, 1.0E-2)
+		beta02[t] ~ dnorm(0, 1.0E-2)
+		beta03[t] ~ dnorm(0, 1.0E-2)
+		beta04[t] ~ dnorm(0, 1.0E-2)
+		beta05[t] ~ dnorm(0, 1.0E-2)
+		beta06[t] ~ dnorm(0, 1.0E-2)
+		beta07[t] ~ dnorm(0, 1.0E-2)
+		beta08[t] ~ dnorm(0, 1.0E-2)
+		beta09[t] ~ dnorm(0, 1.0E-2)
+		beta10[t] ~ dnorm(0, 1.0E-2)
+		beta11[t] ~ dnorm(0, 1.0E-2)
+		beta12[t] ~ dnorm(0, 1.0E-2)
+		beta13[t] ~ dnorm(0, 1.0E-2)
+		beta14[t] ~ dnorm(0, 1.0E-2)
+		beta15[t] ~ dnorm(0, 1.0E-2)
 	}
 	# sigma ~ dnorm(0, 1.0E-6)
     tau ~ dgamma(0.001,0.001)
@@ -129,14 +137,22 @@ interactions <- function(){
 	}
 	for(i in 1:n){
 #		mu[i] <- beta0[T.SCALE[i]]*alpha0[SITE[i]] + 
-		mu[i] <- beta0[T.SCALE[i]] + 
-				 beta1[T.SCALE[i]]*TEMP[i] + 
-				 beta2[T.SCALE[i]]*PRECIP[i] + 
-				 beta3[T.SCALE[i]]*CO2[i] + 
-				 beta4[T.SCALE[i]]*TEMP[i]*PRECIP[i] + 
-				 beta5[T.SCALE[i]]*TEMP[i]*CO2[i] + 
-				 beta6[T.SCALE[i]]*PRECIP[i]*CO2[i] + 
-				 beta7[T.SCALE[i]]*TEMP[i]*PRECIP[i]*CO2[i] + 
+		mu[i] <- beta00[T.SCALE[i]] + 
+				 beta01[T.SCALE[i]]*TEMP[i] + 
+				 beta02[T.SCALE[i]]*PRECIP[i] + 
+				 beta03[T.SCALE[i]]*CO2[i] + 
+				 beta04[T.SCALE[i]]*SWDOWN[i] + 
+				 beta05[T.SCALE[i]]*TEMP[i]*PRECIP[i] + 
+				 beta06[T.SCALE[i]]*TEMP[i]*CO2[i] + 
+				 beta07[T.SCALE[i]]*TEMP[i]*SWDOWN[i] + 
+				 beta08[T.SCALE[i]]*PRECIP[i]*CO2[i] + 
+				 beta09[T.SCALE[i]]*PRECIP[i]*SWDOWN[i] + 
+				 beta10[T.SCALE[i]]*CO2[i]*SWDOWN[i] + 
+				 beta11[T.SCALE[i]]*TEMP[i]*PRECIP[i]*CO2[i] + 
+				 beta12[T.SCALE[i]]*TEMP[i]*PRECIP[i]*SWDOWN[i] + 
+				 beta13[T.SCALE[i]]*TEMP[i]*CO2[i]*SWDOWN[i] + 
+				 beta14[T.SCALE[i]]*PRECIP[i]*CO2[i]*SWDOWN[i] + 
+				 beta15[T.SCALE[i]]*TEMP[i]*PRECIP[i]*CO2[i]*SWDOWN[i] + 
 				 alpha1[SITE[i]] 
 		# mu[i] <- beta*TEMP[i]
 		y[i] ~  dnorm(mu[i], sigma)
@@ -152,21 +168,25 @@ interactions <- function(){
 # ----------------------------------------
 # Note: Setting up a loop to go through each model
 # ----------------------------------------
-data.base="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/interactions"
-fig.base="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/interactions"
+data.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/interactions_byModel2"
+fig.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/interactions_byModel2"
 
 # Setting up a loop for 1 m.name, 1 temporal scale
 sites    <- unique(ecosys$Site)
-model.name    <- unique(ecosys$Model)
+model.name    <- unique(ecosys$Model); 
 model.order   <- unique(ecosys$Model.Order)
-var <- c("NPP", "AGB.diff")
+# var <- c("NPP", "AGB.diff")
+var <- "NPP"
 # scale    <- ""
 scales <- c("", ".10", ".50", ".100", ".250")
 # scales <- c(".100")
 t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
 extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
 
-for(m in 10:length(model.name)){
+# Just get rid of Linkages because it doesn't have CO2 OR swdown
+model.name <- model.name[!model.name=="linkages"]
+
+for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 	out.dir   <- file.path(data.base)
@@ -179,7 +199,7 @@ for(m in 10:length(model.name)){
 	print(       "      ----------------------      ")
 	print(paste0("------ Processing Model: ",m.name, " ------"))
 
-    if(m.name=="jules.stat") var <- "NPP" else var <- c("NPP", "AGB.diff")
+    # if(m.name=="jules.stat") var <- "NPP" else var <- c("NPP", "AGB.diff")
 
 for(v in var){
 	print(" ")
@@ -191,35 +211,32 @@ for(v in var){
 # Organize the jags inputs
 # -----------------------
 dat <- ecosys[ecosys$Model==m.name,]
-dat <- dat[complete.cases(dat[,which(substr(names(dat),1,3)==substr(v,1,3))]),]
+dat <- dat[complete.cases(dat[,v]),]
 # summary(dat)
 dim(dat)
-ny      <- length(unique(dat$Year))
-ns      <- length(unique(dat$Site))
+# ny      <- length(unique(dat$Year))
+# ns      <- length(unique(dat$Site))
 
-y <- T.SCALE <- TEMP <- PRECIP <- CO2 <- vector()
-for(i in 1:length(scales)){
-	T.SCALE <- c(T.SCALE, rep(i, ny*ns)) 
-	y       <- c(y,      dat[,paste0(v, scales[i])])	
-	TEMP    <- c(TEMP,   dat[,paste0("Temp", scales[i])])
-	PRECIP  <- c(PRECIP, dat[,paste0("Precip", scales[i])])
-	CO2     <- c(CO2,    dat[,paste0("CO2", scales[i])])
-}
+y       <- dat[,v]
+TEMP    <- dat$tair
+PRECIP  <- dat$precipf
+CO2     <- dat$CO2
+SWDOWN  <- dat$swdown
+T.SCALE <- as.numeric(dat$Scale)
+SITE    <- as.numeric(dat$Site)
 
 n       <- length(y)
 nt		<- length(unique(T.SCALE))
-SITE    <- rep(as.numeric(dat$Site), nt)
-# MODELS  <- rep(as.numeric(dat$Model), nt)
-# nm	    <- length(unique(MODELS))
+ns		<- length(unique(SITE))
 
-params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7","alpha1", "sigma")
+params <- c("beta00", "beta01", "beta02", "beta03", "beta04", "beta05", "beta06", "beta07", "beta08", "beta09", "beta10", "beta11", "beta12", "beta13", "beta14", "beta15", "alpha1", "sigma")
 # params <- c("beta", "sigma")
 # -----------------------
 
 # -----------------------
 # Run and save the output
 # -----------------------
-dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
+dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, SWDOWN=SWDOWN, ns=ns, SITE=SITE)
 
 jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=10000, n.burnin=2000, model.file=interactions, DIC=F)
 
@@ -233,7 +250,7 @@ print(summary(out.mcmc))
 # # summary(out.mcmc[,which(substr(dimnames(out.mcmc[[1]])[[2]], 1, 2)=="mu")])
 # summary(out.mcmc)$statistics
 pdf(file.path(fig.dir, paste0("Interactions_TracePlots_", m.order, "_", v, ".pdf")))
-plot(out.mcmc)
+print(plot(out.mcmc))
 dev.off()
 
 # Write a data frame with the coefficient 95% ci from the full jags output
@@ -266,28 +283,44 @@ for(i in 1:pulls){
 
 	# predicting y from the coefficients (rather than saving mu, 
 	# which is very memory & time intensive)
-	betas.samp[i,paste0("beta0[",t,"]")] <- out.mcmc[[c]][r,paste0("beta0[",t,"]")]
-	betas.samp[i,paste0("beta1[",t,"]")] <- out.mcmc[[c]][r,paste0("beta1[",t,"]")]
-	betas.samp[i,paste0("beta2[",t,"]")] <- out.mcmc[[c]][r,paste0("beta2[",t,"]")]
-	betas.samp[i,paste0("beta3[",t,"]")] <- out.mcmc[[c]][r,paste0("beta3[",t,"]")]
-	betas.samp[i,paste0("beta4[",t,"]")] <- out.mcmc[[c]][r,paste0("beta4[",t,"]")]
-	betas.samp[i,paste0("beta5[",t,"]")] <- out.mcmc[[c]][r,paste0("beta5[",t,"]")]
-	betas.samp[i,paste0("beta6[",t,"]")] <- out.mcmc[[c]][r,paste0("beta6[",t,"]")]
-	betas.samp[i,paste0("beta7[",t,"]")] <- out.mcmc[[c]][r,paste0("beta7[",t,"]")]
+	betas.samp[i,paste0("beta00[",t,"]")] <- out.mcmc[[c]][r,paste0("beta00[",t,"]")]
+	betas.samp[i,paste0("beta01[",t,"]")] <- out.mcmc[[c]][r,paste0("beta01[",t,"]")]
+	betas.samp[i,paste0("beta02[",t,"]")] <- out.mcmc[[c]][r,paste0("beta02[",t,"]")]
+	betas.samp[i,paste0("beta03[",t,"]")] <- out.mcmc[[c]][r,paste0("beta03[",t,"]")]
+	betas.samp[i,paste0("beta04[",t,"]")] <- out.mcmc[[c]][r,paste0("beta04[",t,"]")]
+	betas.samp[i,paste0("beta05[",t,"]")] <- out.mcmc[[c]][r,paste0("beta05[",t,"]")]
+	betas.samp[i,paste0("beta06[",t,"]")] <- out.mcmc[[c]][r,paste0("beta06[",t,"]")]
+	betas.samp[i,paste0("beta07[",t,"]")] <- out.mcmc[[c]][r,paste0("beta07[",t,"]")]
+	betas.samp[i,paste0("beta08[",t,"]")] <- out.mcmc[[c]][r,paste0("beta08[",t,"]")]
+	betas.samp[i,paste0("beta09[",t,"]")] <- out.mcmc[[c]][r,paste0("beta09[",t,"]")]
+	betas.samp[i,paste0("beta10[",t,"]")] <- out.mcmc[[c]][r,paste0("beta10[",t,"]")]
+	betas.samp[i,paste0("beta11[",t,"]")] <- out.mcmc[[c]][r,paste0("beta11[",t,"]")]
+	betas.samp[i,paste0("beta12[",t,"]")] <- out.mcmc[[c]][r,paste0("beta12[",t,"]")]
+	betas.samp[i,paste0("beta13[",t,"]")] <- out.mcmc[[c]][r,paste0("beta13[",t,"]")]
+	betas.samp[i,paste0("beta14[",t,"]")] <- out.mcmc[[c]][r,paste0("beta14[",t,"]")]
+	betas.samp[i,paste0("beta15[",t,"]")] <- out.mcmc[[c]][r,paste0("beta15[",t,"]")]
 
-	y.predict1[rows.t,i] <- out.mcmc[[c]][r,paste0("beta0[",t,"]")] + 
-					        out.mcmc[[c]][r,paste0("beta1[",t,"]")]*temp.t*precip.t*co2.t +
-					        out.mcmc[[c]][r,paste0("beta2[",t,"]")]*temp.t* precip.t + 
-					        out.mcmc[[c]][r,paste0("beta3[",t,"]")]*temp.t*co2.t + 
-					        out.mcmc[[c]][r,paste0("beta4[",t,"]")]*precip.t*co2.t + 
-					        out.mcmc[[c]][r,paste0("beta5[",t,"]")]*temp.t + 
-					        out.mcmc[[c]][r,paste0("beta6[",t,"]")]*precip.t + 
-					        out.mcmc[[c]][r,paste0("beta7[",t,"]")]*co2.t +
-					        alpha
+	y.predict1[rows.t,i] <- out.mcmc[[c]][r,paste0("beta00[",t,"]")] + 
+				 out.mcmc[[c]][r,paste0("beta01[",t,"]")]*TEMP[i] + 
+				 out.mcmc[[c]][r,paste0("beta02[",t,"]")]*PRECIP[i] + 
+				 out.mcmc[[c]][r,paste0("beta03[",t,"]")]*CO2[i] + 
+				 out.mcmc[[c]][r,paste0("beta04[",t,"]")]*SWDOWN[i] + 
+				 out.mcmc[[c]][r,paste0("beta05[",t,"]")]*TEMP[i]*PRECIP[i] + 
+				 out.mcmc[[c]][r,paste0("beta06[",t,"]")]*TEMP[i]*CO2[i] + 
+				 out.mcmc[[c]][r,paste0("beta07[",t,"]")]*TEMP[i]*SWDOWN[i] + 
+				 out.mcmc[[c]][r,paste0("beta08[",t,"]")]*PRECIP[i]*CO2[i] + 
+				 out.mcmc[[c]][r,paste0("beta09[",t,"]")]*PRECIP[i]*SWDOWN[i] + 
+				 out.mcmc[[c]][r,paste0("beta10[",t,"]")]*CO2[i]*SWDOWN[i] + 
+				 out.mcmc[[c]][r,paste0("beta11[",t,"]")]*TEMP[i]*PRECIP[i]*CO2[i] + 
+				 out.mcmc[[c]][r,paste0("beta12[",t,"]")]*TEMP[i]*PRECIP[i]*SWDOWN[i] + 
+				 out.mcmc[[c]][r,paste0("beta13[",t,"]")]*TEMP[i]*CO2[i]*SWDOWN[i] + 
+				 out.mcmc[[c]][r,paste0("beta14[",t,"]")]*PRECIP[i]*CO2[i]*SWDOWN[i] + 
+				 out.mcmc[[c]][r,paste0("beta15[",t,"]")]*TEMP[i]*PRECIP[i]*CO2[i]*SWDOWN[i] + 
+			     alpha
 	}
 }
 
-out.analy <- data.frame(Model=m.name, Scale=recode(T.SCALE, "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"), Site=rep(dat$Site, nt), Year=rep(dat$Year, nt), Response=y, CO2=CO2, Temp=TEMP, Precip=PRECIP, Pred.y=apply(y.predict1, 1, mean, na.rm=T), Pred.LB=apply(y.predict1, 1, quantile, 0.025, na.rm=T), Pred.UB=apply(y.predict1, 1, quantile, 0.975, na.rm=T))
+out.analy <- data.frame(Model=m.name, Scale=recode(T.SCALE, "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"), Site=rep(dat$Site, nt), Year=rep(dat$Year, nt), Response=y, CO2=CO2, Temp=TEMP, Precip=PRECIP, SWDOWN=SWDOWN, Pred.y=apply(y.predict1, 1, mean, na.rm=T), Pred.LB=apply(y.predict1, 1, quantile, 0.025, na.rm=T), Pred.UB=apply(y.predict1, 1, quantile, 0.975, na.rm=T))
 
 betas.samp2 <- stack(betas.samp)[,c(2,1)]
 names(betas.samp2) <- c("beta.name", "value")
@@ -295,7 +328,7 @@ betas.samp2$Model <- as.factor(m.name)
 betas.samp2$Beta <- as.factor(substr(betas.samp2$beta.name, 1, 5))
 betas.samp2$Scale <- as.factor(recode(substr(betas.samp2$beta.name,7,7), "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"))
 betas.samp2$Interaction <- betas.samp2$Beta
-levels(betas.samp2$Interaction) <- recode(levels(betas.samp2$Interaction), "'beta0'='Intercept'; 'beta1'='TEMP'; 'beta2'='PRECIP'; 'beta3'='CO2'; 'beta4'='TEMP x PRECIP'; 'beta5'='TEMP x CO2'; 'beta6'='PRECIP x CO2'; 'beta7'='TEMP x PRECIP x CO2'")
+levels(betas.samp2$Interaction) <- recode(levels(betas.samp2$Interaction), "'beta00'='Intercept'; 'beta01'='TEMP'; 'beta02'='PRECIP'; 'beta03'='CO2'; 'beta04'='SWDOWN'; 'beta05'='TEMP x PRECIP'; 'beta06'='TEMP x CO2'; 'beta07'='TEMP x SWDOWN';  'beta08'='PRECIP x CO2'; 'beta09'='PRECIP X SWDOWN'; 'beta10'='CO2 X SWDOWN'; 'beta11'='TEMP x PRECIP x CO2''; 'beta12'='TEMP x PRECIP x SWDOWN''; 'beta13'='TEMP X CO2 X SWDOWN'; 'beta14'='PRECIP X CO2 X SWDOWN'; 'beta15'='TEMP x PRECIP x CO2 X SWDOWN'")
 summary(betas.samp2)
 
 out[["betas.sample"]] <- betas.samp2
