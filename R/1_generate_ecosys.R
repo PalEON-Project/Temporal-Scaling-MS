@@ -17,7 +17,6 @@ library(zoo)
 # library(mvtnorm)
 # library(MCMCpack)
 
-sec2yr <- 1*60*60*24*365.25 # 1 sec * 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/yr
 # ----------------------------------------
 
 # ----------------------------------------
@@ -37,7 +36,6 @@ fig.dir   <- "Analyses/Temporal-Scaling/Figures"
 ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
 ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
 levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
-ecosys$precipf <- ecosys$precipf*sec2yr # convert precip to mm/yr just to help people figure it out
 summary(ecosys)
 
 # CO2 Record
@@ -49,6 +47,7 @@ nc_close(nc.co2)
 ecosys <- merge(ecosys, co2.ann)
 summary(ecosys)
 
+
 # Colors used for graphing
 model.colors <- read.csv("Model.Colors.csv")
 model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
@@ -57,6 +56,21 @@ model.colors
 
 model.colors <- model.colors[order(model.colors$Model.Order),]
 model.colors
+# ----------------------------------------
+
+
+# ----------------------------------------
+# Convert variables to more user-friendly units
+# ----------------------------------------
+# Fluxes: change s-1 to yr-1
+sec2yr <- 1*60*60*24*365.25 # 1 sec * 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/yr
+vars.flux <- c("precipf", "GPP", "NPP", "NEE", "AutoResp", "HeteroResp", "Evap")
+ecosys[,vars.flux] <- ecosys[,vars.flux]*sec2yr
+
+# Carbon: change kgC/m2 to MgC/ha
+kgm2_2_Mgha <- 1*0.001*10000 # 1 kg * 0.001 kg/Mg * 10000 m2/ha
+vars.carbon <- c("GPP", "NPP", "NEE", "AutoResp", "HeteroResp", "AGB", "SoilCarb")
+ecosys[, vars.carbon] <- ecosys[, vars.carbon]*kgm2_2_Mgha
 # ----------------------------------------
 
 # ----------------------------------------
@@ -183,6 +197,15 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
+
+pdf(file.path(fig.dir, "NPP_Annual_Century_AllSites_NoLINKAGES.pdf"))
+ggplot(data=ecosys[!ecosys$Model=="linkages",]) + facet_wrap(~Site) +
+	geom_line(data=ecosys[ecosys$Scale=="t.001" & !ecosys$Model=="linkages",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Scale=="t.100" & !ecosys$Model=="linkages",], aes(x=Year, y=NPP, color=Model), size=1.5) +
+	scale_color_manual(values=col.model) + labs(y="NPP MgC ha-1 yr-1") +
+	theme_bw()
+dev.off()
+
 
 pdf(file.path(fig.dir, "NPP_Annual_PHA_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
