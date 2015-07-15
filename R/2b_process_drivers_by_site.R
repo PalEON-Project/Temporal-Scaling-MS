@@ -68,9 +68,9 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Desktop/Research/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+# setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+path.data <- "Data"
+fig.dir <- "Figures"
 # ----------------------------------------
 
 
@@ -86,9 +86,9 @@ load(file.path(path.data, "EcosysData.Rdata"))
 # 	predict.gamm.mode.R		= function to get overal model.name responses with random site effects 
 # 	Note: these two functions were split because they now incorporate AR1 autocorrelation that can make the 
 #		  overal model.name fitting with random site effects very slow
-source('~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_predict.gamm.model.site.R', chdir = TRUE)
-source('~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_predict.gamm.model.R', chdir = TRUE)
-source('~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/R/0_GAMM_Plots.R', chdir = TRUE)
+source('R/0_predict.gamm.model.site.R', chdir = TRUE)
+source('R/0_predict.gamm.model.R', chdir = TRUE)
+source('R/0_GAMM_Plots.R', chdir = TRUE)
 
 
 
@@ -141,8 +141,13 @@ library(mgcv)
 # ------------------------------------------------
 # All Sites: (for 1 site, see model.name selection script)
 # ------------------------------------------------
-data.base="~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/gamms_byModel"
-fig.base="~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/gamms_byModel"
+data.base="Data/gamms_byModel"
+fig.base="Figures/gamms_byModel"
+
+# Making sure the appropriate file paths exist
+if(!dir.exists(data.base)) dir.create(data.base)
+if(!dir.exists(fig.base)) dir.create(fig.base)
+
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Site
@@ -164,8 +169,18 @@ extent <- c(850, 2010)
 for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
+
+	# Make sure folders for each model exist
+	if(!dir.exists(file.path(data.base, m.order))) dir.create(file.path(data.base, m.order))
+	if(!dir.exists(file.path(fig.base, m.order))) dir.create(file.path(fig, m.order))
+
 	out.dir   <- file.path(data.base, m.order, "BySite")
 	fig.dir  <- file.path(fig.base, m.order, "BySite")
+
+	# Make sure the appropriate file paths are in place
+	if(!dir.exists(out.dir)) dir.create(out.dir)
+	if(!dir.exists(fig.dir)) dir.create(fig.dir)
+
 
 	print(" ")
 	print(" ")

@@ -22,10 +22,16 @@ library(zoo)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON CR/paleon_mip_site")
-inputs    <- "phase1a_output_variables"
-path.data <- "Analyses/Temporal-Scaling/Data"
-fig.dir   <- "Analyses/Temporal-Scaling/Figures"
+# setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+inputs    <- "raw_inputs"
+path.data <- "Data"
+fig.dir   <- "Figures"
+
+# Making sure the appropriate file paths exist
+if(!dir.exists(path.data)) dir.create(path.data)
+if(!dir.exists(fig.dir)) dir.create(fig.dir)
+
+
 # ----------------------------------------
 # Note: Commented out because saved as EcosysData.RData 1 June 2015
 #       (with an increasing number of models, running this every time became cumbersome)

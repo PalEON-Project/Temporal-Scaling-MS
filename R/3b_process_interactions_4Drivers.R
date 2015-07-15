@@ -56,8 +56,12 @@ library(zoo)
 # Set Directories
 # ----------------------------------------
 setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+path.data <- "Data"
+fig.dir <- "Figures"
+
+# Making sure the appropriate file paths exist
+if(!dir.exists(path.data)) dir.create(path.data)
+if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 
 # ----------------------------------------
@@ -168,8 +172,11 @@ interactions <- function(){
 # ----------------------------------------
 # Note: Setting up a loop to go through each model
 # ----------------------------------------
-data.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/interactions_byModel2"
-fig.base="~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/interactions_byModel2"
+data.base="Data/interactions_byModel2"
+fig.base="Figures/interactions_byModel2"
+
+if(!dir.exists(data.base)) dir.create(data.base)
+if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting up a loop for 1 m.name, 1 temporal scale
 sites    <- unique(ecosys$Site)
@@ -178,10 +185,10 @@ model.order   <- unique(ecosys$Model.Order)
 # var <- c("NPP", "AGB.diff")
 var <- "NPP"
 # scale    <- ""
-scales <- c("", ".10", ".50", ".100", ".250")
+# scales <- c("", ".10", ".50", ".100", ".250")
 # scales <- c(".100")
-t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
-extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
+# t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
+# extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
 
 # Just get rid of Linkages because it doesn't have CO2 OR swdown
 model.name <- model.name[!model.name=="linkages"]
@@ -191,6 +198,11 @@ for(m in 1:length(model.name)){
 	m.order <- model.order[m]
 	out.dir   <- file.path(data.base)
 	fig.dir  <- file.path(fig.base)
+
+	# Making sure the proper file structure is in place
+	if(!dir.exists(out.dir)) dir.create(out.dir)
+	if(!dir.exists(fig.dir)) dir.create(fig.dir)
+
 
 	print(" ")
 	print(" ")
@@ -212,7 +224,7 @@ for(v in var){
 # -----------------------
 dat <- ecosys[ecosys$Model==m.name,]
 dat <- dat[complete.cases(dat[,v]),]
-# summary(dat)
+summary(dat)
 dim(dat)
 # ny      <- length(unique(dat$Year))
 # ns      <- length(unique(dat$Site))
@@ -229,6 +241,7 @@ n       <- length(y)
 nt		<- length(unique(T.SCALE))
 ns		<- length(unique(SITE))
 
+# params <- c("beta00", "beta01", "beta02", "beta03", "beta04", "beta05", "beta06", "beta07", "beta08", "beta09", "beta10", "beta11", "beta12", "beta13", "beta14", "beta15", "alpha1", "sigma")
 params <- c("beta00", "beta01", "beta02", "beta03", "beta04", "beta05", "beta06", "beta07", "beta08", "beta09", "beta10", "beta11", "beta12", "beta13", "beta14", "beta15", "alpha1", "sigma")
 # params <- c("beta", "sigma")
 # -----------------------
@@ -237,8 +250,10 @@ params <- c("beta00", "beta01", "beta02", "beta03", "beta04", "beta05", "beta06"
 # Run and save the output
 # -----------------------
 dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, SWDOWN=SWDOWN, ns=ns, SITE=SITE)
+# dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
 jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=10000, n.burnin=2000, model.file=interactions, DIC=F)
+# jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=100, n.burnin=20, model.file=interactions, DIC=F)
 
 out <- list(Data=dat.jags, jags.out=jags.out)
 

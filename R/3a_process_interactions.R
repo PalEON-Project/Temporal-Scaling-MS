@@ -55,9 +55,9 @@ library(zoo)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data"
-fig.dir <- "~/Desktop/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+# setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+path.data <- "Data"
+fig.dir <- "Figures"
 # ----------------------------------------
 
 # ----------------------------------------
@@ -152,8 +152,13 @@ interactions <- function(){
 # ----------------------------------------
 # Note: Setting up a loop to go through each model
 # ----------------------------------------
-data.base="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Data/interactions"
-fig.base="~/Desktop/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling/Figures/interactions"
+data.base="Data/interactions"
+fig.base="Figures/interactions"
+
+# Making sure the appropriate file paths exist
+if(!dir.exists(data.base)) dir.create(data.base)
+if(!dir.exists(fig.base)) dir.create(fig.base)
+
 
 # Setting up a loop for 1 m.name, 1 temporal scale
 sites    <- unique(ecosys$Site)
@@ -162,16 +167,20 @@ model.order   <- unique(ecosys$Model.Order)
 # var <- c("NPP", "AGB.diff")
 var <- "NPP"
 # scale    <- ""
-scales <- c("", ".10", ".50", ".100", ".250")
-# scales <- c(".100")
-t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
+# scales <- c("", ".10", ".50", ".100", ".250")
+# # scales <- c(".100")
+# t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
 extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
 
-for(m in 10:length(model.name)){
+for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 	out.dir   <- file.path(data.base)
 	fig.dir  <- file.path(fig.base)
+
+	# Make sure the appropriate file paths are in place
+	if(!dir.exists(out.dir)) dir.create(out.dir)
+	if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
 	print(" ")
 	print(" ")
@@ -192,29 +201,40 @@ for(v in var){
 # Organize the jags inputs
 # -----------------------
 dat <- ecosys[ecosys$Model==m.name,]
-dat <- dat[complete.cases(dat[,which(substr(names(dat),1,3)==substr(v,1,3))]),]
+dat <- dat[complete.cases(dat[,v]),]
 # summary(dat)
 dim(dat)
-ny      <- length(unique(dat$Year))
-ns      <- length(unique(dat$Site))
+# ny      <- length(unique(dat$Year))
+# ns      <- length(unique(dat$Site))
 
-y <- T.SCALE <- TEMP <- PRECIP <- CO2 <- vector()
-for(i in 1:length(scales)){
-	T.SCALE <- c(T.SCALE, rep(i, ny*ns)) 
-	y       <- c(y,      dat[,v])	
-	TEMP    <- c(TEMP,   dat[,"tair")])
-	PRECIP  <- c(PRECIP, dat[,"precipf"])
-	CO2     <- c(CO2,    dat[,"CO2"])
-}
+# y <- T.SCALE <- TEMP <- PRECIP <- CO2 <- vector()
+# for(i in 1:length(scales)){
+	# T.SCALE <- c(T.SCALE, rep(i, ny*ns)) 
+	# y       <- c(y,      dat[,v])	
+	# TEMP    <- c(TEMP,   dat[,"tair")])
+	# PRECIP  <- c(PRECIP, dat[,"precipf"])
+	# CO2     <- c(CO2,    dat[,"CO2"])
+# }
+
+# n       <- length(y)
+# nt		<- length(unique(T.SCALE))
+# SITE    <- rep(as.numeric(dat$Site), nt)
+# # MODELS  <- rep(as.numeric(dat$Model), nt)
+# nm	    <- length(unique(MODELS))
+y       <- dat[,v]
+TEMP    <- dat$tair
+PRECIP  <- dat$precipf
+CO2     <- dat$CO2
+SWDOWN  <- dat$swdown
+T.SCALE <- as.numeric(dat$Scale)
+SITE    <- as.numeric(dat$Site)
 
 n       <- length(y)
 nt		<- length(unique(T.SCALE))
-SITE    <- rep(as.numeric(dat$Site), nt)
-# MODELS  <- rep(as.numeric(dat$Model), nt)
-# nm	    <- length(unique(MODELS))
+ns		<- length(unique(SITE))
 
 params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7","alpha1", "sigma")
-# params <- c("beta", "sigma")
+params <- c("beta", "sigma")
 # -----------------------
 
 # -----------------------
@@ -222,7 +242,7 @@ params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta
 # -----------------------
 dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
-jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=10000, n.burnin=2000, model.file=interactions, DIC=F)
+jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=100, n.burnin=20, model.file=interactions, DIC=F)
 
 out <- list(Data=dat.jags, jags.out=jags.out)
 
