@@ -73,7 +73,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 load(file.path(path.data, "EcosysData.Rdata"))
 
 # Read in model color scheme
-model.colors <- read.csv("~/Dropbox/PalEON CR/PalEON_MIP_Site/Model.Colors.csv")
+model.colors <- read.csv("raw_inputs/Model.Colors.csv")
 model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
 levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 model.colors
@@ -184,7 +184,7 @@ sites    <- unique(ecosys$Site)
 model.name    <- unique(ecosys$Model); 
 model.order   <- unique(ecosys$Model.Order)
 # var <- c("NPP", "AGB.diff")
-var <- "NPP"
+# var <- "NPP"
 # scale    <- ""
 # scales <- c("", ".10", ".50", ".100", ".250")
 # scales <- c(".100")
@@ -194,14 +194,17 @@ var <- "NPP"
 # Just get rid of Linkages because it doesn't have CO2 OR swdown
 model.name <- model.name[!model.name=="linkages"]
 
+# set.seed(561)
+
 for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
-	out.dir   <- file.path(data.base)
-	fig.dir  <- file.path(fig.base)
+
+	# out.dir   <- file.path(data.base, m.order)
+	fig.dir  <- file.path(fig.base, m.order)
 
 	# Making sure the proper file structure is in place
-	if(!dir.exists(out.dir)) dir.create(out.dir)
+	# if(!dir.exists(out.dir)) dir.create(out.dir)
 	if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
 
@@ -214,7 +217,8 @@ for(m in 1:length(model.name)){
 
     # if(m.name=="jules.stat") var <- "NPP" else var <- c("NPP", "AGB.diff")
 
-for(v in var){
+# for(v in var){
+v="NPP"
 	print(" ")
 	print(" ")
 	print(       "      ----------------------      ")
@@ -227,8 +231,6 @@ dat <- ecosys[ecosys$Model==m.name,]
 dat <- dat[complete.cases(dat[,v]),]
 summary(dat)
 dim(dat)
-# ny      <- length(unique(dat$Year))
-# ns      <- length(unique(dat$Site))
 
 y       <- dat[,v]
 TEMP    <- dat$tair
@@ -240,18 +242,15 @@ SITE    <- as.numeric(dat$Site)
 
 n       <- length(y)
 nt		<- length(unique(T.SCALE))
-ns		<- length(unique(SITE))
+ns      <- length(unique(SITE))
 
-# params <- c("beta00", "beta01", "beta02", "beta03", "beta04", "beta05", "beta06", "beta07", "beta08", "beta09", "beta10", "beta11", "beta12", "beta13", "beta14", "beta15", "alpha1", "sigma")
 params <- c("beta00", "beta01", "beta02", "beta03", "beta04", "beta05", "beta06", "beta07", "beta08", "beta09", "beta10", "beta11", "beta12", "beta13", "beta14", "beta15", "alpha1", "sigma")
-# params <- c("beta", "sigma")
 # -----------------------
 
 # -----------------------
 # Run and save the output
 # -----------------------
 dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, SWDOWN=SWDOWN, ns=ns, SITE=SITE)
-# dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, ns=ns, SITE=SITE)
 
 jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=10000, n.burnin=2000, model.file=interactions, DIC=F)
 # jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=100, n.burnin=20, model.file=interactions, DIC=F)
@@ -265,6 +264,7 @@ print(summary(out.mcmc))
 # row.names(summary(out.mcmc)$quantiles)
 # # summary(out.mcmc[,which(substr(dimnames(out.mcmc[[1]])[[2]], 1, 2)=="mu")])
 # summary(out.mcmc)$statistics
+
 pdf(file.path(fig.dir, paste0("Interactions_TracePlots_", m.order, "_", v, ".pdf")))
 print(plot(out.mcmc))
 dev.off()
@@ -379,7 +379,7 @@ save(out, file=file.path(data.base, paste0("Interactions_", m.order, "_", v, ".R
 # save(dat.jags, m.lpj.g, file=file.path(path.data, "Interactions_LPJ-GUESS.RData"))
 # -----------------------
 
-} # end var
+# } # end var
 } # end model
 
 
