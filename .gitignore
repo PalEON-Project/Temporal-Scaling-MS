@@ -13,3 +13,5 @@ R/.Rhistory
 .Rhistory
 
 *.pdf
+
+raw_inputs/*
