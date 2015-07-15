@@ -23,6 +23,7 @@ library(zoo)
 # Set Directories
 # ----------------------------------------
 # setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("..")
 inputs    <- "raw_inputs"
 path.data <- "Data"
 fig.dir   <- "Figures"

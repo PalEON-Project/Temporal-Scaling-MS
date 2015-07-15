@@ -69,6 +69,7 @@ sec2yr <- 1*60*60*24*365
 # Set Directories
 # ----------------------------------------
 # setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("..")
 path.data <- "Data"
 fig.dir <- "Figures"
 # ----------------------------------------

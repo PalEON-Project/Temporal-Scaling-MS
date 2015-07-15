@@ -40,9 +40,10 @@ library(zoo)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-path.data <- "~/Desktop/Research/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Data/"
-# fig.dir <- "~/Desktop/Research/PalEON CR/paleon_mip_site/Analyses/Temporal-Scaling/Figures"
+# setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("..")
+path.data <- "Data/"
+# fig.dir <- "Figures"
 # ----------------------------------------
 
 ----------------------------------------

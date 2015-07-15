@@ -67,6 +67,7 @@ sec2yr <- 1*60*60*24*365
 # Set Directories
 # ----------------------------------------
 # setwd("~/Desktop/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("..")
 dat.base="Data/gamms_byModel"
 fig.base="Figures/gamms_byModel"
 
