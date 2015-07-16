@@ -344,7 +344,7 @@ betas.samp2$Model <- as.factor(m.name)
 betas.samp2$Beta <- as.factor(substr(betas.samp2$beta.name, 1, 5))
 betas.samp2$Scale <- as.factor(recode(substr(betas.samp2$beta.name,7,7), "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"))
 betas.samp2$Interaction <- betas.samp2$Beta
-levels(betas.samp2$Interaction) <- recode(levels(betas.samp2$Interaction), "'beta00'='Intercept'; 'beta01'='TEMP'; 'beta02'='PRECIP'; 'beta03'='CO2'; 'beta04'='SWDOWN'; 'beta05'='TEMP x PRECIP'; 'beta06'='TEMP x CO2'; 'beta07'='TEMP x SWDOWN';  'beta08'='PRECIP x CO2'; 'beta09'='PRECIP X SWDOWN'; 'beta10'='CO2 X SWDOWN'; 'beta11'='TEMP x PRECIP x CO2''; 'beta12'='TEMP x PRECIP x SWDOWN''; 'beta13'='TEMP X CO2 X SWDOWN'; 'beta14'='PRECIP X CO2 X SWDOWN'; 'beta15'='TEMP x PRECIP x CO2 X SWDOWN'")
+levels(betas.samp2$Interaction) <- recode(levels(betas.samp2$Interaction), "'beta00'='Intercept'; 'beta01'='TEMP'; 'beta02'='PRECIP'; 'beta03'='CO2'; 'beta04'='SWDOWN'; 'beta05'='TEMP x PRECIP'; 'beta06'='TEMP x CO2'; 'beta07'='TEMP x SWDOWN';  'beta08'='PRECIP x CO2'; 'beta09'='PRECIP X SWDOWN'; 'beta10'='CO2 X SWDOWN'; 'beta11'='TEMP x PRECIP x CO2'; 'beta12'='TEMP x PRECIP x SWDOWN'; 'beta13'='TEMP X CO2 X SWDOWN'; 'beta14'='PRECIP X CO2 X SWDOWN'; 'beta15'='TEMP x PRECIP x CO2 X SWDOWN'")
 summary(betas.samp2)
 
 out[["betas.sample"]] <- betas.samp2
