@@ -255,10 +255,10 @@ dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2
 jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=10000, n.burnin=2000, model.file=interactions, DIC=F)
 # jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=100, n.burnin=20, model.file=interactions, DIC=F)
 
-out <- list(Data=dat.jags, jags.out=jags.out)
+out <- list(data=dat.jags, jags.out=jags.out)
 
 out.mcmc <- as.mcmc(jags.out)
-print(summary(out.mcmc))
+# print(summary(out.mcmc))
 # class(summary(out.mcmc[,]))
 # names(summary(out.mcmc))
 # row.names(summary(out.mcmc)$quantiles)
@@ -271,9 +271,9 @@ dev.off()
 
 # Write a data frame with the coefficient 95% ci from the full jags output
 coefs.out <- data.frame(Model=m.name, var=row.names(summary(out.mcmc)$quantiles), mean=summary(out.mcmc)$statistics[,"Mean"], CI.025=summary(out.mcmc)$quantiles[,"2.5%"], CI.975=summary(out.mcmc)$quantiles[,"97.5%"])
-coefs.out$Scale <- as.factor(ifelse(substr(coefs.out$var,1,4)=="beta", substr(coefs.out$var,7,7), NA))
+coefs.out$Scale <- as.factor(ifelse(substr(coefs.out$var,1,4)=="beta", substr(coefs.out$var,8,8), NA))
 coefs.out$Scale <- recode(coefs.out$Scale, "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'")
-coefs.out$var2 <- as.factor(substr(coefs.out$var, 1, 5))
+coefs.out$var2 <- as.factor(substr(coefs.out$var, 1, 6))
 # summary(coefs.out)
 
 out[["ci.coeff"]] <- coefs.out
@@ -295,6 +295,7 @@ for(i in 1:pulls){
 	temp.t   <- TEMP[rows.t]
 	precip.t <- PRECIP[rows.t]
 	co2.t    <- CO2[rows.t]
+	swdown.t <- SWDOWN[rows.t]
 	alpha    <- out.mcmc[[c]][r,paste0("alpha1[",SITE,"]")[rows.t]] # selecting the appropriate alpha for the vector
 
 	# predicting y from the coefficients (rather than saving mu, 
@@ -317,21 +318,21 @@ for(i in 1:pulls){
 	betas.samp[i,paste0("beta15[",t,"]")] <- out.mcmc[[c]][r,paste0("beta15[",t,"]")]
 
 	y.predict1[rows.t,i] <- out.mcmc[[c]][r,paste0("beta00[",t,"]")] + 
-				 out.mcmc[[c]][r,paste0("beta01[",t,"]")]*TEMP[i] + 
-				 out.mcmc[[c]][r,paste0("beta02[",t,"]")]*PRECIP[i] + 
-				 out.mcmc[[c]][r,paste0("beta03[",t,"]")]*CO2[i] + 
-				 out.mcmc[[c]][r,paste0("beta04[",t,"]")]*SWDOWN[i] + 
-				 out.mcmc[[c]][r,paste0("beta05[",t,"]")]*TEMP[i]*PRECIP[i] + 
-				 out.mcmc[[c]][r,paste0("beta06[",t,"]")]*TEMP[i]*CO2[i] + 
-				 out.mcmc[[c]][r,paste0("beta07[",t,"]")]*TEMP[i]*SWDOWN[i] + 
-				 out.mcmc[[c]][r,paste0("beta08[",t,"]")]*PRECIP[i]*CO2[i] + 
-				 out.mcmc[[c]][r,paste0("beta09[",t,"]")]*PRECIP[i]*SWDOWN[i] + 
-				 out.mcmc[[c]][r,paste0("beta10[",t,"]")]*CO2[i]*SWDOWN[i] + 
-				 out.mcmc[[c]][r,paste0("beta11[",t,"]")]*TEMP[i]*PRECIP[i]*CO2[i] + 
-				 out.mcmc[[c]][r,paste0("beta12[",t,"]")]*TEMP[i]*PRECIP[i]*SWDOWN[i] + 
-				 out.mcmc[[c]][r,paste0("beta13[",t,"]")]*TEMP[i]*CO2[i]*SWDOWN[i] + 
-				 out.mcmc[[c]][r,paste0("beta14[",t,"]")]*PRECIP[i]*CO2[i]*SWDOWN[i] + 
-				 out.mcmc[[c]][r,paste0("beta15[",t,"]")]*TEMP[i]*PRECIP[i]*CO2[i]*SWDOWN[i] + 
+				 out.mcmc[[c]][r,paste0("beta01[",t,"]")]*temp.t + 
+				 out.mcmc[[c]][r,paste0("beta02[",t,"]")]*precip.t + 
+				 out.mcmc[[c]][r,paste0("beta03[",t,"]")]*co2.t + 
+				 out.mcmc[[c]][r,paste0("beta04[",t,"]")]*swdown.t + 
+				 out.mcmc[[c]][r,paste0("beta05[",t,"]")]*temp.t*precip.t + 
+				 out.mcmc[[c]][r,paste0("beta06[",t,"]")]*temp.t*co2.t + 
+				 out.mcmc[[c]][r,paste0("beta07[",t,"]")]*temp.t*swdown.t + 
+				 out.mcmc[[c]][r,paste0("beta08[",t,"]")]*precip.t*co2.t + 
+				 out.mcmc[[c]][r,paste0("beta09[",t,"]")]*precip.t*swdown.t + 
+				 out.mcmc[[c]][r,paste0("beta10[",t,"]")]*co2.t*swdown.t + 
+				 out.mcmc[[c]][r,paste0("beta11[",t,"]")]*temp.t*precip.t*co2.t + 
+				 out.mcmc[[c]][r,paste0("beta12[",t,"]")]*temp.t*precip.t*swdown.t + 
+				 out.mcmc[[c]][r,paste0("beta13[",t,"]")]*temp.t*co2.t*swdown.t + 
+				 out.mcmc[[c]][r,paste0("beta14[",t,"]")]*precip.t*co2.t*swdown.t + 
+				 out.mcmc[[c]][r,paste0("beta15[",t,"]")]*temp.t*precip.t*co2.t*swdown.t + 
 			     alpha
 	}
 }
@@ -341,8 +342,8 @@ out.analy <- data.frame(Model=m.name, Scale=recode(T.SCALE, "'1'='t.001'; '2'='t
 betas.samp2 <- stack(betas.samp)[,c(2,1)]
 names(betas.samp2) <- c("beta.name", "value")
 betas.samp2$Model <- as.factor(m.name)
-betas.samp2$Beta <- as.factor(substr(betas.samp2$beta.name, 1, 5))
-betas.samp2$Scale <- as.factor(recode(substr(betas.samp2$beta.name,7,7), "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"))
+betas.samp2$Beta <- as.factor(substr(betas.samp2$beta.name, 1, 6))
+betas.samp2$Scale <- as.factor(recode(substr(betas.samp2$beta.name,8,8), "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"))
 betas.samp2$Interaction <- betas.samp2$Beta
 levels(betas.samp2$Interaction) <- recode(levels(betas.samp2$Interaction), "'beta00'='Intercept'; 'beta01'='TEMP'; 'beta02'='PRECIP'; 'beta03'='CO2'; 'beta04'='SWDOWN'; 'beta05'='TEMP x PRECIP'; 'beta06'='TEMP x CO2'; 'beta07'='TEMP x SWDOWN';  'beta08'='PRECIP x CO2'; 'beta09'='PRECIP X SWDOWN'; 'beta10'='CO2 X SWDOWN'; 'beta11'='TEMP x PRECIP x CO2'; 'beta12'='TEMP x PRECIP x SWDOWN'; 'beta13'='TEMP X CO2 X SWDOWN'; 'beta14'='PRECIP X CO2 X SWDOWN'; 'beta15'='TEMP x PRECIP x CO2 X SWDOWN'")
 summary(betas.samp2)
