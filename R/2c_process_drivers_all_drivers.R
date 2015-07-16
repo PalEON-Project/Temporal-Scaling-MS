@@ -168,7 +168,7 @@ k=4
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 	
-for(m in 6:length(model.name)){
+for(m in 1:length(model.name)){
 	print("-------------------------------------")
 	print("-------------------------------------")
 	print("-------------------------------------")

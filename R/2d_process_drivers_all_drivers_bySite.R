@@ -168,7 +168,7 @@ k=4
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 	
-for(m in 3:length(model.name)){
+for(m in 1:length(model.name)){
 	print("-------------------------------------")
 	print("-------------------------------------")
 	print("-------------------------------------")
@@ -219,7 +219,11 @@ for(s in 1:length(sites)){
 	}
 	if(substr(m.name,1,3)=="clm") {
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+    if(substr(m.name,5,6)=="bg"){
+      gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+    } else {
+      gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
+    }
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
