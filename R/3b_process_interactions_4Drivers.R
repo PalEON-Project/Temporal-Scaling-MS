@@ -179,22 +179,15 @@ fig.base="Figures/interactions_byModel2"
 if(!dir.exists(data.base)) dir.create(data.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
+
+# Just get rid of Linkages because it doesn't have CO2 OR swdown
+ecosys <- ecosys[!ecosys$Model=="linkages"]
+
 # Setting up a loop for 1 m.name, 1 temporal scale
 sites    <- unique(ecosys$Site)
 model.name    <- unique(ecosys$Model); 
 model.order   <- unique(ecosys$Model.Order)
-# var <- c("NPP", "AGB.diff")
-# var <- "NPP"
-# scale    <- ""
-# scales <- c("", ".10", ".50", ".100", ".250")
-# scales <- c(".100")
-# t.scales <- ifelse(scales=="", "t.001", paste0("t", scales))
-# extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
 
-# Just get rid of Linkages because it doesn't have CO2 OR swdown
-model.name <- model.name[!model.name=="linkages"]
-
-# set.seed(561)
 
 for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
