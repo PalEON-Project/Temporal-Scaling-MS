@@ -47,14 +47,11 @@
 # ----------------------------------------
 # Load Libaries
 # ----------------------------------------
-library(ncdf4)
-library(lme4)
-# library(R2jags)
+# library(ncdf4)
+library(mgcv)
 library(ggplot2); library(grid)
 library(car)
-library(zoo)
-# library(mvtnorm)
-# library(MCMCpack)
+# library(zoo)
 # ----------------------------------------
 
 # ----------------------------------------
@@ -135,8 +132,6 @@ model.colors
 # ----------------------------------------
 # Model approach: AGB ~ 3 non-interactive temporal smoothers: AGB, Temp, Precip
 # ----------------------------------------
-library(mgcv)
-
 # ------------------------------------------------
 # All Sites: (for 1 site, see m.name selection script)
 # ------------------------------------------------
