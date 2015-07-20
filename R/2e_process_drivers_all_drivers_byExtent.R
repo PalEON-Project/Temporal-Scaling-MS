@@ -179,7 +179,7 @@ for(m in 1:length(model.name)){
 
 	# Make sure folders for each model exist
 	if(!dir.exists(file.path(dat.base, m.order))) dir.create(file.path(dat.base, m.order))
-	if(!dir.exists(file.path(fig.base, m.order))) dir.create(file.path(fig, m.order))
+	if(!dir.exists(file.path(fig.base, m.order))) dir.create(file.path(fig.base, m.order))
 
 	fig.dir <- file.path(fig.base, m.order, "AllDrivers_byExtent")
 	dat.dir <- file.path(dat.base, m.order, "AllDrivers_byExtent")
@@ -190,10 +190,10 @@ for(m in 1:length(model.name)){
 
 for(t in 1:nrow(extents)){
 	print(       "-------------------------------------")
-	print(paste0("------ Processing Extent: ", extents[e,1], " - ", extents[e,2], " ------"))
+	print(paste0("------ Processing Extent: ", extents[t,1], " - ", extents[t,2], " ------"))
 
 
-	extent <- as.numeric(extents[e,])
+	extent <- as.numeric(extents[t,])
 	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Year>=extent[1] & ecosys$Year<=extent[2], c("Model", "Updated", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
 	# Making a note of the extent
 	ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
