@@ -11,7 +11,7 @@ R/.Rhistory
  Figures/*
  Figures/**
 .Rhistory
-
+Data/*
 *.pdf
 
 raw_inputs/*
