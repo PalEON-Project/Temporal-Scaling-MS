@@ -46,7 +46,7 @@ levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STA
 summary(ecosys)
 
 # CO2 Record
-nc.co2 <- nc_open("env_drivers/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
+nc.co2 <- nc_open("raw_inputs/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
 co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
 nc_close(nc.co2)
 
@@ -248,13 +248,24 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 	theme_bw()
 dev.off()
 
-pdf(file.path(fig.dir, "AGB_Annual_PHA_AllModels.pdf"))
+pdf(file.path(fig.dir, "AGB_Annual_Century_PHA_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
+
+
+ggplot(data=ecosys[ecosys$Site=="PHA",]) + #facet_wrap(~Site) +
+	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color= Model.Order), size=2) +
+	scale_color_manual(values=col.model) +
+	theme_bw() +
+	theme(plot.title=element_text(face="bold", size=rel(3))) + theme(legend.position=c(0.6,0.9), legend.text=element_text(size=rel(1.5)), legend.title=element_text(size=rel(2))) + labs(color="Model", y=expression(bold(paste("Aboveground Biomass (Mg C ha"^"-1",")"))), title="Comparison of Model Aboveground Biomass") +
+	guides(color=guide_legend(ncol=3)) +
+	theme(axis.line=element_line(color="black", size=0.5), panel.grid.major=element_blank(), panel.grid.minor= element_blank(), panel.border= element_blank(), panel.background= element_blank(), axis.text.x=element_text(angle=0, color="black", size=rel(2)), axis.text.y=element_text(color="black", size=rel(2)), axis.title.x=element_text(face="bold", size=rel(2), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(2), vjust=1), plot.margin=unit(c(0.1,0.5,0.5,0.1), "lines"))
+
 # ---------------------------
 
 # ---------------------------

@@ -181,7 +181,7 @@ if(!dir.exists(fig.base)) dir.create(fig.base)
 
 
 # Just get rid of Linkages because it doesn't have CO2 OR swdown
-ecosys <- ecosys[!ecosys$Model=="linkages"]
+ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 # Setting up a loop for 1 m.name, 1 temporal scale
 sites    <- unique(ecosys$Site)
