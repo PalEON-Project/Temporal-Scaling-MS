@@ -140,7 +140,7 @@ model.colors
 # MegaLoop -- Looping through all models by Variable, by Extent
 # ------------------------
 # Just going to run this at the annual resolution
-ecosys <- ecosys[ecosys$Scale=="t.001",]
+ecosys <- ecosys[ecosys$Scale=="t.001" & !ecosys$Model=="clm.bgc",]
 summary(ecosys)
 
 # Setting up a loop for 1 m.name, 1 temporal scale
@@ -169,7 +169,7 @@ predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "win
 extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
 t.res <- unique(ecosys$Scale) # temporal resolution
 	
-for(m in 1:length(model.name)){
+for(m in 6:length(model.name)){
 	print("-------------------------------------")
 	print("-------------------------------------")
 	print("-------------------------------------")
@@ -219,8 +219,10 @@ for(t in 1:nrow(extents)){
 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
 	}
 	if(substr(m.name,1,3)=="clm") {
+		# Note: CLM-BGC was being weird & wouldn't work, but it's one Yao is supposed to redo
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		#, control=list(niterEM=0, sing.tol=1e-20, sing.tol=1e-20)
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
