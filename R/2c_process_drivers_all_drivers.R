@@ -1,6 +1,6 @@
 # ----------------------------------------
 # Temporal Scaling Analyses
-# Non-constant driver effects through time
+# Non-linear driver effects through time
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 10 July 2015
 # ----------------------------------------
@@ -8,7 +8,8 @@
 # Objectives & Overview
 # -------------------------
 # Driving Questions: What is the relative control of different drivers within each model?
-# Rationale: Not all models use all inputs, and many drivers are correlated, so we need to see if the temperature pattern is really a radiation pattern, etc. 
+# Rationale: Not all models use all inputs, and many drivers are correlated, so we need to 
+#            see if the temperature pattern is really a radiation pattern, etc. 
 # -------------------------
 #
 # -------------------------
@@ -47,12 +48,13 @@
 # ----------------------------------------
 # Load Libaries
 # ----------------------------------------
-library(ncdf4)
-library(lme4)
+library(mgcv)
+# library(ncdf4)
+# library(lme4)
 # library(R2jags)
 library(ggplot2); library(grid)
 library(car)
-library(zoo)
+# library(zoo)
 # library(mvtnorm)
 # library(MCMCpack)
 # ----------------------------------------
@@ -132,23 +134,18 @@ model.colors
 # ----------------------------------------
 
 
-# ----------------------------------------
-# Model approach: AGB ~ 3 non-interactive temporal smoothers: AGB, Temp, Precip
-# ----------------------------------------
-library(mgcv)
-
-# ------------------------------------------------
-# All Sites: (for 1 site, see m.name selection script)
-# ------------------------------------------------
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Extent
 # ------------------------
+# Just get rid of 250-yr resolution
+ecosys <- ecosys[!ecosys$Scale=="t.250",]
+
 # Setting up a loop for 1 m.name, 1 temporal scale
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
-scales      <- unique(ecosys$Scale)
+resolutions <- unique(ecosys$Scale)
 
 # -----------------
 # Matrix of Models and Drivers
@@ -180,18 +177,26 @@ for(m in 1:length(model.name)){
 	if(!dir.exists(file.path(dat.base, m.order))) dir.create(file.path(dat.base, m.order))
 	if(!dir.exists(file.path(fig.base, m.order))) dir.create(file.path(fig, m.order))
 
-	fig.dir <- file.path(fig.base, m.order, "AllDrivers")
-	dat.dir <- file.path(dat.base, m.order, "AllDrivers")
+	fig.dir <- file.path(fig.base, m.order, "AllDrivers_byResolution")
+	dat.dir <- file.path(dat.base, m.order, "AllDrivers_byResolution")
 
 	# Make sure the appropriate file paths are in place
 	if(!dir.exists(dat.dir)) dir.create(dat.dir)
 	if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
-for(t in 1:length(scales)){
+for(r in 1:length(resolutions)){ # Resolution loop
 	print(       "-------------------------------------")
-	print(paste0("------ Processing Scale: ", scales[t], " ------"))
+	print(paste0("------ Processing Resolution: ", resolutions[r], " ------"))
 
-	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==scales[t], c("Model", "Updated", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
+    # -----------
+	# NOTE: To really get the resolution analysis right, we don't want running averages; we want
+	#    single values that are the mean of a given window
+    # -----------
+
+	# Figure out which years to take:
+	yrs <- seq(from=min(ecosys$Year), to=max(ecosys$Year), by=as.numeric(substr(resolutions[r],3,5)))
+
+	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==resolutions[r] & (ecosys$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
 	# Making a note of the extent
 	ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
 	data.temp$Extent <- as.factor(ext)
@@ -240,7 +245,7 @@ for(t in 1:length(scales)){
 	# Storing the predicted values from the gam
 	data.temp$fit.gam <- predict(gam1$gam, newdata=data.temp)
 
-	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=scales[t], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
+	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=resolutions[r], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
 	
 	if(t==1) {
 		mod.out <- list()
@@ -250,7 +255,7 @@ for(t in 1:length(scales)){
 		mod.out$sim.response <- mod.temp$sim.response
 		mod.out$ci.terms     <- mod.temp$ci.terms
 		mod.out$sim.terms    <- mod.temp$sim.terms
-		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
+		mod.out[[paste("gamm", ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
 	} else {
 		mod.out$data         <- rbind(mod.out$data,         mod.temp$data)
 		mod.out$weights      <- rbind(mod.out$weights,      mod.temp$weights)
@@ -258,16 +263,16 @@ for(t in 1:length(scales)){
 		mod.out$sim.response <- rbind(mod.out$sim.response, mod.temp$sim.response)
 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     mod.temp$ci.terms)
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    mod.temp$sim.terms)
-		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
+		mod.out[[paste("gamm", ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
 	}
 	
-} # end scales
+} # end resolutions
 save(mod.out, file=file.path(dat.dir, paste("gamm", m.name, response, "Rdata", sep=".")))
 
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_", m.order, "_", response, "_0850-2010", ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
@@ -278,10 +283,6 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + th
 	# scale_fill_manual(values=col.model) +
 	# scale_color_manual(values=col.model) +		
 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
-)
-dev.off()
-
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_", m.order, "_", response, "_1900-2010", ".pdf")))
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
@@ -292,6 +293,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + th
 	# scale_fill_manual(values=col.model) +
 	# scale_color_manual(values=col.model) +		
 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
+)
 )
 dev.off()
 
