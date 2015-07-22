@@ -140,6 +140,7 @@ model.colors
 # MegaLoop -- Looping through all models by Variable, by Extent
 # ------------------------
 # Just going to run this at the annual resolution
+# ecosys <- ecosys[ecosys$Scale=="t.001",]
 ecosys <- ecosys[ecosys$Scale=="t.001" & !ecosys$Model=="clm.bgc",]
 summary(ecosys)
 
@@ -163,19 +164,22 @@ scales      <- unique(ecosys$Scale)
 # co2     X     X        X       X        X         X          X             X           X
 # Ndep                   ?       ?
 
-k=4
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
+# extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
+extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010)) 
 t.res <- unique(ecosys$Scale) # temporal resolution
 	
-for(m in 6:length(model.name)){
+for(m in 7:length(model.name)){
 	print("-------------------------------------")
 	print("-------------------------------------")
 	print("-------------------------------------")
 	print(paste0("------ Processing Model: ", model.order[m], " ------"))
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
+
+	# CLM is just being a pain in the butt and having stability issues, so lets reduce the dimensionality of the driver responses
+	if(substr(m.name, 1, 3)=="clm") k=3 else k=4
 
 	# Make sure folders for each model exist
 	if(!dir.exists(file.path(dat.base, m.order))) dir.create(file.path(dat.base, m.order))
@@ -222,7 +226,7 @@ for(t in 1:nrow(extents)){
 		# Note: CLM-BGC was being weird & wouldn't work, but it's one Yao is supposed to redo
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
-		#, control=list(niterEM=0, sing.tol=1e-20, sing.tol=1e-20)
+		#, control=list(niterEM=0, sing.tol=1e-20, method="optim")
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
