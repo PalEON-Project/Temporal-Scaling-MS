@@ -247,7 +247,7 @@ for(r in 1:length(resolutions)){ # Resolution loop
 
 	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=resolutions[r], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
 	
-	if(t==1) {
+	if(r==1) {
 		mod.out <- list()
 		mod.out$data         <- mod.temp$data
 		mod.out$weights      <- mod.temp$weights
@@ -283,6 +283,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + th
 	# scale_fill_manual(values=col.model) +
 	# scale_color_manual(values=col.model) +		
 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
+)
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
@@ -293,7 +294,6 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + th
 	# scale_fill_manual(values=col.model) +
 	# scale_color_manual(values=col.model) +		
 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
-)
 )
 dev.off()
 
