@@ -193,8 +193,9 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	#    single values that are the mean of a given window
     # -----------
 
-	# Figure out which years to take:
-	yrs <- seq(from=min(ecosys$Year), to=max(ecosys$Year), by=as.numeric(substr(resolutions[r],3,5)))
+	# Figure out which years to take: 
+	# Note: working backwards to help make sure we get modern end of the CO2 & temperature distributions
+	yrs <- seq(from=max(ecosys$Year), to=min(ecosys$Year), by=-as.numeric(substr(resolutions[r],3,5)))
 
 	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==resolutions[r] & (ecosys$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
 	# Making a note of the extent
@@ -222,11 +223,12 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	}
 	if(substr(m.name,1,3)=="clm") {
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim"))
+	# , control=list(niterEM=0, sing.tol=1e-20, method="optim")
 	}
 	if(substr(m.name,1,3)=="jul") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
