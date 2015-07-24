@@ -184,6 +184,7 @@ for(m in 1:length(model.name)){
 	if(!dir.exists(dat.dir)) dir.create(dat.dir)
 	if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
+	# if(m.name=="lpj.guess") resolutions = resolutions.all[1:3] else resolutions = resolutions.all
 for(r in 1:length(resolutions)){ # Resolution loop
 	print(       "-------------------------------------")
 	print(paste0("------ Processing Resolution: ", resolutions[r], " ------"))
@@ -195,11 +196,13 @@ for(r in 1:length(resolutions)){ # Resolution loop
 
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2 & temperature distributions
-	yrs <- seq(from=max(ecosys$Year), to=min(ecosys$Year), by=-as.numeric(substr(resolutions[r],3,5)))
+	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year))
+	yrs <- seq(from=run.end, to=min(ecosys$Year), by=-as.numeric(substr(resolutions[r],3,5)))
 
 	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==resolutions[r] & (ecosys$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
 	# Making a note of the extent
-	ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
+	# ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
+	ext <- as.factor("850-2010")
 	data.temp$Extent <- as.factor(ext)
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
@@ -223,17 +226,27 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	}
 	if(substr(m.name,1,3)=="clm") {
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		if(m.name=="clm.bgc"){
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		} else {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
+
+		}
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim"))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim")) 
 	# , control=list(niterEM=0, sing.tol=1e-20, method="optim")
 	}
 	if(substr(m.name,1,3)=="jul") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
-	}
+		if(m.name=="jules.triffid"){
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(method="optim"))
+		} else {
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim"))			
+		}
+		# , control=list(niterEM=0, sing.tol=1e-20, method="optim")
+ 	}
 	if(substr(m.name,1,3)=="sib") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))

@@ -140,6 +140,8 @@ library(mgcv)
 # ------------------------------------------------
 # All Sites: (for 1 site, see m.name selection script)
 # ------------------------------------------------
+# Just get rid of 250-yr resolution
+ecosys <- ecosys[!ecosys$Scale=="t.250",]
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Extent
@@ -148,7 +150,7 @@ library(mgcv)
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
-scales      <- unique(ecosys$Scale)
+resolutions <- unique(ecosys$Scale)
 
 # -----------------
 # Matrix of Models and Drivers
@@ -167,8 +169,8 @@ scales      <- unique(ecosys$Scale)
 k=4
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-	
-for(m in 1:length(model.name)){
+res.all <- unique(ecosys$Scale)
+for(m in m:length(model.name)){
 	print("-------------------------------------")
 	print("-------------------------------------")
 	print("-------------------------------------")
@@ -187,17 +189,21 @@ for(m in 1:length(model.name)){
 	if(!dir.exists(dat.dir)) dir.create(dat.dir)
 	if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
-
-for(t in 1:length(scales)){
+	if(substr(m.name,1,3)=="jul") resolutions <- res.all[1:3] else resolutions <- res.all
+for(r in 1:length(resolutions)){
 	print(       "-------------------------------------")
-	print(paste0("------ Processing Scale: ", scales[t], " ------"))
+	print(paste0("------ Processing Scale: ", resolutions[r], " ------"))
+	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year))
+	yrs <- seq(from=run.end, to=min(ecosys$Year), by=-as.numeric(substr(resolutions[r],3,5)))
 
 for(s in 1:length(sites)){
 	print(paste0("------ Processing Site: ", sites[s], " ------"))
 
-	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==scales[t] & ecosys$Site==sites[s], c("Model", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
+	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==resolutions[r] & (ecosys$Year %in% yrs) & ecosys$Site==sites[s], c("Model", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
 	# Making a note of the extent
-	ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
+	# ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
+	ext <- as.factor("850-2010")
+
 	data.temp$Extent <- as.factor(ext)
 	
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
@@ -215,19 +221,28 @@ for(s in 1:length(sites)){
 	# Each of the models is having different stability issues
 	if(substr(m.name,1,2)=="ed"){
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		if(m.name=="ed2.lu" & sites[s]=="PHA" & (resolutions[r]=="t.001" | resolutions[r]=="t.100")){
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))		} else {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		}
 	}
 	if(substr(m.name,1,3)=="clm") {
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
-    if(substr(m.name,5,6)=="bg"){
-      gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+    if(substr(m.name,5,6)=="bg" & !(sites[s]=="PDL" | sites[s]=="PMB" & resolutions[r]=="t.100")){
+      gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1) , control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
     } else {
       gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
     }
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		# if(m.name == "lpj.wsl") {
+		if(m.name == "lpj.wsl" & resolutions[r]=="t.050" & sites[s]=="PDL") {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		} else {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		}
+
 	}
 	if(substr(m.name,1,3)=="jul") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
@@ -246,9 +261,9 @@ for(s in 1:length(sites)){
 	# Storing the predicted values from the gam
 	data.temp$fit.gam <- predict(gam1$gam, newdata=data.temp)
 
-	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=scales[t], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
+	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=resolutions[r], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
 	
-	if(t==1 & s==1) {
+	if(r==1 & s==1) {
 		mod.out <- list()
 		mod.out$data         <- mod.temp$data
 		mod.out$weights      <- mod.temp$weights
@@ -256,7 +271,7 @@ for(s in 1:length(sites)){
 		mod.out$sim.response <- mod.temp$sim.response
 		mod.out$ci.terms     <- mod.temp$ci.terms
 		mod.out$sim.terms    <- mod.temp$sim.terms
-		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
+		mod.out[[paste("gamm", sites[s], ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
 	} else {
 		mod.out$data         <- rbind(mod.out$data,         mod.temp$data)
 		mod.out$weights      <- rbind(mod.out$weights,      mod.temp$weights)
@@ -264,10 +279,10 @@ for(s in 1:length(sites)){
 		mod.out$sim.response <- rbind(mod.out$sim.response, mod.temp$sim.response)
 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     mod.temp$ci.terms)
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    mod.temp$sim.terms)
-		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
+		mod.out[[paste("gamm", sites[s], ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
 	}
 } # end sites	
-} # end scales
+} # end resolutions
 save(mod.out, file=file.path(dat.dir, paste("gamm", m.name, response, "Rdata", sep=".")))
 
 m.order <- unique(mod.out$data$Model.Order)

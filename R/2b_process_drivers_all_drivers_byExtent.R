@@ -170,7 +170,7 @@ predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "win
 extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010)) 
 t.res <- unique(ecosys$Scale) # temporal resolution
 	
-for(m in 7:length(model.name)){
+for(m in 1:length(model.name)){
 	print("-------------------------------------")
 	print("-------------------------------------")
 	print("-------------------------------------")

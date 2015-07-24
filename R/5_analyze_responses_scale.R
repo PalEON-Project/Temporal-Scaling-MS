@@ -42,7 +42,7 @@ library(car)
 setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms_byModel"
-in.res  <- "AllDrivers"
+in.res  <- "AllDrivers_byResolution"
 in.ext  <- "AllDrivers_byExtent"
 out.dir <- "Data/analysis_response_scale"
 fig.dir <- "Figures/analysis_response_scale"
@@ -88,8 +88,11 @@ for(i in 1:length(models)){
 	# Clear the mod.out to save space
 	rm(mod.out)
 }
+
 ci.terms$Extent <- as.factor(substr(ci.terms$Extent, 1, nchar(as.character(ci.terms$Extent))-3))
-summary(ci.terms)
+ci.terms$Extent <- as.factor(ifelse(ci.terms$Extent=="850-2010", "0850-2010", paste(ci.terms$Extent)))
+summary(ci.terms$Extent)
+
 
 # Write the files to csv so I don't have to mess with loading large .Rdata files again if I don't have to
 # write.csv(ci.terms.res,  file.path(out.dir, "Driver_Responses_CI_Resolution.csv"), row.names=F)
@@ -105,8 +108,8 @@ summary(ci.terms)
 # ----------------------------------------
 # Across all scales (res + extent) finding 
 for(m in unique(ci.terms$Model)){
-	for(r in unique(ci.terms$Scale)){
-		for(e in unique(ci.terms$Extent)){
+	for(r in unique(ci.terms[ci.terms$Model==m, "Scale"])){
+		for(e in unique(ci.terms[ci.terms$Model==m, "Extent"])){
 			# Find the start year for the extent
 			yr <- ifelse(nchar(as.character(e))==8, as.numeric(substr(e,1,3)), as.numeric(substr(e,1,4)))
 
@@ -122,15 +125,13 @@ for(m in unique(ci.terms$Model)){
 }
 summary(ci.terms)
 
-# models.use <- models
-models.use <- unique(ecosys[ecosys$Model %in% ci.terms$Model,"Model.Order"])
-
 # Trying out the basic plot to compare model responses to drivers
+models.use <- unique(ecosys[ecosys$Model %in% ci.terms$Model,"Model.Order"])
 colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"])
 
 
-# pdf(file.path(fig.dir, "NPP_RelChange_Resolution.pdf"))
-ggplot(data= ci.terms[ci.terms$Extent=="850-2010",]) + 
+pdf(file.path(fig.dir, "NPP_RelChange_Resolution.pdf"))
+ggplot(data= ci.terms[ci.terms$Extent=="0850-2010",]) + 
 	facet_grid(Scale~Effect, scales="free") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
@@ -138,10 +139,10 @@ ggplot(data= ci.terms[ci.terms$Extent=="850-2010",]) +
 	scale_color_manual(values=colors.use) +
 	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 850-2010") +
 	theme_bw()
-# dev.off()
+dev.off()
 
-# pdf(file.path(fig.dir, "NPP_RelChange_Extent.pdf"))
-ggplot(data= ci.terms.rel[ci.terms.rel$Scale=="t.001",]) + 
+pdf(file.path(fig.dir, "NPP_RelChange_Extent.pdf"))
+ggplot(data= ci.terms[ci.terms$Scale=="t.001",]) + 
 	facet_grid(Extent~Effect, scales="free") +
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=0.75) +
@@ -149,10 +150,10 @@ ggplot(data= ci.terms.rel[ci.terms.rel$Scale=="t.001",]) +
 	scale_color_manual(values=colors.use) +
 	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 850-2010") +
 	theme_bw()
-# dev.off()
+dev.off()
 
-# pdf(file.path(fig.dir, "NPP_RelChange_ResAnn_Ext850.pdf"))
-ggplot(data=ci.terms[ci.terms$Scale=="t.001" & ci.terms$Extent=="850-2010",]) + 
+pdf(file.path(fig.dir, "NPP_RelChange_ResAnn_Ext0850.pdf"))
+ggplot(data=ci.terms[ci.terms$Scale=="t.001" & ci.terms$Extent=="0850-2010",]) + 
 	facet_wrap(~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
@@ -160,7 +161,7 @@ ggplot(data=ci.terms[ci.terms$Scale=="t.001" & ci.terms$Extent=="850-2010",]) +
 	scale_color_manual(values=colors.use) +
 	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 850-2010") +
 	theme_bw()
-# dev.off()
+dev.off()
 
 
 # ----------------------------------------
@@ -228,7 +229,7 @@ for(m in unique(ci.terms$Model)){
 	ci.terms.pred1$ci[,c("mean", "lwr", "upr")] <- ci.terms.pred1$ci[,c("mean", "lwr", "upr")]/npp
 	# -----------------
 
-	for(r in unique(ci.terms$Scale)){
+	for(r in unique(ci.terms[ci.terms$Model==m, "Scale"])){
 		mod2 <- mod.out[[paste0("gamm.850-2010.", substr(r, 3, 5))]]
 		# just changing the scale (resolution) in new.dat to the appropriate r
 		new.dat$Scale <- as.factor(r)
@@ -238,7 +239,7 @@ for(m in unique(ci.terms$Model)){
 
 		df.out <- data.frame(Model=as.factor(m), Site=ci.terms.pred2$sims$Site, Extent=ci.terms.pred2$sims$Extent, Scale=ci.terms.pred2$sims$Scale, Effect=as.factor(ci.terms.pred2$sims$Effect), x=ci.terms.pred2$sims$x,  mean.rel=apply(ci.terms.pred2$sims[,7:ncol(ci.terms.pred2$sims)], 1, mean, na.rm=T), lwr.rel=apply(ci.terms.pred2$sims[,7:ncol(ci.terms.pred2$sims)], 1, quantile, 0.025, na.rm=T), upr.rel=apply(ci.terms.pred2$sims[,7:ncol(ci.terms.pred2$sims)], 1, quantile, 0.975, na.rm=T))
 
-		if(m==unique(ci.terms$Model)[1] & r==unique(ci.terms$Scale)[1]) {
+		if(m==unique(ci.terms$Model)[1] & r==unique(ci.terms[ci.terms$Model==m, "Scale"])[1]) {
 			ci.terms.rel <- df.out
 		} else {
 			ci.terms.rel <- rbind(ci.terms.rel, df.out)
@@ -248,13 +249,13 @@ for(m in unique(ci.terms$Model)){
 	# changing the resolution back to "t.001"
 	new.dat$Scale <- as.factor("t.001")
 
-	ext <- unique(ci.terms$Extent)
+	ext <- unique(ci.terms[ci.terms$Model==m, "Extent"])
 	for(e in ext[2:length(ext)]){  # note, not doing the first one because it's essentially aready done
 		# Need to switch and load the extent file
 		fmod <- dir(file.path(in.base, model.order, in.ext))
 		load(file.path(in.base, model.order, in.ext, fmod))
 
-		r <- ifelse(e=="850-2010", "001", NA)
+		r <- ifelse(e=="0850-2010", "001", NA)
 		mod2 <- mod.out[[paste0("gamm.", e, ".", r)]]
 		# just changing the scale (resolution) in new.dat to the appropriate r
 		new.dat$Extent <- as.factor(e)
@@ -267,12 +268,13 @@ for(m in unique(ci.terms$Model)){
 		ci.terms.rel <- rbind(ci.terms.rel, df.out)
 	}
 }
-# names(ci.terms.rel)[7:length(names(ci.terms.rel))] <- c("mean.rel", "lwr.rel", "upr.rel")
+# Fixing Extent Labels
+ci.terms.rel$Extent <- as.factor(ifelse(ci.terms.rel$Extent=="850-2010", "0850-2010", paste(ci.terms$Extent)))
 summary(ci.terms.rel)
 save(ci.terms.rel, file=file.path(out.dir, "Driver_Responses_DevAnn.Rdata"))
 
-# pdf(file.path(fig.dir, "NPP_RelChange_fromAnn_Resolution.pdf"))
-ggplot(data= ci.terms.rel[ci.terms.rel$Extent=="850-2010",]) + 
+pdf(file.path(fig.dir, "NPP_RelChange_fromAnn_Resolution.pdf"))
+ggplot(data= ci.terms.rel[ci.terms.rel$Extent=="0850-2010",]) + 
 	facet_grid(Scale~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
@@ -280,9 +282,9 @@ ggplot(data= ci.terms.rel[ci.terms.rel$Extent=="850-2010",]) +
 	scale_color_manual(values=colors.use) +
 	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 850-2010") +
 	theme_bw()
-# dev.off()
+dev.off()
 
-# pdf(file.path(fig.dir, "NPP_RelChange_fromAnn_Extent.pdf"))
+pdf(file.path(fig.dir, "NPP_RelChange_fromAnn_Extent.pdf"))
 ggplot(data= ci.terms.rel[ci.terms.rel$Scale=="t.001",]) + 
 	facet_grid(Extent~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
@@ -291,9 +293,9 @@ ggplot(data= ci.terms.rel[ci.terms.rel$Scale=="t.001",]) +
 	scale_color_manual(values=colors.use) +
 	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 850-2010") +
 	theme_bw()
-# dev.off()
+dev.off()
 
-# pdf(file.path(fig.dir, "NPP_RelChange_fromAnn_ResAnn_Ext1990.pdf"))
+pdf(file.path(fig.dir, "NPP_RelChange_fromAnn_ResAnn_Ext1990.pdf"))
 ggplot(data=ci.terms.rel[ci.terms.rel$Scale=="t.001" & ci.terms.rel$Extent=="1990-2010",]) + 
 	facet_wrap(~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
@@ -302,10 +304,10 @@ ggplot(data=ci.terms.rel[ci.terms.rel$Scale=="t.001" & ci.terms.rel$Extent=="199
 	scale_color_manual(values=colors.use) +
 	labs(y="% Change NPP", title="Change in Driver Sensitivity, Resolution: Annual, Extent: 1990-2010") +
 	theme_bw()
-# dev.off()
+dev.off()
 
-# pdf(file.path(fig.dir, "NPP_RelChange_fromAnn_Res100_Ext0850.pdf"))
-ggplot(data=ci.terms.rel[ci.terms.rel$Scale=="t.100" & ci.terms.rel$Extent=="850-2010",]) + 
+pdf(file.path(fig.dir, "NPP_RelChange_fromAnn_Res100_Ext0850.pdf"))
+ggplot(data=ci.terms.rel[ci.terms.rel$Scale=="t.100" & ci.terms.rel$Extent=="0850-2010",]) + 
 	facet_wrap(~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
@@ -313,7 +315,7 @@ ggplot(data=ci.terms.rel[ci.terms.rel$Scale=="t.100" & ci.terms.rel$Extent=="850
 	scale_color_manual(values=colors.use) +
 	labs(y="% Change NPP", title="Change in Driver Sensitivity, Resolution: Centennial, Extent: 0850-2010") +
 	theme_bw()
-# dev.off()
+dev.off()
 # ----------------------------------------
 
 # ----------------------------------------
@@ -326,29 +328,32 @@ ggplot(data=ci.terms.rel[ci.terms.rel$Scale=="t.100" & ci.terms.rel$Extent=="850
 # load(file.path(out.dir, "Driver_Responses_DevAnn.Rdata"))
 
 # Try to figure out how to make it a 3-panel figure
-data.final <- ci.terms[ci.terms$Scale=="t.001" & ci.terms$Extent=="850-2010", c("Model", "Site", "Extent", "Scale", "Effect", "x", "mean.rel", "lwr.rel", "upr.rel")]
+data.final <- ci.terms[ci.terms$Scale=="t.001" & ci.terms$Extent=="0850-2010", c("Model", "Site", "Extent", "Scale", "Effect", "x", "mean.rel", "lwr.rel", "upr.rel")]
 data.final$std <- as.factor("model.mean")
 summary(data.final)
 
-ci.terms.rel$std <- as.factor("t.001.850-2010")
+ci.terms.rel$std <- as.factor("t.001.0850-2010")
 summary(ci.terms.rel)
 
-data.final <- rbind(data.final, ci.terms.rel[ci.terms.rel$Scale=="t.250" | ci.terms.rel$Extent=="1990-2010",])
+data.final <- rbind(data.final, ci.terms.rel[ci.terms.rel$Scale=="t.100" | ci.terms.rel$Extent=="1990-2010",])
 data.final$Panel <- as.factor(paste(data.final$std, data.final$Scale, data.final$Extent, sep="-"))
-data.final$Panel <- recode(data.final$Panel, "'model.mean-t.001-850-2010'='1'; 't.001.850-2010-t.250-850-2010'='2'; 't.001.850-2010-t.001-1990-2010'='3'")
+data.final$Panel <- recode(data.final$Panel, "'model.mean-t.001-0850-2010'='1'; 't.001.0850-2010-t.100-850-2010'='2'; 't.001.0850-2010-t.001-1990-2010'='3'")
 levels(data.final$Panel) <- c("Base Effect", "Resolution Deviation", "Extent Deviation")
 summary(data.final)
 
 # Making a figure that illustrates each of the Effects
 ecosys2 <- ecosys[!ecosys$Model=="clm.bgc" & !ecosys$Model=="linkages",]
 col.model <- paste(model.colors[model.colors$Model.Order %in% unique(ecosys2$Model.Order),"color"])
+yrs.100  <- seq(from=2009, to=min(ecosys$Year), by=-100)
+
 
 pdf(file.path(fig.dir, "NPP_PHA_Scales.pdf"))
 ggplot(data=ecosys2[ecosys2$Site=="PHA",]) +
 	geom_line(data=ecosys2[ecosys2$Scale=="t.001" & ecosys2$Site=="PHA",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys2[ecosys2$Scale=="t.100" & ecosys2$Site=="PHA",], aes(x=Year, y=NPP, color=Model), size=1.5) +
+	geom_line(data=ecosys2[ecosys2$Scale=="t.100" & (ecosys2$Year %in% yrs.100) & ecosys2$Site=="PHA",], aes(x=Year, y=NPP, color=Model), size=1.5) +
 	geom_vline(xintercept=1990, linetype="dashed") +
-	scale_color_manual(values=col.model) +
+  scale_x_continuous(limits=c(850,2010)) +
+  scale_color_manual(values=col.model) +
  	labs(y="NPP MgC ha-1 yr-1") +
  	theme_bw()
 dev.off()
