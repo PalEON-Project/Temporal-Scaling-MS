@@ -78,8 +78,8 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "AllDrivers_Yr_byResolution")
-dat.dir <- file.path(dat.base, "AllDrivers_Yr_byResolution")
+fig.dir <- file.path(fig.base, "AllDrivers_Yr_byResolution_Site")
+dat.dir <- file.path(dat.base, "AllDrivers_Yr_byResolution_Site")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -194,20 +194,14 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
 	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
 	run.start <- 850
-	inc <- as.numeric(substr(resolutions[r],3,5))
-	yrs <- seq(from=run.end-inc/2, to=run.start+inc/2, by=-inc)
-
-	# Figure out which years to take: 
-	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
-	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
-	run.start <- 850
-	inc <- as.numeric(substr(resolutions[r],3,5))
-	yrs <- seq(from=run.end-inc/2, to=run.start+inc/2, by=-inc)
+	inc <- round(as.numeric(substr(resolutions[r],3,5)),0) # making sure we're always dealign with whole numbers
+	yrs <- seq(from=run.end-round(inc/2,0), to=run.start+round(inc/2,0), by=-inc)
 
 	dat.mod2 <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year")]
 
 	# Making a note of the extent & resolution
-	dat.mod2$Extent <- as.factor("850-2010")
+	ext <- paste("850-2010")
+	dat.mod2$Extent <- as.factor(ext)
 	dat.mod2$Resolution <- as.factor(resolutions[r])
 
 	# Making place-holders for the response & predictors so the loop works correctly
@@ -336,7 +330,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free")
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
-	scale_x_continuous(limits=c(1900,2010)) +
+	scale_x_continuous(limits=c(1850,2010)) +
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	# scale_fill_manual(values=col.model) +
 	# scale_color_manual(values=col.model) +		

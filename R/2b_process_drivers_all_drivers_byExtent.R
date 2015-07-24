@@ -173,10 +173,10 @@ model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
 resolutions <- "e.001"
 response <- "NPP"
-predictors.all <- c("tair.yr.yr", "precipf.yr.yr", "swdown.yr.yr", "lwdown.yr.yr", "psurf.yr", "qair.yr.yr", "wind.yr.yr", "CO2.yr.yr")
+predictors.all <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
 k=4
 extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010)) 
-resolutions <-"e.001" # temporal resolution
+resolutions <-"t.001" # temporal resolution
 	
 for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
@@ -200,10 +200,10 @@ for(e in 1:nrow(extents)){
 	run.start <- as.numeric(extents[e,1])
 	inc <- as.numeric(substr(resolutions,3,5))
 
-	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Year>=extent[1] & ecosys$Year<=extent[2], c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all)]
+	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Year>=run.start & ecosys$Year<=run.end, c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all)]
 
 	# Making a note of the extent & Resolution
-	ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
+	ext <- as.factor(paste(run.start, run.end, sep="-"))
 	data.temp$Extent <- as.factor(ext)
 	data.temp$Resolution <- as.factor(resolutions)
 
@@ -231,7 +231,7 @@ for(e in 1:nrow(extents)){
 	if(substr(m.name,1,3)=="clm") {
 		# Note: CLM-BGC was being weird & wouldn't work, but it's one Yao is supposed to redo
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
-		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(method="optim"))
 		#, control=list(niterEM=0, sing.tol=1e-20, method="optim")
 	}
 	if(substr(m.name,1,3)=="lpj") {
