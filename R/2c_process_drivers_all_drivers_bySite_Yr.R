@@ -192,10 +192,11 @@ for(r in 1:length(resolutions)){ # Resolution loop
     # -----------
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
+	# Note: Make sure always rounding to a whole number so we don't end up with fractions of years
 	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
 	run.start <- 850
 	inc <- round(as.numeric(substr(resolutions[r],3,5)),0) # making sure we're always dealign with whole numbers
-	yrs <- seq(from=run.end-round(inc/2,0), to=run.start+round(inc/2,0), by=-inc)
+	yrs <- seq(from=round(run.end-inc/2,0), to=round(run.start+inc/2,0), by=-inc)
 
 	dat.mod2 <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year")]
 
@@ -213,7 +214,7 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	if(inc>1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
 		for(s in sites){
 			for(y in yrs){
-				dat.mod2[dat.mod2$Site==s & dat.mod2$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Site==s & dat.mod$Year>=(y-round(inc/2,0)) & dat.mod$Year<=(y+round(inc/2,0)),c(response, predictors.all)], 2, FUN=mean)
+				dat.mod2[dat.mod2$Site==s & dat.mod2$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Site==s & dat.mod$Year>=round(y-inc/2, 0) & dat.mod$Year<=round(y+inc/2,0), c(response, predictors.all)], 2, FUN=mean)
 			}
 		}
 	} else {
