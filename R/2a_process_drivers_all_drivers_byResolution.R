@@ -180,13 +180,14 @@ for(m in 1:length(model.name)){
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
 	# if(m.name=="lpj.guess") resolutions = resolutions.all[1:3] else resolutions = resolutions.all
+	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all)]
 for(r in 1:length(resolutions)){ # Resolution loop
 	print(       "-------------------------------------")
 	print(paste0("------ Processing Resolution: ", resolutions[r], " ------"))
 
     # -----------
 	# NOTE: To really get the resolution analysis right, we don't want running averages; we want
-	#    single values that are the mean of a given wind.yrow
+	#    single values that are the mean of a given window
     # -----------
 
 	# Figure out which years to take: 
@@ -196,7 +197,6 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	inc <- as.numeric(substr(resolutions[r],3,5))
 	yrs <- seq(from=run.end-inc/2, to=run.start+inc/2, by=-inc)
 
-	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all)]
 	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year")]
 
 	# Making a note of the extent & resolution
@@ -212,14 +212,12 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	if(inc>1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
 		for(s in sites){
 			for(y in yrs){
-				data.temp[data.temp$Site==s & data.temp$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Year>=(y-inc/2) & dat.mod$Year<=(y+inc/2),c(response, predictors.all)], 2, FUN=mean)
+				data.temp[data.temp$Site==s & data.temp$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Site==s & dat.mod$Year>=(y-inc/2) & dat.mod$Year<=(y+inc/2),c(response, predictors.all)], 2, FUN=mean)
 			}
 		}
 	} else {
-		data.temp[,c(response, predictors.all)] <- ecosys[,c(response, predictors.all)]
+		data.temp[,c(response, predictors.all)] <- dat.mod[,c(response, predictors.all)]
 	}
-
-	rm(dat.mod) # get rid of dat.mod for memory's sake
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
