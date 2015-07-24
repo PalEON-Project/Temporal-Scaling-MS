@@ -1,6 +1,6 @@
 # ----------------------------------------
-# Temporal Scaling Analyses
-# Non-constant driver effects through time
+# Temporal Scaling Analyses -- Annual Met Drivers
+# Non-linear driver effects through time
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 10 July 2015
 # ----------------------------------------
@@ -8,7 +8,8 @@
 # Objectives & Overview
 # -------------------------
 # Driving Questions: What is the relative control of different drivers within each model?
-# Rationale: Not all models use all inputs, and many drivers are correlated, so we need to see if the temperature pattern is really a radiation pattern, etc. 
+# Rationale: Not all models use all inputs, and many drivers are correlated, so we need to 
+#            see if the temperature pattern is really a radiation pattern, etc. 
 # -------------------------
 #
 # -------------------------
@@ -16,7 +17,7 @@
 # -------------------------
 # (Fit GAMM per site per m.name)
 # 1) Temporal Grain (Resolution)
-#    -- Fit GAMM over constant window with different degrees of smoothing (1 yr - 250 yr)
+#    -- Fit GAMM over constant wind.yrow with different degrees of smoothing (1 yr - 250 yr)
 # -------------------------
 #
 # -------------------------
@@ -47,12 +48,13 @@
 # ----------------------------------------
 # Load Libaries
 # ----------------------------------------
-library(ncdf4)
-library(lme4)
+library(mgcv)
+# library(ncdf4)
+# library(lme4)
 # library(R2jags)
 library(ggplot2); library(grid)
 library(car)
-library(zoo)
+# library(zoo)
 # library(mvtnorm)
 # library(MCMCpack)
 # ----------------------------------------
@@ -68,12 +70,20 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # setwd("~/Desktop/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 setwd("..")
-dat.base="Data/gamms_byModel"
-fig.base="Figures/gamms_byModel"
+dat.base="Data/gamms"
+fig.base="Figures/gamms"
 
 # Making sure the appropriate file paths exist
 if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
+
+# Setting the data & figure directories
+fig.dir <- file.path(fig.base, "AllDrivers_Yr_byResolution")
+dat.dir <- file.path(dat.base, "AllDrivers_Yr_byResolution")
+
+# Make sure the appropriate file paths are in place
+if(!dir.exists(dat.dir)) dir.create(dat.dir)
+if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 
 
@@ -82,9 +92,11 @@ if(!dir.exists(fig.base)) dir.create(fig.base)
 # ----------------------------------------
 # Ecosys file = organized, post-processed m.name outputs
 #	generated with 1_generate_ecosys.R
-load(file.path("Data", "EcosysData.Rdata"))
+load(file.path("Data", "EcosysData_Raw.Rdata"))
+summary(ecosys)
+model.colors
 
-# Scripts to run the gamms to predict a response variable as a function of Temp, Precip, & CO2
+# Scripts to run the gamms to predict a response variable as a function of Temp, Precip, & CO2.yr
 # 	predict.gamm.model.site.R = function to run a single 1 site - m.name combo at a time (fit curves independently)
 # 	predict.gamm.mode.R		= function to get overal m.name responses with random site effects 
 # 	Note: these two functions were split because they now incorporate AR1 autocorrelation that can make the 
@@ -94,9 +106,6 @@ source('R/0_GAMM_Plots.R', chdir = TRUE)
 
 
 # Read in model color scheme
-# model.colors <- read.csv("raw_inputs/Model.Colors.csv")
-model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
-levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 model.colors
 # ----------------------------------------
 
@@ -132,138 +141,160 @@ model.colors
 # ----------------------------------------
 
 
-# ----------------------------------------
-# Model approach: AGB ~ 3 non-interactive temporal smoothers: AGB, Temp, Precip
-# ----------------------------------------
-library(mgcv)
-
-# ------------------------------------------------
-# All Sites: (for 1 site, see m.name selection script)
-# ------------------------------------------------
-# Just get rid of 250-yr resolution
-ecosys <- ecosys[!ecosys$Scale=="t.250",]
 
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Extent
 # ------------------------
-# Setting up a loop for 1 m.name, 1 temporal scale
-sites       <- unique(ecosys$Site)
-model.name  <- unique(ecosys$Model)
-model.order <- unique(ecosys$Model.Order)
-resolutions <- unique(ecosys$Scale)
+# Just get rid of 250-yr resolution
+# ecosys <- ecosys[!ecosys$Resolution=="t.250",]
 
 # -----------------
 # Matrix of Models and Drivers
 # -----------------
 # Var    ED2  ED2-LU  CLM-BGC  CLM-CN  LPJ-WSL  LPJ-GUESS  JULES-STAT  JULES-TRIFFID  SIBCASA  LINKAGES
-# tair    X     X        X       X        X         X          X             X           X        X
-# precip  X     X        X       X        X         X          X             X           X        X
-# swdown  X     X        X       X        X         X          X             X           X
-# lwdown  X     X                         X                    X             X           X
-# wind    X     X        X       X                             X             X           X
-# psurf   X     X        X       X                             X             X           X
-# qair    X     X        X       X                             X             X           X
-# co2     X     X        X       X        X         X          X             X           X
+# tair.yr    X     X        X       X        X         X          X             X           X        X
+# precipf.yr X     X        X       X        X         X          X             X           X        X
+# swdown.yr  X     X        X       X        X         X          X             X           X
+# lwdown.yr  X     X                         X                    X             X           X
+# wind.yr    X     X        X       X                             X             X           X
+# psurf.yr   X     X        X       X                             X             X           X
+# qair.yr    X     X        X       X                             X             X           X
+# CO2.yr     X     X        X       X        X         X          X             X           X
 # Ndep                   ?       ?
 
-k=4
+# Setting up a loop for 1 m.name, 1 temporal scale
+sites       <- unique(ecosys$Site)
+model.name  <- unique(ecosys$Model)
+model.order <- unique(ecosys$Model.Order)
+resolutions <- c("t.001", "t.010", "t.050", "t.100")
 response <- "NPP"
-predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-res.all <- unique(ecosys$Scale)
-for(m in m:length(model.name)){
-	print("-------------------------------------")
-	print("-------------------------------------")
-	print("-------------------------------------")
-	print(paste0("------ Processing Model: ", model.order[m], " ------"))
+predictors.all <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
+k=4
+	
+for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
-	
-	# Make sure folders for each model exist
-	if(!dir.exists(file.path(dat.base, m.order))) dir.create(file.path(dat.base, m.order))
-	if(!dir.exists(file.path(fig.base, m.order))) dir.create(file.path(fig, m.order))
+	print("-------------------------------------")
+	print("-------------------------------------")
+	print("-------------------------------------")
+	print(paste0("------ Processing Model: ", m.order, " ------"))
 
-	fig.dir <- file.path(fig.base, m.order, "AllDrivers_bySite")
-	dat.dir <- file.path(dat.base, m.order, "AllDrivers_bySite")
+	# if(m.name=="lpj.guess") resolutions = resolutions.all[1:3] else resolutions = resolutions.all
+	dat.mod  <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all)]
 
-	# Make sure the appropriate file paths are in place
-	if(!dir.exists(dat.dir)) dir.create(dat.dir)
-	if(!dir.exists(fig.dir)) dir.create(fig.dir)
-
-	if(substr(m.name,1,3)=="jul") resolutions <- res.all[1:3] else resolutions <- res.all
-for(r in 1:length(resolutions)){
+for(r in 1:length(resolutions)){ # Resolution loop
 	print(       "-------------------------------------")
-	print(paste0("------ Processing Scale: ", resolutions[r], " ------"))
-	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year))
-	yrs <- seq(from=run.end, to=min(ecosys$Year), by=-as.numeric(substr(resolutions[r],3,5)))
+	print(paste0("------ Processing Resolution: ", resolutions[r], " ------"))
+
+    # -----------
+	# NOTE: To really get the resolution analysis right, we don't want running averages; we want
+	#    single values that are the mean of a given window
+    # -----------
+	# Figure out which years to take: 
+	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
+	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
+	run.start <- 850
+	inc <- as.numeric(substr(resolutions[r],3,5))
+	yrs <- seq(from=run.end-inc/2, to=run.start+inc/2, by=-inc)
+
+	# Figure out which years to take: 
+	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
+	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
+	run.start <- 850
+	inc <- as.numeric(substr(resolutions[r],3,5))
+	yrs <- seq(from=run.end-inc/2, to=run.start+inc/2, by=-inc)
+
+	dat.mod2 <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year")]
+
+	# Making a note of the extent & resolution
+	dat.mod2$Extent <- as.factor("850-2010")
+	dat.mod2$Resolution <- as.factor(resolutions[r])
+
+	# Making place-holders for the response & predictors so the loop works correctly
+	dat.mod2[,c(response, predictors.all)] <- NA
+
+	# Calculating the mean for each wind.yrow for resolution
+	# Note: because we're now only analyzing single points rathern than the full running mean, 
+	#    we're now making the year in the middle of the resolution
+	if(inc>1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
+		for(s in sites){
+			for(y in yrs){
+				dat.mod2[dat.mod2$Site==s & dat.mod2$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Site==s & dat.mod$Year>=(y-inc/2) & dat.mod$Year<=(y+inc/2),c(response, predictors.all)], 2, FUN=mean)
+			}
+		}
+	} else {
+		dat.mod2[,c(response, predictors.all)] <- dat.mod[,c(response, predictors.all)]
+	}
+
+	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
+	dat.mod2 <- dat.mod2[complete.cases(dat.mod2[,response]),]
+
 
 for(s in 1:length(sites)){
 	print(paste0("------ Processing Site: ", sites[s], " ------"))
 
-	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Scale==resolutions[r] & (ecosys$Year %in% yrs) & ecosys$Site==sites[s], c("Model", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
-	# Making a note of the extent
-	# ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
-	ext <- as.factor("850-2010")
+	data.temp <- dat.mod2[dat.mod2$Site==sites[s],]
 
-	data.temp$Extent <- as.factor(ext)
-	
-	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
-	data.temp <- data.temp[!is.na(data.temp[,response]),]
     # -----------
 	# Running the gamm; note this now has AR1 temporal autocorrelation
 	# -----------
 	# Running the gamm; note this now has AR1 temporal autocorrelation
-	# This version removes the random site effect because we're running it independently to get the best possible
-	#   fit for each site
-	#   Pros: fast, site-specific curves
-	#   Cons: If we try to generalize across sites, we're probably committing pseudo replciation
+	# This is different from model.site.gam in that it has an added random site slope.
+	#	This random effect lets us gauge the overall model.name response to our fixed effects 
+	#   regardless of the site.  
+	#   Pros: Generalized and helps characterize the basic model responses
+	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
 
 	# Select which set of predictors based on which model it is
 	# Each of the models is having different stability issues
 	if(substr(m.name,1,2)=="ed"){
-		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
 		if(m.name=="ed2.lu" & sites[s]=="PHA" & (resolutions[r]=="t.001" | resolutions[r]=="t.100")){
-			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))		} else {
-			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))		} else {
+			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 		}
 	}
 	if(substr(m.name,1,3)=="clm") {
-		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
+		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
     if(substr(m.name,5,6)=="bg" & !(sites[s]=="PDL" | sites[s]=="PMB" & resolutions[r]=="t.100")){
-      gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1) , control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+      gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1) , control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
     } else {
-      gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
+      gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
     }
 	}
 	if(substr(m.name,1,3)=="lpj") {
-		predictors <- c("tair", "precipf", "swdown", "CO2")
+		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "CO2.yr")
 		# if(m.name == "lpj.wsl") {
 		if(m.name == "lpj.wsl" & resolutions[r]=="t.050" & sites[s]=="PDL") {
-			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
 		} else {
-			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 		}
 
 	}
 	if(substr(m.name,1,3)=="jul") {
-		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="sib") {
-		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="lin") {
-		predictors <- c("tair", "precipf")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		predictors <- c("tair.yr", "precipf.yr")
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
 	}
-    print(summary(gam1$gam))	
+    print(summary(gam1$gam))		
+
+	# get rid of values for predictors not used in the models for clarity later on
+	data.temp[,predictors.all[!(predictors.all %in% predictors)]] <- NA
 
 	# Storing the predicted values from the gam
 	data.temp$fit.gam <- predict(gam1$gam, newdata=data.temp)
 
-	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=resolutions[r], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
+	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, resolution=resolutions[r], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
 	
-	if(r==1 & s==1) {
+	if(r==1) {
 		mod.out <- list()
 		mod.out$data         <- mod.temp$data
 		mod.out$weights      <- mod.temp$weights
@@ -271,7 +302,7 @@ for(s in 1:length(sites)){
 		mod.out$sim.response <- mod.temp$sim.response
 		mod.out$ci.terms     <- mod.temp$ci.terms
 		mod.out$sim.terms    <- mod.temp$sim.terms
-		mod.out[[paste("gamm", sites[s], ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
+		mod.out[[paste("gamm", ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
 	} else {
 		mod.out$data         <- rbind(mod.out$data,         mod.temp$data)
 		mod.out$weights      <- rbind(mod.out$weights,      mod.temp$weights)
@@ -279,18 +310,18 @@ for(s in 1:length(sites)){
 		mod.out$sim.response <- rbind(mod.out$sim.response, mod.temp$sim.response)
 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     mod.temp$ci.terms)
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    mod.temp$sim.terms)
-		mod.out[[paste("gamm", sites[s], ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
+		mod.out[[paste("gamm", ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
 	}
-} # end sites	
+	
 } # end resolutions
-save(mod.out, file=file.path(dat.dir, paste("gamm", m.name, response, "Rdata", sep=".")))
+save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name,"_", response, ".Rdata")))
 
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Site_", m.order, "_", response, "_0850-2010", ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Yr_Site_", m.order, "_", response, ".pdf")))
 print(
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
+ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
@@ -300,11 +331,8 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + th
 	# scale_color_manual(values=col.model) +		
 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
 )
-dev.off()
-
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Site_", m.order, "_", response, "_1900-2010", ".pdf")))
 print(	
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + theme_bw() +
+ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
@@ -317,10 +345,10 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Scale, scales="free") + th
 dev.off()
 
 
-pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_Site_", m.order, "_", response, ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_Yr_Site_", m.order, "_", response, ".pdf")))
 for(p in predictors){
 print(
-ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Scale, scales="free") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Resolution, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Site), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
@@ -329,15 +357,6 @@ ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Scale,
 	labs(title=paste0("Driver Effects: ", p, ": ", m.order), y=paste0(p, " Effect Size")) # +
 )
 }
-dev.off()
-
-# Note: We're going to have trouble with Linkages because CO2 is missing
-if(is.null(mod.out$weights$weight.CO2)) mod.out$weights$weight.CO2 <- 0
-
-pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Time_Site_", m.order, "_", response, "_0850-2010.pdf")))
-print(plot.weights.time(df=mod.out$weights, xmin=851, xmax=2010, breaks=c(1000, 1250, 1500, 1750, 2000), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 0850 - 2010"))) )
-print(plot.weights.time(df=mod.out$weights, xmin=1800, xmax=1900, breaks=c(1825, 1850, 1875), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 1800 - 1900"))) )
-print( plot.weights.time(df=mod.out$weights, xmin=1900, xmax=2010, breaks=c(1925, 1950, 1975), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 1900 - 2010"))) )
 dev.off()
 
 } # end model
