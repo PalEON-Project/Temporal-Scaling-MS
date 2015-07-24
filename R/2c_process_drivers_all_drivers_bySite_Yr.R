@@ -145,8 +145,8 @@ model.colors
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Extent
 # ------------------------
-# Just get rid of 250-yr resolution
-# ecosys <- ecosys[!ecosys$Resolution=="t.250",]
+# Get rid of CLM-BGC because its actual drivers are messed up
+ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
 
 # -----------------
 # Matrix of Models and Drivers
@@ -213,7 +213,7 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	if(inc>1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
 		for(s in sites){
 			for(y in yrs){
-				dat.mod2[dat.mod2$Site==s & dat.mod2$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Site==s & dat.mod$Year>=(y-inc/2) & dat.mod$Year<=(y+inc/2),c(response, predictors.all)], 2, FUN=mean)
+				dat.mod2[dat.mod2$Site==s & dat.mod2$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Site==s & dat.mod$Year>=(y-round(inc/2,0)) & dat.mod$Year<=(y+round(inc/2,0)),c(response, predictors.all)], 2, FUN=mean)
 			}
 		}
 	} else {
@@ -243,27 +243,28 @@ for(s in 1:length(sites)){
 	# Each of the models is having different stability issues
 	if(substr(m.name,1,2)=="ed"){
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
-		if(m.name=="ed2.lu" & sites[s]=="PHA" & (resolutions[r]=="t.001" | resolutions[r]=="t.100")){
-			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))		} else {
+		# if(m.name=="ed2.lu" & sites[s]=="PHA" & (resolutions[r]=="t.001" | resolutions[r]=="t.100")){
+			# gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))		
+			# } else {
 			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
-		}
+		# }
 	}
 	if(substr(m.name,1,3)=="clm") {
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
-    if(substr(m.name,5,6)=="bg" & !(sites[s]=="PDL" | sites[s]=="PMB" & resolutions[r]=="t.100")){
-      gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1) , control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
-    } else {
-      gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
-    }
+    # if(substr(m.name,5,6)=="bg" & !(sites[s]=="PDL" | sites[s]=="PMB" & resolutions[r]=="t.100")){
+      gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+    # } else {
+      # gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
+    # }
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "CO2.yr")
-		# if(m.name == "lpj.wsl") {
-		if(m.name == "lpj.wsl" & resolutions[r]=="t.050" & sites[s]=="PDL") {
-			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
-		} else {
+		# # if(m.name == "lpj.wsl") {
+		# if(m.name == "lpj.wsl" & resolutions[r]=="t.050" & sites[s]=="PDL") {
+			# gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		# } else {
 			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
-		}
+		# }
 
 	}
 	if(substr(m.name,1,3)=="jul") {

@@ -145,8 +145,8 @@ model.colors
 # ------------------------
 # MegaLoop -- Looping through all models by Variable, by Extent
 # ------------------------
-# Just get rid of 250-yr resolution
-# ecosys <- ecosys[!ecosys$Resolution=="t.250",]
+# Get rid of CLM-BGC because its actual drivers are messed up
+ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
 
 # -----------------
 # Matrix of Models and Drivers

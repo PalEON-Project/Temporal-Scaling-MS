@@ -148,8 +148,8 @@ model.colors
 # MegaLoop -- Looping through all models by Variable, by Extent
 # ------------------------
 # Just going to run this at the annual resolution
-# ecosys <- ecosys[ecosys$Resolution=="e.001",]
-# ecosys <- ecosys[ecosys$Resolution=="e.001" & !ecosys$Model=="clm.bgc",]
+# Get rid of CLM-BGC because its actual drivers are messed up
+ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
 summary(ecosys)
 
 # -----------------
@@ -171,7 +171,7 @@ summary(ecosys)
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
-resolutions <- "e.001"
+resolutions <- "t.001"
 response <- "NPP"
 predictors.all <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
 k=4
