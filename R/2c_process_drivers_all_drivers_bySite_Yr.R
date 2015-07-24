@@ -288,7 +288,7 @@ for(s in 1:length(sites)){
 
 	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, resolution=resolutions[r], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
 	
-	if(r==1) {
+	if(r==1 & s==1) {
 		mod.out <- list()
 		mod.out$data         <- mod.temp$data
 		mod.out$weights      <- mod.temp$weights
@@ -306,7 +306,7 @@ for(s in 1:length(sites)){
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    mod.temp$sim.terms)
 		mod.out[[paste("gamm", ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
 	}
-	
+} # end sites
 } # end resolutions
 save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name,"_", response, ".Rdata")))
 
