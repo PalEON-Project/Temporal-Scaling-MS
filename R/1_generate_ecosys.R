@@ -8,9 +8,9 @@
 # ----------------------------------------
 # Load Libaries
 # ----------------------------------------
-library(ncdf4)
-library(lme4)
-library(R2jags)
+# library(ncdf4)
+# library(lme4)
+# library(R2jags)
 library(ggplot2); library(grid)
 library(car)
 library(zoo)
@@ -45,15 +45,13 @@ ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'
 levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 summary(ecosys)
 
-# CO2 Record
-nc.co2 <- nc_open("raw_inputs/phase1a_env_drivers_v4/paleon_co2/paleon_annual_co2.nc")
-co2.ann <- data.frame(CO2=ncvar_get(nc.co2, "co2"), Year=850:2010)
-nc_close(nc.co2)
+# Note: Now we're going to merge in the raw annual and growing season data from the drivers
+met.yr <- read.csv(file.path(path.data, "analysis_drivers", "Drivers_Year_GrowingSeason.csv"))
+met.yr$CO2 <- met.yr$CO2.yr 
 
-# Merging CO2 into Model Outputs
-ecosys <- merge(ecosys, co2.ann)
+# Merge the met drivers into ecosys
+ecosys <- merge(ecosys, met.yr, all.x=T, all.y=T)
 summary(ecosys)
-
 
 # Colors used for graphing
 model.colors <- read.csv("raw_inputs/Model.Colors.csv")
@@ -78,6 +76,8 @@ ecosys[,vars.flux] <- ecosys[,vars.flux]*sec2yr
 kgm2_2_Mgha <- 1*0.001*10000 # 1 kg * 0.001 kg/Mg * 10000 m2/ha
 vars.carbon <- c("GPP", "NPP", "NEE", "AutoResp", "HeteroResp", "AGB", "SoilCarb")
 ecosys[, vars.carbon] <- ecosys[, vars.carbon]*kgm2_2_Mgha
+
+save(ecosys, model.colors, file=file.path(path.data, "EcosysData_Raw.Rdata"))
 # ----------------------------------------
 
 # ----------------------------------------
@@ -87,8 +87,8 @@ ecosys[, vars.carbon] <- ecosys[, vars.carbon]*kgm2_2_Mgha
 # ----------------------------------------
 vars.response <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap")
 vars.climate <- c("tair", "precipf", "swdown", "lwdown", "wind", "psurf", "qair", "CO2")
-
-vars <- c(vars.response, vars.climate)
+vars.climate2 <- c(vars.climate, paste0(vars.climate, ".yr"), paste0(vars.climate, ".gs"))
+vars <- c(vars.response, vars.climate2)
 # vars.dev <- c(paste0(vars[1:(length(vars)-3)], ".dev"), "Temp.abs.dev", "Precip.abs.dev", "CO2.abs.dev")
 
 ref.window <- 850:869
@@ -118,7 +118,7 @@ for(s in unique(ecosys$Site)){
 		# Deviation = absolute deviation from reference window
 		#             observed - ref.mean
 		# -----------------------
-		for(v in unique(vars.climate)){
+		for(v in unique(vars.climate2)){
 			ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
 			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".abs.dev")] <- ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean
 		}
@@ -135,8 +135,8 @@ summary(ecosys)
 # Note: Smoothing is performed over the PREVIOUS X years becuase ecosystems 
 #       cannot respond to what they have not yet experienced
 # ----------------------------------------
-vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "tair", "precipf", "swdown", "lwdown", "wind", "psurf", "qair", "CO2")
-vars.dev <- c("AGB.diff", paste0(vars[1:(length(vars)-3)], ".dev"), paste0(vars.climate, ".abs.dev"))
+# vars <- c("GPP", "AGB", "LAI", "NPP", "NEE", "AutoResp", "HeteroResp", "SoilCarb", "SoilMoist", "Evap", "tair", "precipf", "swdown", "lwdown", "wind", "psurf", "qair", "CO2")
+vars.dev <- c("AGB.diff", paste0(vars, ".dev"), paste0(vars.climate2, ".abs.dev"))
 
 vars.all <- c(vars, vars.dev)
 
@@ -159,7 +159,7 @@ for(s in unique(ecosys$Site)){
 			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.010", v] <- rollapply(temp, FUN=mean, width=10, align="right", fill=NA)
 			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.050", v] <- rollapply(temp, FUN=mean, width=50, align="right", fill=NA)
 			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.100", v] <- rollapply(temp, FUN=mean, width=100, align="right", fill=NA)
-			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.250", v] <- rollapply(temp, FUN=mean, width=250, align="right", fill=NA)
+			# ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.250", v] <- rollapply(temp, FUN=mean, width=250, align="right", fill=NA)
 		}
 		# -----------------------
 	}
