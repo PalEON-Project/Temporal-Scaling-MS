@@ -53,7 +53,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	fit.spline2 <- rowSums(abs(gam.fits[,2:ncol(gam.fits)]), na.rm=T)
 
 	# Factor weights are determined by the relative strength of Temp, Precip, & CO2
-	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year, fit.full=fit)
+	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Year=newdata$Year, fit.full=fit)
 	for(v in vars){
 		df.weights[,paste("fit", v, sep=".")   ] <- gam.fits[,v]
 		df.weights[,paste( "sd", v, sep=".")   ] <- gam.sd[,v]

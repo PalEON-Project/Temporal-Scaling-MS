@@ -31,7 +31,7 @@ post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, lwr=0.
 			sim.tmp <- data.frame(Xp[,cols.list[[v]]] %*% t(Rbeta[,cols.list[[v]]]) )
 
 			# Saving the quantiles into a data frame
-			df.tmp <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Effect=v, x=newdata[,v],
+			df.tmp <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Effect=v, x=newdata[,v],
 							   mean=apply(sim.tmp, 1, mean), 
 							   lwr=apply(sim.tmp, 1, quantile, lwr, na.rm=T), 
 							   upr=apply(sim.tmp, 1, quantile, upr, na.rm=T))
@@ -42,7 +42,7 @@ post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, lwr=0.
 			sim.tmp$Model  <- model.name
 			sim.tmp$Site   <- newdata$Site
 			sim.tmp$Extent <- newdata$Extent
-			sim.tmp$Scale  <- newdata$Scale
+			sim.tmp$Resolution  <- newdata$Resolution
 			sim.tmp$Effect <- v
 			sim.tmp$x      <- newdata[,v]
 			sim.tmp <- sim.tmp[,c((n+1):ncol(sim.tmp), 1:n)]
@@ -54,8 +54,8 @@ post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, lwr=0.
 	} else {
 		sim1 <- Xp %*% t(Rbeta) # simulates n predictions of the response variable in the model.gam
 		
-		df.out <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year, mean=apply(sim1, 1, mean, na.rm=T), lwr=apply(sim1, 1, quantile, lwr, na.rm=T), upr=apply(sim1, 1, quantile, upr, na.rm=T))
-		df.sim <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Scale=newdata$Scale, Year=newdata$Year)
+		df.out <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Year=newdata$Year, mean=apply(sim1, 1, mean, na.rm=T), lwr=apply(sim1, 1, quantile, lwr, na.rm=T), upr=apply(sim1, 1, quantile, upr, na.rm=T))
+		df.sim <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Year=newdata$Year)
 		for(v in vars){
 			df.out[,v] <- newdata[,v]
 			df.sim[,v] <- newdata[,v]

@@ -1,4 +1,4 @@
-process.gamm <- function(gamm.model, data, model.name, response, vars, scale="t.001", extent=c(850,2010), 
+process.gamm <- function(gamm.model, data, model.name, response, vars, resolution="t.001", extent=c(850,2010), 
 						  	fweights=T, sites=T, ci.model=T, ci.terms=T, n=250,
 						  	write.out=T, outdir, control=list()){
 	# data     = data frame with data in it
@@ -49,7 +49,7 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, scale="t.
 	
 		new.dat <- data.frame(	Site=site.vec,
 								Extent=as.factor(paste(extent[1], extent[2], sep="-")), 
-								Scale=rep(scale, n.out*ns))
+								Resolution=rep(resolution, n.out*ns))
 		for(v in vars){
 			new.dat[,v] <- rep(seq(min(data[,v],   na.rm=T), max(data[,v],   na.rm=T), length.out=n.out), ns)
 		}								
@@ -60,7 +60,7 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, scale="t.
 		out[["sim.terms"]] <- ci.terms.pred$sims 
 	}	
 	# -----------
-	if(write.out==T) save(out, file=file.path(outdir, paste("gamm", model.name, response, ifelse(scale=="",".001", scale), "AllSites", "Rdata", sep=".")))
+	if(write.out==T) save(out, file=file.path(outdir, paste("gamm", model.name, response, resolution, "AllSites", "Rdata", sep=".")))
 	return(out)
 	# -----------
 
