@@ -69,7 +69,7 @@ model.colors
 # ----------------------------------------
 # Fluxes: change s-1 to yr-1
 sec2yr <- 1*60*60*24*365.25 # 1 sec * 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/yr
-vars.flux <- c("precipf", "GPP", "NPP", "NEE", "AutoResp", "HeteroResp", "Evap")
+vars.flux <- c("precipf", "precipf.yr", "precipf.gs", "GPP", "NPP", "NEE", "AutoResp", "HeteroResp", "Evap")
 ecosys[,vars.flux] <- ecosys[,vars.flux]*sec2yr
 
 # Carbon: change kgC/m2 to MgC/ha
