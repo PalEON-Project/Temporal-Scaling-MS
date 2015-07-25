@@ -252,11 +252,11 @@ for(s in 1:length(sites)){
 	}
 	if(substr(m.name,1,3)=="clm") {
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
-    # if(substr(m.name,5,6)=="bg" & !(sites[s]=="PDL" | sites[s]=="PMB" & resolutions[r]=="t.100")){
+    if(m.name=="clm.cn" & resolutions[r]=="t.100" & sites[s]=="PBL"){
+      gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
+    } else {
       gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
-    # } else {
-      # gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
-    # }
+    }
 	}
 	if(substr(m.name,1,3)=="lpj") {
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "CO2.yr")
@@ -270,7 +270,11 @@ for(s in 1:length(sites)){
 	}
 	if(substr(m.name,1,3)=="jul") {
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
-		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		if(m.name=="jules.stat" & ((resolutions[r]=="t.010" & sites[s]=="PHO"))) {
+			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		} else {
+			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		}
 	# , control=list(niterEM=0, sing.tol=1e-20, opt="optim")
 	}
 	if(substr(m.name,1,3)=="sib") {
