@@ -269,7 +269,8 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	if(substr(m.name,1,3)=="lin") {
 		predictors <- c("tair.gs", "precipf.gs")
 		gam1 <- gamm(NPP ~ s(tair.gs, k=k) + s(precipf.gs, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
-	}    print(summary(gam1$gam))	
+	}    
+	print(summary(gam1$gam))	
 
 	# get rid of values for predictors not used in the models for clarity later on
 	data.temp[,predictors.all[!(predictors.all %in% predictors)]] <- NA
