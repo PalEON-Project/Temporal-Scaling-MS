@@ -267,8 +267,12 @@ for(r in 1:length(resolutions)){ # Resolution loop
 		gam1 <- gamm(NPP ~ s(tair.gs, k=k) + s(precipf.gs, k=k) + s(swdown.gs, k=k) + s(lwdown.gs, k=k) + s(qair.gs, k=k) + s(psurf.gs, k=k) + s(wind.gs, k=k) + s(CO2.gs, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(m.name,1,3)=="lin") {
-		predictors <- c("tair.gs", "precipf.gs")
-		gam1 <- gamm(NPP ~ s(tair.gs, k=k) + s(precipf.gs, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		predictors <- c("tair.yr", "precipf.yr")
+		if(resolutions[r]=="t.100"){
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		} else {
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		}
 	}    
 	print(summary(gam1$gam))	
 
