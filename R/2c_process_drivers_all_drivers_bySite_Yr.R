@@ -196,7 +196,7 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
 	run.start <- 850
 	inc <- round(as.numeric(substr(resolutions[r],3,5)),0) # making sure we're always dealign with whole numbers
-	yrs <- seq(from=round(run.end-inc/2,0), to=round(run.start+inc/2,0), by=-inc)
+	yrs <- seq(from=run.end-round(inc/2,0), to=run.start+round(inc/2,0), by=-inc)
 
 	dat.mod2 <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year")]
 
@@ -270,7 +270,8 @@ for(s in 1:length(sites)){
 	}
 	if(substr(m.name,1,3)=="jul") {
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
-		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+	# , control=list(niterEM=0, sing.tol=1e-20, opt="optim")
 	}
 	if(substr(m.name,1,3)=="sib") {
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
@@ -278,7 +279,7 @@ for(s in 1:length(sites)){
 	}
 	if(substr(m.name,1,3)=="lin") {
 		predictors <- c("tair.yr", "precipf.yr")
-		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20))
 	}
     print(summary(gam1$gam))		
 

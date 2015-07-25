@@ -195,7 +195,7 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
 	run.start <- 850
 	inc <- round(as.numeric(substr(resolutions[r],3,5)),0) # making sure we're always dealign with whole numbers
-	yrs <- seq(from=round(run.end-inc/2,0), to=round(run.start+inc/2,0), by=-inc)
+	yrs <- seq(from=run.end-round(inc/2,0), to=run.start+round(inc/2,0), by=-inc)
 
 	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year")]
 
