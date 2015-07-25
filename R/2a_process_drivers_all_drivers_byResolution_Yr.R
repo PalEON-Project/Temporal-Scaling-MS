@@ -255,11 +255,11 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	}
 	if(substr(m.name,1,3)=="jul") {
 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
-		if(m.name=="jules.triffid"){
-		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(method="optim"))
-		} else {
+		# if(m.name=="jules.triffid"){
+		# gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(method="optim"))
+		# } else {
 		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim"))			
-		}
+		# }
 		# , control=list(niterEM=0, sing.tol=1e-20, method="optim")
  	}
 	if(substr(m.name,1,3)=="sib") {
@@ -268,7 +268,7 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	}
 	if(substr(m.name,1,3)=="lin") {
 		predictors <- c("tair.yr", "precipf.yr")
-		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20))
 	}
     print(summary(gam1$gam))	
 
