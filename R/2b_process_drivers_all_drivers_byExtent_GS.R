@@ -225,12 +225,12 @@ for(e in 1:nrow(extents)){
 	# Each of the models is having different stability issues
 	if(substr(m.name,1,2)=="ed"){
 		predictors <- c("tair.gs", "precipf.gs", "swdown.gs", "lwdown.gs", "psurf.gs", "qair.gs", "wind.gs", "CO2.gs")
-		gam1 <- gamm(NPP ~ s(tair.gs, k=k) + s(precipf.gs, k=k) + s(swdown.gs, k=k) + s(lwdown.gs, k=k) + s(qair.gs, k=k) + s(psurf.gs, k=k) + s(wind.gs, k=k) + s(CO2.gs, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
+		gam1 <- gamm(NPP ~ s(tair.gs, k=k) + s(precipf.gs, k=k) + s(swdown.gs, k=k) + s(lwdown.gs, k=k) + s(qair.gs, k=k) + s(psurf.gs, k=k) + s(wind.gs, k=k) + s(CO2.gs, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim"))
 	}
 	if(substr(m.name,1,3)=="clm") {
 		# Note: CLM-BGC was being weird & wouldn't work, but it's one Yao is supposed to redo
 		predictors <- c("tair.gs", "precipf.gs", "swdown.gs", "psurf.gs", "qair.gs", "wind.gs", "CO2.gs")
-		gam1 <- gamm(NPP ~ s(tair.gs, k=k) + s(precipf.gs, k=k) + s(swdown.gs, k=k) + s(qair.gs, k=k) + s(psurf.gs, k=k) + s(wind.gs, k=k) + s(CO2.gs, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(method="optim"))
+		gam1 <- gamm(NPP ~ s(tair.gs, k=k) + s(precipf.gs, k=k) + s(swdown.gs, k=k) + s(qair.gs, k=k) + s(psurf.gs, k=k) + s(wind.gs, k=k) + s(CO2.gs, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim"))
 		#, control=list(niterEM=0, sing.tol=1e-20, method="optim")
 	}
 	if(substr(m.name,1,3)=="lpj") {
@@ -278,7 +278,7 @@ for(e in 1:nrow(extents)){
 		mod.out[[paste("gamm", ext, substr(resolutions[e],3,nchar(paste(resolutions[e]))), sep=".")]] <- mod.temp$gamm
 	}
 	
-} # end resolutions
+} # end extents
 save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_GS_", m.name, "_", response, ".Rdata")))
 
 m.order <- unique(mod.out$data$Model.Order)
