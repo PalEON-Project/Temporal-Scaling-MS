@@ -79,7 +79,7 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "AllDrivers_GS_byExtent")
+fig.dir <- file.path(fig.base, "AllDrivers_Yr_byExtent")
 dat.dir <- file.path(dat.base, "AllDrivers_Gs_byExtent")
 
 # Make sure the appropriate file paths are in place
@@ -216,7 +216,7 @@ col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
 save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name, "_", response, ".Rdata")))
 
-pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_GS_", m.order, "_", response, ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Yr_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
@@ -242,7 +242,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free")
 dev.off()
 
 
-pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_GS_", m.order, "_", response, ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_Yr_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Resolution), alpha=0.5) +
