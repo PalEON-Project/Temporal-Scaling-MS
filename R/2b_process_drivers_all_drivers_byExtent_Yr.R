@@ -146,6 +146,7 @@ for(e in 2:nrow(extents)){ # Resolution loop
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
 	run.end <- ifelse(substr(m.name,1,3)=="jul", as.numeric(extents[e,2])-1, as.numeric(extents[e,2])) # Note: Jules missing 2010, so 
+	# run.start <- ifelse(substr(m.name,1,3)=="jul", as.numeric(extents[e,1])-1, as.numeric(extents[e,1])) # Note: Jules missing 2010, so 
 	run.start <- as.numeric(extents[e,1])
 	inc <- round(as.numeric(substr(resolutions[r],3,5)),0) # making sure we're always dealign with whole numbers
 	yrs <- seq(from=run.end-round(inc/2,0), to=run.start+round(inc/2,0), by=-inc)
@@ -164,7 +165,7 @@ for(e in 2:nrow(extents)){ # Resolution loop
 	# Note: because we're now only analyzing single points rathern than the full running mean, 
 	#    we're now making the year in the middle of the resolution
 	if(inc==1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
-		data.temp[,c(response, predictors.all)] <- dat.mod[,c(response, predictors.all)]
+		data.temp[,c(response, predictors.all)] <- dat.mod[dat.mod$Year %in% yrs , c(response, predictors.all)]
 	} else {
 		for(s in sites){
 			for(y in yrs){
@@ -176,7 +177,7 @@ for(e in 2:nrow(extents)){ # Resolution loop
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
 
-	paleon.models[[paste(resolutions[r])]] <- data.temp
+	paleon.models[[paste(ext)]] <- data.temp
 } # End Resolution Loop
 # --------------------------------
 
@@ -218,7 +219,7 @@ save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name, "_",
 
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Yr_", m.order, "_", response, ".pdf")))
 print(
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
+ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
@@ -229,7 +230,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free")
 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
 )
 print(	
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
+ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
@@ -245,8 +246,8 @@ dev.off()
 pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_Yr_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
-	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Resolution), alpha=0.5) +
-	geom_line(aes(x=x, y=mean, color=Resolution), size=2) +
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Extent), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	# scale_color_manual(values=c("red2", "blue", "green3")) +
 	# scale_fill_manual(values=c("red2", "blue", "green3")) +
