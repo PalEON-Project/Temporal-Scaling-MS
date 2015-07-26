@@ -48,6 +48,7 @@
 # ----------------------------------------
 # Load Libaries
 # ----------------------------------------
+library(parallel)
 library(mgcv)
 # library(ncdf4)
 # library(lme4)
