@@ -62,7 +62,7 @@ paleon.gamms.models <- function(data, response, k, predictors.all){
 	# ----------------------------------------
 	if(substr(model.name,1,2)=="ed"){
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1))
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 	}
 	if(substr(model.name,1,3)=="clm") {
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
@@ -75,7 +75,11 @@ paleon.gamms.models <- function(data, response, k, predictors.all){
 	}
 	if(substr(model.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
-		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim")) 
+		if(model.name=="lpj.guess" & resolution=="t.100"){
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1), control=list(method="optim")) 
+		} else {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, method="optim")) 
+		}
 	# , control=list(niterEM=0, sing.tol=1e-20, method="optim")
 	}
 	if(substr(model.name,1,3)=="jul") {

@@ -17,7 +17,7 @@
 # -------------------------
 # (Fit GAMM per site per m.name)
 # 1) Temporal Grain (Resolution)
-#    -- Fit GAMM over constant wind.gsow with different degrees of smoothing (1 yr - 250 yr)
+#    -- Fit GAMM over constant window with different degrees of smoothing (1 yr - 250 yr)
 # -------------------------
 #
 # -------------------------
@@ -117,7 +117,7 @@ model.order <- unique(ecosys$Model.Order)
 resolutions <- c("t.001", "t.010", "t.050", "t.100")
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
-predictor.suffix <- c(".gs")
+predictor.suffix <- c(".yr")
 k=3
 r=1	
 # -------------------------------------------------
