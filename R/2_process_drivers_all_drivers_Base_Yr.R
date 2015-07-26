@@ -79,8 +79,8 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "AllDrivers_GS_Base")
-dat.dir <- file.path(dat.base, "AllDrivers_GS_Base")
+fig.dir <- file.path(fig.base, "AllDrivers_Yr_Base")
+dat.dir <- file.path(dat.base, "AllDrivers_Yr_Base")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
