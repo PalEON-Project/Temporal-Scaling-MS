@@ -16,6 +16,7 @@
 # -------------------------
 # 1) Individual model response curves to driver
 #    -- generated with 2c_process_drivers_all_drivers.R & 2e_process_drivers_all_drivers_byExtent.R
+#    -- NOTE: Taking growing season analysis because it had a slightly higher explanatory power
 # -------------------------
 #
 # -------------------------
@@ -41,9 +42,9 @@ library(car)
 # setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 setwd("..")
 path.data <- "Data"
-in.base <- "Data/gamms_byModel"
-in.res  <- "AllDrivers_byResolution"
-in.ext  <- "AllDrivers_byExtent"
+in.base <- "Data/gamms"
+in.res  <- "AllDrivers_GS_byResolution"
+in.ext  <- "AllDrivers_GS_byExtent"
 out.dir <- "Data/analysis_response_scale"
 fig.dir <- "Figures/analysis_response_scale"
 
@@ -54,7 +55,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 # Load data files & function scripts
 # ----------------------------------------
-load(file.path(path.data, "EcosysData.Rdata"))
+load(file.path(path.data, "EcosysData_Raw.Rdata"))
 
 # Figure out what models we have to work with
 models <- dir(in.base)
