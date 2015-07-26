@@ -97,7 +97,7 @@ load(file.path("Data", "EcosysData_Raw.Rdata"))
 summary(ecosys)
 model.colors
 
-source('R/0_gamm.calculate.R', chdir = TRUE)
+source('R/0_gamm.calculate2.R', chdir = TRUE)
 
 # Read in model color scheme
 model.colors
@@ -118,16 +118,16 @@ resolutions <- c("t.001", "t.010", "t.050", "t.100")
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".gs")
-k=3
+k=4
 # r=1	
 # -------------------------------------------------
 
 # -------------------------------------------------
 # Set up the appropriate data for each model into a list
 # -------------------------------------------------
-paleon.models <- list()
 
 for(m in 1:length(model.name)){
+	paleon.models <- list()
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 
@@ -140,7 +140,7 @@ for(m in 1:length(model.name)){
 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
 
-for(r in 2:length(resolutions)){ # Resolution loop
+for(r in 1:length(resolutions)){ # Resolution loop
 
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
@@ -163,7 +163,7 @@ for(r in 2:length(resolutions)){ # Resolution loop
 	# Note: because we're now only analyzing single points rathern than the full running mean, 
 	#    we're now making the year in the middle of the resolution
 	if(inc==1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
-		data.temp[,c(response, predictors.all)] <- dat.mod[,c(response, predictors.all)]
+		data.temp[,c(response, predictors.all)] <- dat.mod[dat.mod$Year %in% yrs,c(response, predictors.all)]
 	} else {
 		for(s in sites){
 			for(y in yrs){
@@ -182,7 +182,7 @@ for(r in 2:length(resolutions)){ # Resolution loop
 # -------------------------------------------------
 # Run the gamms
 # -------------------------------------------------
-models.base <- mclapply(paleon.models, paleon.gamms.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all)
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all, site.effects=T)
 # -------------------------------------------------
 
 

@@ -97,7 +97,7 @@ load(file.path("Data", "EcosysData_Raw.Rdata"))
 summary(ecosys)
 model.colors
 
-source('R/0_gamm.calculate.R', chdir = TRUE)
+source('R/0_gamm.calculate2.R', chdir = TRUE)
 
 # Read in model color scheme
 model.colors
@@ -156,7 +156,7 @@ for(m in 1:length(model.name)){
 	# Note: because we're now only analyzing single points rathern than the full running mean, 
 	#    we're now making the year in the middle of the resolution
 	if(inc==1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
-		data.temp[,c(response, predictors.all)] <- dat.mod[,c(response, predictors.all)]
+		data.temp[,c(response, predictors.all)] <- dat.mod[dat.mod$Year %in% yrs,c(response, predictors.all)]
 	} else {
 		for(s in sites){
 			for(y in yrs){
@@ -175,7 +175,7 @@ for(m in 1:length(model.name)){
 # -------------------------------------------------
 # Run the gamms
 # -------------------------------------------------
-models.base <- mclapply(paleon.models, paleon.gamms.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all)
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all)
 
 # Make sure to save it here in case something bonks in the model-specific loops
 save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_AllModels", response, ".Rdata")))

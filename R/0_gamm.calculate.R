@@ -19,7 +19,7 @@
 # Ndep                   ?       ?
 
 
-paleon.gamms.models <- function(data, response, k, predictors.all){
+paleon.gamms.models <- function(data, response, k, predictors.all, random.sites){
 	# data       = data frame with data for 1 model, 1 extent & 1 resolution
 	# model.name = name of model (goes into data tables to make life easier)
 	# Extent     = the temporal extent of the data (e.g. 850-2010, 1990-2010)
@@ -27,7 +27,7 @@ paleon.gamms.models <- function(data, response, k, predictors.all){
 	# k          = number of knots in gamm splines
 	# predictors.all   = the full set of predictors that should be in data
 	# predictor.suffix = any suffix attached to the predictors; 
-	# 						.yr = yearly mean from drivers; 
+	# 						 = yearly mean from drivers; 
 	# 						.gs = growing season mean from drivers; 
 	#						no suffix = yearly mean from model output
 
@@ -60,19 +60,23 @@ paleon.gamms.models <- function(data, response, k, predictors.all){
 	# Select which set of predictors based on which model it is
 	# Each of the models is having different stability issues & has different predictors
 	# ----------------------------------------
+	# Note: different model structure based on whether or not we have random sites
+	if(random.sites==T) {
+	# ----------------------------------------
 	if(substr(model.name,1,2)=="ed"){
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 	}
+
 	if(substr(model.name,1,3)=="clm") {
 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
 		# if(model.name=="clm.bgc"){
 			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 		# } else {
 			# gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1))
-
 		# }
 	}
+
 	if(substr(model.name,1,3)=="lpj") {
 		predictors <- c("tair", "precipf", "swdown", "CO2")
 		if((model.name=="lpj.guess" & resolution=="t.100")|(model.name=="lpj.wsl" & extent=="1990-2010")){
@@ -82,6 +86,7 @@ paleon.gamms.models <- function(data, response, k, predictors.all){
 		}
 	# , control=list(niterEM=0, sing.tol=1e-20, method="optim")
 	}
+
 	if(substr(model.name,1,3)=="jul") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 		# if(model.name=="jules.triffid"){
@@ -92,10 +97,12 @@ paleon.gamms.models <- function(data, response, k, predictors.all){
 		}
 		# , control=list(niterEM=0, sing.tol=1e-20, method="optim")
  	}
+
 	if(substr(model.name,1,3)=="sib") {
 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
 	}
+
 	if(substr(model.name,1,3)=="lin") {
 		predictors <- c("tair", "precipf")
 		if(resolution=="t.100" | !extent=="850-2010"){
@@ -103,7 +110,63 @@ paleon.gamms.models <- function(data, response, k, predictors.all){
 		} else {
 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + Site -1, random=list(Site=~Site), data=data, correlation=corARMA(form=~Year, p=1))
 		}
-	}    
+	}   
+
+	# ----------------------------------------
+	# Site-level runs; random.sites=F
+	} else {
+	# ----------------------------------------
+	if(substr(m.name,1,2)=="ed"){
+		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+		if(m.name=="ed2.lu" & sites[s]=="PHA" & (resolution=="t.001" | resolution=="t.100")){
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1))		
+		} else {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		}
+	}
+
+	if(substr(m.name,1,3)=="clm") {
+		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
+	    if(substr(m.name,5,6)=="bg" & !(sites[s]=="PDL" | sites[s]=="PMB" & resolution=="t.100")){
+	      gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1) , control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+	    } else {
+	      gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
+	    }
+	}
+
+	if(substr(m.name,1,3)=="lpj") {
+		predictors <- c("tair", "precipf", "swdown", "CO2")
+		# if(m.name == "lpj.wsl") {
+		if(m.name == "lpj.wsl" & resolution=="t.050" & sites[s]=="PDL") {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1))
+		} else {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		}
+	}
+
+	if(substr(m.name,1,3)=="jul") {
+		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+		if (resolution=="t.010" | resolution=="t.100"){
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+		} else {
+			gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1))
+		# , control=list(niterEM=0, sing.tol=1e-20, opt="optim")
+		}
+	}
+
+	if(substr(m.name,1,3)=="sib") {
+		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k), data=data, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
+	}
+
+	if(substr(m.name,1,3)=="lin") {
+		predictors <- c("tair", "precipf")
+		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k), data=data, correlation=corARMA(form=~Year, p=1))
+	}
+
+	}   	
+	# ----------------------------------------
+
 	# ----------------------------------------
 	print("-------------------------------------")
 	print("-------------------------------------")

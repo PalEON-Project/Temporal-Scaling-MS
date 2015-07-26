@@ -97,7 +97,7 @@ load(file.path("Data", "EcosysData_Raw.Rdata"))
 summary(ecosys)
 model.colors
 
-source('R/0_gamm.calculate.R', chdir = TRUE)
+source('R/0_gamm.calculate2.R', chdir = TRUE)
 
 # Read in model color scheme
 model.colors
@@ -141,7 +141,7 @@ for(m in 1:length(model.name)){
 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
 
-for(e in 2:nrow(extents)){ # Resolution loop
+for(e in 1:nrow(extents)){ # Resolution loop
 
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
@@ -184,7 +184,7 @@ for(e in 2:nrow(extents)){ # Resolution loop
 # -------------------------------------------------
 # Run the gamms
 # -------------------------------------------------
-models.base <- mclapply(paleon.models, paleon.gamms.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all)
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all, site.effects=T)
 # -------------------------------------------------
 
 

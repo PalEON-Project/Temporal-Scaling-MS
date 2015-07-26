@@ -97,7 +97,7 @@ load(file.path("Data", "EcosysData_Raw.Rdata"))
 summary(ecosys)
 model.colors
 
-source('R/0_gamm.calculate.R', chdir = TRUE)
+source('R/0_gamm.calculate2.R', chdir = TRUE)
 
 # Read in model color scheme
 model.colors
@@ -114,21 +114,22 @@ ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
-resolutions <- c("t.001", "t.010", "t.050", "t.100")
+# resolutions <- c("t.001", "t.010", "t.050", "t.100")
+resolutions <- c("t.001", "t.010", "t.050")
 extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010)) 
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".yr")
 k=3
-r=1	
+e=1	
 # -------------------------------------------------
 
 # -------------------------------------------------
 # Set up the appropriate data for each model into a list
 # -------------------------------------------------
-paleon.models <- list()
 
 for(m in 1:length(model.name)){
+	paleon.models <- list()
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 
@@ -141,7 +142,7 @@ for(m in 1:length(model.name)){
 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
 
-for(e in 2:nrow(extents)){ # Resolution loop
+for(r in 1:length(resolutions)){ # Resolution loop
 
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2 & temperature distributions
@@ -164,7 +165,7 @@ for(e in 2:nrow(extents)){ # Resolution loop
 	# Note: because we're now only analyzing single points rathern than the full running mean, 
 	#    we're now making the year in the middle of the resolution
 	if(inc==1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
-		data.temp[,c(response, predictors.all)] <- dat.mod[,c(response, predictors.all)]
+		data.temp[,c(response, predictors.all)] <- dat.mod[dat.mod$Year %in% yrs,c(response, predictors.all)]
 	} else {
 		for(s in sites){
 			for(y in yrs){
@@ -187,7 +188,7 @@ for(e in 2:nrow(extents)){ # Resolution loop
 # -------------------------------------------------
 # Run the gamms
 # -------------------------------------------------
-models.base <- mclapply(paleon.models, paleon.gamms.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all)
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all, site.effects=F)
 # -------------------------------------------------
 
 
@@ -247,7 +248,7 @@ dev.off()
 
 
 pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_Yr_Site_", m.order, "_", response, ".pdf")))
-for(p in predictors){
+for(p in unique(mod.out$ci.terms$Effect)){
 print(
 ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Resolution, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
