@@ -43,7 +43,9 @@ paleon.gamms.models <- function(data, response, k, predictors.all, random.sites)
 	# ----------------------------------------
 	# extracting some info previously specified
 	model.name <- unique(data$Model)
-	extent     <- unique(data$Extent)
+	ext.name   <- unique(data$Extent)
+    ext.index  <- regexpr("-", ext.name)[1] # Find the index so we can split apart extent into 2 numbers
+	extent     <- c(as.numeric(substr(ext.name,1,ext.index-1)), as.numeric(substr(ext.name, ext.index+1,nchar(paste(ext.name)))))
 	resolution <- unique(data$Resolution)
 
 	# ----------------------------------------

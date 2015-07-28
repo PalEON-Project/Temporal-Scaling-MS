@@ -80,7 +80,7 @@ if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
 fig.dir <- file.path(fig.base, "AllDrivers_Yr_byExtent")
-dat.dir <- file.path(dat.base, "AllDrivers_Gs_byExtent")
+dat.dir <- file.path(dat.base, "AllDrivers_Yr_byExtent")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -119,16 +119,16 @@ extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010))
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".yr")
-k=3
+k=4
 r=1	
 # -------------------------------------------------
 
 # -------------------------------------------------
 # Set up the appropriate data for each model into a list
 # -------------------------------------------------
-paleon.models <- list()
 
 for(m in 1:length(model.name)){
+	paleon.models <- list()
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 
@@ -144,7 +144,7 @@ for(m in 1:length(model.name)){
 for(e in 1:nrow(extents)){ # Resolution loop
 
 	# Figure out which years to take: 
-	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
+	# Note: working backwards to help make sure we get modern end of the CO2 & temperature distributions
 	run.end <- ifelse(substr(m.name,1,3)=="jul", as.numeric(extents[e,2])-1, as.numeric(extents[e,2])) # Note: Jules missing 2010, so 
 	# run.start <- ifelse(substr(m.name,1,3)=="jul", as.numeric(extents[e,1])-1, as.numeric(extents[e,1])) # Note: Jules missing 2010, so 
 	run.start <- as.numeric(extents[e,1])
@@ -161,7 +161,7 @@ for(e in 1:nrow(extents)){ # Resolution loop
 	# Making place-holders for the response & predictors so the loop works correctly
 	data.temp[,c(response, predictors.all)] <- NA
 
-	# Calculating the mean for each wind.yrow for resolution
+	# Calculating the mean for each window for resolution
 	# Note: because we're now only analyzing single points rathern than the full running mean, 
 	#    we're now making the year in the middle of the resolution
 	if(inc==1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
@@ -178,7 +178,7 @@ for(e in 1:nrow(extents)){ # Resolution loop
 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
 
 	paleon.models[[paste(ext)]] <- data.temp
-} # End Resolution Loop
+} # End Extents Loop
 # --------------------------------
 
 # -------------------------------------------------
@@ -200,7 +200,7 @@ for(i in 1:length(models.base)){
 		mod.out$sim.response <- models.base[[i]]$sim.response
 		mod.out$ci.terms     <- models.base[[i]]$ci.terms
 		mod.out$sim.terms    <- models.base[[i]]$sim.terms
-		mod.out[[paste("gamm", ext, substr(names(models.base)[i],3,nchar(paste(names(models.base)))), sep=".")]] <- models.base[[i]]$gamm
+		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
 	} else {
 		mod.out$data         <- rbind(mod.out$data,         models.base[[i]]$data)
 		mod.out$weights      <- rbind(mod.out$weights,      models.base[[i]]$weights)
@@ -208,7 +208,7 @@ for(i in 1:length(models.base)){
 		mod.out$sim.response <- rbind(mod.out$sim.response, models.base[[i]]$sim.response)
 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     models.base[[i]]$ci.terms)
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    models.base[[i]]$sim.terms)
-		mod.out[[paste("gamm", ext, substr(names(models.base)[i],3,nchar(paste(names(models.base)))), sep=".")]] <- models.base[[i]]$gamm
+		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
 	}
 }
 
