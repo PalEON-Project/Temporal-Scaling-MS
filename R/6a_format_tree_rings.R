@@ -8,7 +8,6 @@
 # Objectives & Overview
 # -------------------------
 # Driving Questions: How do models responses to environmental drivers compare with empirical climate relationships
-
 # -------------------------
 #
 # -------------------------
@@ -270,8 +269,12 @@ summary(crn.all)
 # ------------
 # Merge in Met data
 # ------------
+sec2yr <- 1*60*60*24*365.25 # 1 sec * 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/yr
+
 met.yr <- read.csv(file.path("Data", "analysis_drivers", "Drivers_Year_GrowingSeason.csv"))
 met.yr$CO2 <- met.yr$CO2.yr 
+met.yr[,substr(names(met.yr),1,6)=="precip"] <- met.yr[,substr(names(met.yr),1,6)=="precip"]*sec2yr
+
 summary(met.yr)
 
 dat.tr <- merge(crn.all, met.yr, all.x=T, all.y=F)
@@ -284,30 +287,30 @@ write.csv(dat.tr, file.path(dat.base, "TreeRing_Chronologies.csv"), row.names=F)
 # -------------------------------------------------
 
 
-# -------------------------------------------------
-# Just running a couple test gams to see if I cam make things work
-# -------------------------------------------------
-predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+# # -------------------------------------------------
+# # Just running a couple test gams to see if I cam make things work
+# # -------------------------------------------------
+# predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 
-dat.mod <- dat.tr[,c("Site", "Site2", "PlotID", "Year", paste0(predictors, ".gs"))]
-names(dat.mod)[(ncol(dat.mod)-length(predictors)+1):ncol(dat.mod)] <- predictors
-dat.mod$NPP <- dat.tr$xxxstd
-summary(dat.mod)
+# dat.mod <- dat.tr[,c("Site", "Site2", "PlotID", "Year", paste0(predictors, ".gs"))]
+# names(dat.mod)[(ncol(dat.mod)-length(predictors)+1):ncol(dat.mod)] <- predictors
+# dat.mod$NPP <- dat.tr$xxxstd
+# summary(dat.mod)
 
-library(mgcv)
-k=4
-gam1 <- gam(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod, correlation=corARMA(form=~Year|PlotID*Site2*Site, p=1))
+# library(mgcv)
+# k=4
+# gam1 <- gam(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod, correlation=corARMA(form=~Year|PlotID, p=1))
 
-gam2 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(PlotID=~1, Site2=~1, Site=~1), data=dat.mod, correlation=corARMA(form=~Year|PlotID, p=1))
+# gam2 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(PlotID=~1, Site2=~1, Site=~1), data=dat.mod, correlation=corARMA(form=~Year|PlotID, p=1))
 
-gam3 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod, correlation=corARMA(form=~Year|PlotID*Site2*Site, p=1))
+# gam3 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod, correlation=corARMA(form=~Year|PlotID*Site2*Site, p=1))
 
-gam4 <- gam(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod, correlation=corARMA(form=~Year|PlotID|Site2|Site, p=1))
-gam5 <- gam(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod)
-gam6 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod, correlation=corARMA(form=~Year|PlotID, p=1))
+# gam4 <- gam(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod, correlation=corARMA(form=~Year|PlotID|Site2|Site, p=1))
+# gam5 <- gam(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod)
+# gam6 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=dat.mod, correlation=corARMA(form=~Year|PlotID, p=1))
 
 
-summary(gam1)
-plot(gam1)
+# summary(gam1)
+# plot(gam1)
 
-# -------------------------------------------------
+# # -------------------------------------------------
