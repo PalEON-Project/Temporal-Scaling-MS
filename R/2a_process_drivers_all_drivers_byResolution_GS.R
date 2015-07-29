@@ -115,7 +115,7 @@ sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
 resolutions <- c("t.001", "t.010", "t.050", "t.100")
-response <- "NPP"
+response.all <- c("NPP", "AGB.diff", "NEE")
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".gs")
 k=4
@@ -125,14 +125,17 @@ k=4
 # -------------------------------------------------
 # Set up the appropriate data for each model into a list
 # -------------------------------------------------
-
+for(y in 1:length(response.all)){
+	response <- response.all[y]
+	print("-------------------------------------")
+	print("-------------------------------------")
+	print(paste0("------ Processing Var: ", response, " ------"))
+	print("-------------------------------------")
 for(m in 1:length(model.name)){
 	paleon.models <- list()
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 
-	print("-------------------------------------")
-	print("-------------------------------------")
 	print("-------------------------------------")
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
@@ -173,7 +176,10 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	}
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
-	data.temp <- data.temp[complete.cases(data.temp[,response]),]
+	data.temp   <- data.temp[complete.cases(data.temp[,response]),]
+
+	# Make a new variable called Y with the response variable so it can be generalized
+	data.temp$Y <- data.temp[,response]
 
 	paleon.models[[paste(resolutions[r])]] <- data.temp
 } # End Resolution Loop
@@ -254,3 +260,4 @@ ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_b
 dev.off()
 # -------------------------------------------------
 } # End by Model Loop
+} # End Response Loop
