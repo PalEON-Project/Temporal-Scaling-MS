@@ -77,6 +77,17 @@ kgm2_2_Mgha <- 1*0.001*10000 # 1 kg * 0.001 kg/Mg * 10000 m2/ha
 vars.carbon <- c("GPP", "NPP", "NEE", "AutoResp", "HeteroResp", "AGB", "SoilCarb")
 ecosys[, vars.carbon] <- ecosys[, vars.carbon]*kgm2_2_Mgha
 
+# Calculate dAGB because it could come in handy later
+for(s in unique(ecosys$Site)){
+	for(m in unique(ecosys$Model)){
+
+		# -----------------------
+		# AGB 1st difference		
+		# -----------------------
+		ecosys[ecosys$Site==s & ecosys$Model==m,"AGB.diff"] <- c(NA, diff(ecosys[ecosys$Site==s & ecosys$Model==m,"AGB"]))
+	}
+}
+
 save(ecosys, model.colors, file=file.path(path.data, "EcosysData_Raw.Rdata"))
 # ----------------------------------------
 
