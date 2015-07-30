@@ -130,8 +130,10 @@ for(y in 1:length(response.all)){
 	print("-------------------------------------")
 	print("-------------------------------------")
 	print(paste0("------ Processing Var: ", response, " ------"))
-	print("-------------------------------------")
-for(m in 1:length(model.name)){
+	# M1 <- 1:length(model.name)
+	# M2 <- which(!model.name=="jules.stat")
+	#if(# response=="AGB.diff") models <- which(!model.name=="jules.stat") else models <- 1:length(model.name)
+for(m in 1:length(model.name)){ 
 	paleon.models <- list()
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
@@ -143,7 +145,8 @@ for(m in 1:length(model.name)){
 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
 
-for(r in 1:length(resolutions)){ # Resolution loop
+	if(!max(dat.mod[,response], na.rm=T)>0) next
+gure
 
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
@@ -224,7 +227,7 @@ save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name, "_",
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_GS_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	# scale_x_continuous(limits=c(850,2010)) +
@@ -235,7 +238,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free")
 )
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	scale_x_continuous(limits=c(1850,2010)) +

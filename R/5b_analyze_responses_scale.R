@@ -59,6 +59,8 @@ load(file.path(path.data, "EcosysData_Raw.Rdata"))
 ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
 
 # Figure out what models we have to work with
+#response.all <- c("NPP", "AGB.diff", "NEE")
+response.all <- c("NPP")
 models <- unique(ecosys$Model)
 f.res <- dir(file.path(in.base, in.res))
 f.ext <- dir(file.path(in.base, in.ext))
@@ -66,43 +68,50 @@ f.ext <- dir(file.path(in.base, in.ext))
 # Need to recode the normal ed so that it will only return one model
 models2 <- recode(models, "'ed2'='ed2_'")
 
-for(i in 1:length(models)){
-	# loop through by resolution
-	fmod <- grep(models2[i], f.res)
-	load(file.path(in.base, in.res, f.res[fmod]))
-	
-	if(i==1) {
-		ci.terms   <- mod.out$ci.terms
-		dat.ecosys <- cbind(mod.out$data, mod.out$ci.response[,c("mean", "lwr", "upr")])
-		# sim.terms <- mod.out$sim.terms
-	} else {
-		ci.terms  <- rbind(ci.terms, mod.out$ci.terms )
-		dat.ecosys <- rbind(dat.ecosys, cbind(mod.out$data, mod.out$ci.response[,c("mean", "lwr", "upr")]))
-		# sim.terms <- rbind(sim.terms, mod.out$sim.terms)
-	}
+# Put all responses & models & scales into single data frames
+# for(r in 1:length(response.all)){
+  #response <- response.all[r]
+  response="NPP"
+  response.res <- grep(response, f.res)
+  response.ext <- grep(response, f.ext)
+  for(i in 1:length(models)){
+    # First narrow to the models
 
-	# loop through by extent
-	fmod <- grep(models2[i], f.ext)
-	load(file.path(in.base, in.ext, f.ext[fmod]))
-	
-	# if(i==1) {
-		# ci.terms  <- mod.out$ci.terms 
-		# dat.ecosys <- cbind(mod.out$data, mod.out$ci.response[,c("mean", "lwr", "upr")])
-		# # sim.terms <- mod.out$sim.terms
-	# } else {
-		# Note: because we're lumping everything together, let's not mess with reiterating the base level
-		ci.terms  <- rbind(ci.terms, mod.out$ci.terms[!(mod.out$ci.terms$Resolution=="t.001" & substr(mod.out$ci.terms$Extent,1,3)=="850"),] )
-		dat.ecosys <- rbind(dat.ecosys,
-				  cbind(mod.out$data[!(mod.out$data$Resolution=="t.001" & substr(mod.out$data$Extent,1,3)=="850"),], 
-						mod.out$ci.response[!(mod.out$ci.response$Resolution=="t.001" & substr(mod.out$ci.response$Extent,1,3)=="850"),c("mean", "lwr", "upr")]))
-		# # sim.terms <- rbind(sim.terms, mod.out$sim.terms)
-		# !(mod.out$ci.response$Resolution=="t.001" & substr(mod.out$ci.response$Extent,1,3)=="850")
-	# }
+	fmod <- response.res[grep(models2[i], f.res[response.res])]
 
-	# Clear the mod.out to save space
-	rm(mod.out)
-}
-# Fix Extent Labels for consistency
+    if(!length(fmod)>0) next
+
+    load(file.path(in.base, in.res, f.res[fmod]))
+    
+    if(i==1) {
+      ci.terms   <- mod.out$ci.terms
+      dat.ecosys <- cbind(mod.out$data[,], mod.out$ci.response[,c("mean", "lwr", "upr")])
+      # sim.terms <- mod.out$sim.terms
+    } else {
+      ci.terms  <- rbind(ci.terms, mod.out$ci.terms )
+      dat.ecosys <- rbind(dat.ecosys, cbind(mod.out$data, mod.out$ci.response[,c("mean", "lwr", "upr")]))
+      # sim.terms <- rbind(sim.terms, mod.out$sim.terms)
+    }
+    
+    # loop through by extent
+    fmod <- response.ext[grep(models2[i], f.ext[response.ext])]
+    load(file.path(in.base, in.ext, f.ext[fmod]))
+    
+    # Note: because we're lumping everything together, let's not mess with reiterating the base level
+    ci.terms  <- rbind(ci.terms, mod.out$ci.terms[!(mod.out$ci.terms$Resolution=="t.001" & substr(mod.out$ci.terms$Extent,1,3)=="850"),] )
+    dat.ecosys <- rbind(dat.ecosys,
+                        cbind(mod.out$data[!(mod.out$data$Resolution=="t.001" & substr(mod.out$data$Extent,1,3)=="850"),], 
+                              mod.out$ci.response[!(mod.out$ci.response$Resolution=="t.001" & substr(mod.out$ci.response$Extent,1,3)=="850"),c("mean", "lwr", "upr")]))
+    # # sim.terms <- rbind(sim.terms, mod.out$sim.terms)
+    # !(mod.out$ci.response$Resolution=="t.001" & substr(mod.out$ci.response$Extent,1,3)=="850")
+    # }
+    
+    # Clear the mod.out to save space
+    rm(mod.out)
+  }
+  #ci.terms$Response <- response.all[r]
+  
+#}# Fix Extent Labels for consistency
 ci.terms$Extent <- as.factor(ifelse(ci.terms$Extent=="850-2010", "0850-2010", paste(ci.terms$Extent)))
 dat.ecosys$Extent <- as.factor(ifelse(dat.ecosys$Extent=="850-2010", "0850-2010", paste(dat.ecosys$Extent)))
 summary(ci.terms)
@@ -111,6 +120,8 @@ summary(dat.ecosys)
 # Get rid of Linkages, because it's just weird
 ci.terms   <- ci.terms[!ci.terms$Model=="linkages",]
 dat.ecosys <- dat.ecosys[!dat.ecosys$Model=="linkages",]
+ecosys     <- ecosys[!ecosys$Model=="linkages",]
+
 
 # Write the files to csv so I don't have to mess with loading large .Rdata files again if I don't have to
 # write.csv(ci.terms.res,  file.path(out.dir, "Driver_Responses_CI_Resolution.csv"), row.names=F)
@@ -126,6 +137,8 @@ summary(dat.ecosys)
 
 models.use <- unique(dat.ecosys[,"Model.Order"])
 colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"])
+
+
 
 # Graphing Individual Models with the Base Effect Predictions
 pdf(file.path(fig.dir, "NPP_Annual_AllSites.pdf"))
@@ -234,20 +247,38 @@ dev.off()
 # NOTE: not worrying about Site because the terms are across sites
 for(m in unique(ci.terms$Model)){
 	for(r in unique(ci.terms[ci.terms$Model==m, "Resolution"])){
-		for(e in unique(ci.terms[ci.terms$Model==m, "Extent"])){
+		for(e in unique(ci.terms[ci.terms$Model==m & ci.terms$Resolution==r, "Extent"])){
+
+			# -----------------------
+			# Find the NPP to relativize each set off of
+			# -----------------------
 			# Find the start year for the extent
 			yr <- ifelse(nchar(as.character(e))==8, as.numeric(substr(e,1,3)), as.numeric(substr(e,1,4)))
 
-			# Find the NPP to relativize each set off of
-			npp <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Year>=yr & dat.ecosys$Resolution==r, "NPP"], na.rm=T)			
+			npp <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Year>=yr & dat.ecosys$Resolution==r, "NPP"], na.rm=T)			# -----------------------
 			
+			# -----------------------
+			# Relativizing everythign in dat.ecosys to make it comparable to tree rings
+			# -----------------------
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"NPP.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"NPP"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"fit.gam.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"mean"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"mean.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"mean"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"lwr.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"lwr"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"upr.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Extent==e,"upr"])/npp
+			# -----------------------
+
+			
+			# -----------------------
 			# Finding the percent change in NPP relative to the mean for that particular scale
+			# -----------------------
 			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Extent==e,"mean.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Extent==e,"mean"])/npp
 			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Extent==e,"lwr.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Extent==e,"lwr"])/npp
 			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Extent==e,"upr.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Extent==e,"upr"])/npp
+			# -----------------------
 		}
 	}
 }
+summary(dat.ecosys)
 summary(ci.terms)
 
 # Trying out the basic plot to compare model responses to drivers
@@ -310,7 +341,73 @@ ggplot(data=ci.terms[ci.terms$Resolution=="t.001" & ci.terms$Extent=="0850-2010"
 	theme_bw()
 dev.off()
 
+# A very crude way of showing the effects at 3 different scales
+E1 <- ci.terms[ci.terms$Resolution=="t.001" & ci.terms$Extent=="0850-2010",]
+E1$Scale <- as.factor(1)
+levels(E1$Scale) <- "Base Effect"
+summary(E1)
 
+E2 <- ci.terms[ci.terms$Resolution=="t.050" & ci.terms$Extent=="0850-2010",]
+E2$Scale <- as.factor(2)
+levels(E2$Scale) <- "Resolution: 50-yr"
+summary(E2)
+
+E3 <- ci.terms[ci.terms$Resolution=="t.001" & ci.terms$Extent=="1850-2010",]
+E3$Scale <- as.factor(3)
+levels(E3$Scale) <- "Extent: 1850-2010"
+summary(E3)
+
+ci.terms2 <- rbind(E1, E2, E3)
+summary(ci.terms2)
+
+pdf(file.path(fig.dir, "NPP_RelChange_byDriver.pdf"))
+for(E in unique(ci.terms$Effect)){
+print(
+ggplot(data=ci.terms2[ci.terms2$Effect==E,]) + 
+	facet_grid(.~Scale) +
+	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
+	scale_fill_manual(values=colors.use) +
+	scale_color_manual(values=colors.use) +
+	labs(y="% Change NPP", title=E) +
+	theme_bw()
+)
+}
+dev.off()
+
+big3 <- c("tair", "precipf", "CO2")
+
+pdf(file.path(fig.dir, "NPP_RelChange_Big3.pdf"))
+print(
+ggplot(data=ci.terms2[ci.terms2$Effect %in% big3,]) + 
+	facet_grid(Scale~Effect, scales="free_x") +
+	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
+	scale_fill_manual(values=colors.use) +
+	scale_color_manual(values=colors.use) +
+	labs(y="% Change NPP") +
+	guides(col=guide_legend(nrow=2), fill=guide_legend(nrow=2)) +
+	theme(legend.position="top") +
+	theme(plot.title=element_text(face="bold", size=rel(3))) + 
+	theme(
+		  # legend.text=element_text(size=rel(1.5)), 
+	      # legend.title=element_text(size=rel(1.5)),
+	      legend.key=element_blank() #,
+	      # legend.key.size=unit(2, "lines"),  
+	      # legend.key.width=unit(2, "lines") 
+	      ) + 
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank() #, 
+	      # axis.text.x=element_text(angle=0, color="black", size=rel(2.5)), 
+	      # axis.text.y=element_text(color="black", size=rel(2.5)), 
+	      # axis.title.x=element_text(face="bold", size=rel(2.25), vjust=-0.5),  
+	      # axis.title.y=element_text(face="bold", size=rel(2.25), vjust=1)
+	      )
+)
+dev.off()
 # ----------------------------------------
 
 # ----------------------------------------
