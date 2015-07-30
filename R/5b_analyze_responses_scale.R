@@ -320,12 +320,24 @@ dev.off()
 pdf(file.path(fig.dir, "NPP_RelChange_BaseEffect.pdf"))
 ggplot(data=ci.terms[ci.terms$Resolution=="t.001" & ci.terms$Extent=="0850-2010",]) + 
 	facet_wrap(~Effect, scales="free_x") +
-	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
-	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
+	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean.rel*100, color=Model), size=0.75) +
 	scale_fill_manual(values=colors.use) +
 	scale_color_manual(values=colors.use) +
-	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 850-2010") +
-	theme_bw()
+	labs(y="% Change NPP", title="Driver Sensitivity to May-Sep Met, 850-2010") +
+	guides(col=guide_legend(ncol=2), fill=guide_legend(ncol=2)) +
+	theme(legend.position=c(0.85, 0.15)) +
+	theme(plot.title=element_text(face="bold", size=rel(1))) + 
+	theme(legend.text=element_text(size=rel(1)), 
+	      legend.title=element_text(size=rel(1)),
+	      legend.key=element_blank(),
+	      legend.key.size=unit(1, "lines")) + 
+	      # legend.key.width=unit(2, "lines")) + 
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank()) 
 dev.off()
 
 

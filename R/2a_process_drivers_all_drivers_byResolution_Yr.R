@@ -108,14 +108,15 @@ model.colors
 # Settings for the rest of this script
 # -------------------------------------------------
 # Get rid of CLM-BGC because its actual drivers are messed up
-ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
+ecosys <- ecosys[!ecosys$Model=="clm.bgc" & !ecosys$Model=="linkages",]
 
 # Setting up a loop for 1 m.name, 1 temporal scale
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
 resolutions <- c("t.001", "t.010", "t.050", "t.100")
-response <- "NPP"
+# response.all <- c("NPP", "AGB.diff", "NEE")
+response.all <- c("NPP")
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".yr")
 k=4
@@ -125,14 +126,19 @@ k=4
 # -------------------------------------------------
 # Set up the appropriate data for each model into a list
 # -------------------------------------------------
-
-for(m in 1:length(model.name)){
+for(y in 1:length(response.all)){
+	response <- response.all[y]
+	print("-------------------------------------")
+	print("-------------------------------------")
+	print(paste0("------ Processing Var: ", response, " ------"))
+	# M1 <- 1:length(model.name)
+	# M2 <- which(!model.name=="jules.stat")
+	#if(# response=="AGB.diff") models <- which(!model.name=="jules.stat") else models <- 1:length(model.name)
+for(m in 1:length(model.name)){ 
 	paleon.models <- list()
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 
-	print("-------------------------------------")
-	print("-------------------------------------")
 	print("-------------------------------------")
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
@@ -140,8 +146,8 @@ for(m in 1:length(model.name)){
 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
 
-for(r in 1:length(resolutions)){ # Resolution loop
-
+	if(!max(dat.mod[,response], na.rm=T)>0) next # If a variable is missing, just skip over this model for now
+for(r in 1:length(resolutions)){ # Loop through different resolutions
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
 	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
@@ -173,7 +179,10 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	}
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
-	data.temp <- data.temp[complete.cases(data.temp[,response]),]
+	data.temp   <- data.temp[complete.cases(data.temp[,response]),]
+
+	# Make a new variable called Y with the response variable so it can be generalized
+	data.temp$Y <- data.temp[,response]
 
 	paleon.models[[paste(resolutions[r])]] <- data.temp
 } # End Resolution Loop
@@ -218,7 +227,7 @@ save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name, "_",
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Yr_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	# scale_x_continuous(limits=c(850,2010)) +
@@ -229,7 +238,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free")
 )
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	scale_x_continuous(limits=c(1850,2010)) +
@@ -254,3 +263,4 @@ ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_b
 dev.off()
 # -------------------------------------------------
 } # End by Model Loop
+} # End Response Loop

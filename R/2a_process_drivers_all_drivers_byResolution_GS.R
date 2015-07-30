@@ -145,8 +145,8 @@ for(m in 1:length(model.name)){
 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
 
-	if(!max(dat.mod[,response], na.rm=T)>0) next
-gure
+	if(!max(dat.mod[,response], na.rm=T)>0) next # If a variable is missing, just skip over this model for now
+for(r in 1:length(resolutions)){ # Loop through different resolutions
 
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions

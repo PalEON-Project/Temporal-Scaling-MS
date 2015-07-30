@@ -116,7 +116,8 @@ model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
 resolutions <- c("t.001", "t.010", "t.050", "t.100")
 extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010)) 
-response <- "NPP"
+# response.all <- c("NPP", "AGB.diff", "NEE")
+response.all <- c("NPP")
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".yr")
 k=4
@@ -127,20 +128,27 @@ r=1
 # Set up the appropriate data for each model into a list
 # -------------------------------------------------
 
-for(m in 1:length(model.name)){
+for(y in 1:length(response.all)){
+	response <- response.all[y]
+	print("-------------------------------------")
+	print("-------------------------------------")
+	print(paste0("------ Processing Var: ", response, " ------"))
+	# M1 <- 1:length(model.name)
+	# M2 <- which(!model.name=="jules.stat")
+# 	if(response=="AGB.diff") models <- which(!model.name=="jules.stat") else models <- 1:length(model.name)
+for(m in 1:length(model.name)){ 
 	paleon.models <- list()
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
 
-	print("-------------------------------------")
-	print("-------------------------------------")
 	print("-------------------------------------")
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
 	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
-
+  
+  if(!max(dat.mod[,response], na.rm=T)>0) next
 for(e in 1:nrow(extents)){ # Resolution loop
 
 	# Figure out which years to take: 
@@ -176,6 +184,9 @@ for(e in 1:nrow(extents)){ # Resolution loop
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
+
+	# Make a new variable called Y with the response variable so it can be generalized
+	data.temp$Y <- data.temp[,response]
 
 	paleon.models[[paste(ext)]] <- data.temp
 } # End Extents Loop
@@ -220,7 +231,7 @@ save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name, "_",
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Yr_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	# scale_x_continuous(limits=c(850,2010)) +
@@ -231,7 +242,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Extent, scales="free") + t
 )
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	scale_x_continuous(limits=c(1850,2010)) +
@@ -256,3 +267,4 @@ ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_b
 dev.off()
 # -------------------------------------------------
 } # End by Model Loop
+} # End Response Loop
