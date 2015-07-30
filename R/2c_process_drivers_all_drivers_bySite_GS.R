@@ -100,6 +100,7 @@ summary(ecosys)
 model.colors
 
 source('R/0_gamm.calculate2.R', chdir = TRUE)
+source('R/0_GAMM_Plots.R', chdir = TRUE)
 
 # Read in model color scheme
 model.colors
@@ -110,19 +111,19 @@ model.colors
 # Settings for the rest of this script
 # -------------------------------------------------
 # Get rid of CLM-BGC because its actual drivers are messed up
-ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
+ecosys <- ecosys[!ecosys$Model=="clm.bgc" & !ecosys$Model=="linkages",]
 
 # Setting up a loop for 1 m.name, 1 temporal scale
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
 #resolutions <- c("t.001", "t.010", "t.050", "t.100")
-resolutions <- c("t.001", "t.010", "t.050") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
+resolutions <- c("t.001", "t.010") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010)) 
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".gs")
-k=3
+k=4
 e=1	
 # -------------------------------------------------
 
@@ -179,6 +180,8 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
 
+	data.temp$Y <- data.temp[,response]
+
 	for(s in 1:length(sites)){
 		data.temp2 <- data.temp[data.temp$Site==sites[s],]
 
@@ -192,7 +195,8 @@ for(r in 1:length(resolutions)){ # Resolution loop
 # -------------------------------------------------
 # Run the gamms
 # -------------------------------------------------
-cores.use <- min(12, length(paleon.models))
+# cores.use <- min(12, length(paleon.models))
+cores.use <- length(paleon.models)
 
 models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=predictors.all, site.effects=F)
 # -------------------------------------------------
@@ -235,7 +239,7 @@ save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_GS_", m.name,"_", 
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_GS_Site_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	# scale_x_continuous(limits=c(850,2010)) +
@@ -246,7 +250,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free")
 )
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	scale_x_continuous(limits=c(1850,2010)) +
@@ -271,5 +275,15 @@ ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Resolu
 )
 }
 dev.off()
+
+
+pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_Time_Site_", m.order, "_", response, "_0850-2010.pdf")))
+print(plot.weights.time(df=mod.out$weights, xmin=851, xmax=2010, breaks=c(1000, 1250, 1500, 1750, 2000), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 0850 - 2010"))) )
+print(plot.weights.time(df=mod.out$weights, xmin=1800, xmax=1900, breaks=c(1825, 1850, 1875), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 1800 - 1900"))) )
+print( plot.weights.time(df=mod.out$weights, xmin=1900, xmax=2010, breaks=c(1925, 1950, 1975), plot.labs=labs(x="Year", title=paste0(m.order, " Driver Weights through Time: 1900 - 2010"))) )
+dev.off()
+
+
+
 # -------------------------------------------------
 } # End by Model Loop
