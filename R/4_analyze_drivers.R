@@ -45,6 +45,9 @@ library(zoo)
 # setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 setwd("..")
 path.data <- "Data"
+in.base <- "Data/gamms"
+in.res  <- "AllDrivers_YR_byResolution"
+in.ext  <- "AllDrivers_YR_byExtent"
 dat.dir <- "Data/analysis_drivers"
 fig.dir <- "Figures/analysis_drivers"
 
@@ -55,13 +58,153 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 # Load data files & function scripts
 # ----------------------------------------
-load(file.path(path.data, "EcosysData.Rdata")) # loads ecosys & model.colors
-summary(ecosys)
+
+load(file.path(path.data, "EcosysData_Raw.Rdata"))
+ecosys <- ecosys[!ecosys$Model=="clm.bgc" & !ecosys$Model=="linkages",]
+
+# Figure out what models we have to work with
+#response.all <- c("NPP", "AGB.diff", "NEE")
+response.all <- c("NPP")
+models <- unique(ecosys$Model)
+
+f.res <- dir(file.path(in.base, in.res))
+f.ext <- dir(file.path(in.base, in.ext))
+
+# Need to recode the normal ed so that it will only return one model
+models2 <- recode(models, "'ed2'='ed2_'")
+
+
+# -----------------------
+# Put all responses & models & scales into single data frames
+# This is the same loop as in other scripts, just parsed down for clarity
+# -----------------------
+# for(r in 1:length(response.all)){
+response="NPP"
+response.res <- grep(response, f.res)
+response.ext <- grep(response, f.ext)
+for(i in 1:length(models)){
+    # First narrow to the models
+	fmod <- response.res[grep(models2[i], f.res[response.res])]
+
+    if(!length(fmod)>0) next
+    load(file.path(in.base, in.res, f.res[fmod]))
+  
+    if(i==1) {
+      dat.ecosys <- cbind(mod.out$data[,], mod.out$ci.response[,c("mean", "lwr", "upr")])
+    } else {
+      dat.ecosys <- rbind(dat.ecosys, cbind(mod.out$data, mod.out$ci.response[,c("mean", "lwr", "upr")]))
+    }
+    
+    # loop through by extent
+    fmod <- response.ext[grep(models2[i], f.ext[response.ext])]
+    load(file.path(in.base, in.ext, f.ext[fmod]))
+    
+    # Note: because we're lumping everything together, let's not mess with reiterating the base level
+    dat.ecosys <- rbind(dat.ecosys,
+                        cbind(mod.out$data[!(mod.out$data$Resolution=="t.001" & substr(mod.out$data$Extent,1,3)=="850"),], 
+                              mod.out$ci.response[!(mod.out$ci.response$Resolution=="t.001" & substr(mod.out$ci.response$Extent,1,3)=="850"),c("mean", "lwr", "upr")]))
+    
+    # Clear the mod.out to save space
+    rm(mod.out)
+}
+  
+# Fix Extent Labels for consistency
+dat.ecosys$Extent <- as.factor(ifelse(dat.ecosys$Extent=="850-2010", "0850-2010", paste(dat.ecosys$Extent)))
+summary(dat.ecosys)
 
 # subset just the met data (lets just use the drivers returned by JULES since it had the fewest issues)
 vars.met <- c("tair", "precipf", "swdown", "lwdown", "qair", "psurf", "wind", "CO2")
-drivers <- ecosys[ecosys$Model=="jules.stat", c("Year", "Site", "Scale", vars.met)]
+drivers <- dat.ecosys[dat.ecosys$Model=="ed2", c("Year", "Site", "Resolution", "Extent", vars.met)]
+drivers$Met.Source <- as.factor(ifelse(drivers$Year<1850, "CCSM4_p1000", ifelse(drivers$Year>=1901, "CRUNCEP", "CCSM4_historical")))
 summary(drivers)
+
+
+# ----------------------------------------
+# Plotting Drivers through time at all sites & where the data came from
+# ----------------------------------------
+drivers.stack <- stack(drivers[,vars.met])[c(2,1)]
+names(drivers.stack) <- c("Driver", "Value")
+drivers.stack$Year   <- drivers$Year
+drivers.stack$Site   <- drivers$Site
+drivers.stack$Extent <- drivers$Extent
+drivers.stack$Source <- drivers$Met.Source
+summary(drivers.stack)
+
+# Adding in some dummy max/min by driver to make some prettier graphs
+for(v in vars.met){
+	drivers.stack[drivers.stack$Driver==v, "Val.min"] <- min(drivers.stack[drivers.stack$Driver==v, "Value"])
+	drivers.stack[drivers.stack$Driver==v, "Val.max"] <- max(drivers.stack[drivers.stack$Driver==v, "Value"])
+}
+drivers.stack[drivers.stack$Driver=="CO2","Source"] <- NA
+summary(drivers.stack)
+
+# Plotting by driver
+pdf(file.path(fig.dir, "MetDrivers_byDriver_Source.pdf"))
+for(d in unique(drivers.stack$Driver)){
+print(
+ggplot(data=drivers.stack[drivers.stack$Driver==d,]) + facet_wrap(~Site) +
+	geom_ribbon(aes(x=Year, ymin=Val.min, ymax=Val.max, fill=Source), alpha=0.5) +	
+	geom_line(aes(x=Year, y=Value)) +
+	scale_x_continuous(expand=c(0,0)) +
+	scale_y_continuous(expand=c(0,0)) +
+	labs(title=d) +
+	theme(plot.title=element_text(face="bold", size=rel(2))) + 
+	theme(legend.position="top") +
+	# theme(legend.position=c(0.85,0.2)) +
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank()
+	      )
+)
+}
+dev.off()
+
+pdf(file.path(fig.dir, "MetDrivers_bySite_Source.pdf"))
+for(s in unique(drivers.stack$Site)){
+print(
+ggplot(data=drivers.stack[drivers.stack$Site==s,]) + facet_wrap(~Driver, scales="free_y") +
+	geom_ribbon(aes(x=Year, ymin=Val.min, ymax=Val.max, fill=Source), alpha=0.5) +	
+	geom_line(aes(x=Year, y=Value)) +
+	scale_x_continuous(expand=c(0,0)) +
+	scale_y_continuous(expand=c(0,0)) +
+	labs(title=s, y="Value") +
+	theme(plot.title=element_text(face="bold", size=rel(2))) + 
+	theme(legend.position="top") +
+	# theme(legend.position=c(0.85,0.2)) +
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank()
+	      )
+)
+}
+dev.off()
+
+for(d in unique(drivers.stack$Driver)){
+pdf(file.path(fig.dir, paste0("MetDrivers_", d, "_Source.pdf")))
+print(
+ggplot(data=drivers.stack[drivers.stack$Driver==d,]) + facet_wrap(~Site) +
+	geom_ribbon(aes(x=Year, ymin=Val.min, ymax=Val.max, fill=Source), alpha=0.5) +	
+	geom_line(aes(x=Year, y=Value)) +
+	scale_x_continuous(expand=c(0,0)) +
+	scale_y_continuous(expand=c(0,0)) +
+	labs(title=d) +
+	theme(plot.title=element_text(face="bold", size=rel(2))) + 
+	theme(legend.position="top") +
+	# theme(legend.position=c(0.85,0.2)) +
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank()
+	      )
+)
+dev.off()
+}
+
 # ----------------------------------------
 
 # ----------------------------------------
@@ -72,21 +215,21 @@ drivers.stack <- stack(drivers[,vars.met])[,c(2,1)]
 names(drivers.stack) <- c("driver", "value")
 drivers.stack$Year   <- drivers$Year
 drivers.stack$Site   <- drivers$Site
-drivers.stack$Scale  <- drivers$Scale
+drivers.stack$Resolution  <- drivers$Resolution
 drivers.stack$Extent <- as.factor("0850-2010")
 summary(drivers.stack)
 
 # ---------------
 # Finding some summary statistics by temporal resolution
 # ---------------
-mean.res <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Scale), FUN=mean, na.rm=T)
-names(mean.res) <- c("driver", "Scale", "mean")
-mean.res$sd     <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Scale), FUN=sd, na.rm=T)[,3]
-mean.res$median <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Scale), FUN=median, na.rm=T)[,3]
-mean.res$min    <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Scale), FUN=min, na.rm=T)[,3]
-mean.res$max    <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Scale), FUN=max, na.rm=T)[,3]
-mean.res$p.025  <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Scale), FUN=quantile, 0.025, na.rm=T)[,3]
-mean.res$p.975  <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Scale), FUN=quantile, 0.975, na.rm=T)[,3]
+mean.res <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Resolution), FUN=mean, na.rm=T)
+names(mean.res) <- c("driver", "Resolution", "mean")
+mean.res$sd     <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Resolution), FUN=sd, na.rm=T)[,3]
+mean.res$median <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Resolution), FUN=median, na.rm=T)[,3]
+mean.res$min    <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Resolution), FUN=min, na.rm=T)[,3]
+mean.res$max    <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Resolution), FUN=max, na.rm=T)[,3]
+mean.res$p.025  <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Resolution), FUN=quantile, 0.025, na.rm=T)[,3]
+mean.res$p.975  <- aggregate(drivers.stack$value, by=list(drivers.stack$driver, drivers.stack$Resolution), FUN=quantile, 0.975, na.rm=T)[,3]
 mean.res <- mean.res[order(mean.res$driver),]
 mean.res
 
@@ -106,13 +249,13 @@ mean.extent
 
 for(d in unique(mean.extent$driver)){
 	for(e in unique(mean.extent$Start)){
-		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "mean"]   <- mean(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Scale=="t.001","value"], na.rm=T)
-		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "sd"]     <- sd(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Scale=="t.001","value"], na.rm=T)
-		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "median"] <- median(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Scale=="t.001","value"], na.rm=T)
-		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "min"]    <- min(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Scale=="t.001","value"], na.rm=T)
-		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "max"]    <- max(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Scale=="t.001","value"], na.rm=T)
-		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "p.025"]  <- quantile(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Scale=="t.001","value"], 0.025, na.rm=T)
-		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "p.0975"] <- quantile(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Scale=="t.001","value"], 0.975, na.rm=T)
+		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "mean"]   <- mean(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Resolution=="t.001","value"], na.rm=T)
+		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "sd"]     <- sd(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Resolution=="t.001","value"], na.rm=T)
+		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "median"] <- median(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Resolution=="t.001","value"], na.rm=T)
+		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "min"]    <- min(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Resolution=="t.001","value"], na.rm=T)
+		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "max"]    <- max(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Resolution=="t.001","value"], na.rm=T)
+		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "p.025"]  <- quantile(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Resolution=="t.001","value"], 0.025, na.rm=T)
+		mean.extent[mean.extent$driver==d & mean.extent$Start==e, "p.0975"] <- quantile(drivers.stack[drivers.stack$driver==d & drivers.stack$Year>=e & drivers.stack$Resolution=="t.001","value"], 0.975, na.rm=T)
 	}
 }
 mean.extent
@@ -136,10 +279,10 @@ summary(drivers.stack)
 
 # n <- length(unique(drivers$Year))*length(unique(drivers$Site))
 # Make some simple plots of the different distributions
-pdf(file.path(fig.dir, "Driver_Distributions_by_Scale.pdf"), width=8.5, height=11)
+pdf(file.path(fig.dir, "Driver_Distributions_by_Resolution.pdf"), width=8.5, height=11)
 # By Temporal resolution
 print(
-ggplot(data=drivers.stack[drivers.stack$Extent=="0850-2010",]) + facet_grid(Scale ~ driver, scales="free") +
+ggplot(data=drivers.stack[drivers.stack$Extent=="0850-2010",]) + facet_grid(Resolution ~ driver, scales="free") +
 	geom_histogram(aes(x=value, fill=Site, weight=1/n)) + 
 	geom_vline(data=mean.res, aes(xintercept=mean), size=0.5) +
 	# geom_vline(xintercept=3, size=2) +
@@ -149,7 +292,7 @@ ggplot(data=drivers.stack[drivers.stack$Extent=="0850-2010",]) + facet_grid(Scal
 
 # By Temporal Extent
 print(
-ggplot(data=drivers.stack[drivers.stack$Scale=="t.001",]) + facet_grid(Extent ~ driver, scales="free") +
+ggplot(data=drivers.stack[drivers.stack$Resolution=="t.001",]) + facet_grid(Extent ~ driver, scales="free") +
 	geom_histogram(aes(x=value, fill=Site, weight=1/n)) + 
 	geom_vline(data=mean.extent, aes(xintercept=mean), size=0.5) +
 	# geom_vline(xintercept=3, size=2) +
@@ -161,7 +304,7 @@ dev.off()
 # ---------------
 # Looking for Extremes or anomalies by site
 # ---------------
-drivers.basic <- drivers.stack[drivers.stack$Extent=="0850-2010" & drivers.stack$Scale=="t.001",]
+drivers.basic <- drivers.stack[drivers.stack$Extent=="0850-2010" & drivers.stack$Resolution=="t.001",]
 summary(drivers.basic)
 
 # recoding the drivers to graph in a sensible order
@@ -190,7 +333,7 @@ pdf(file.path(fig.dir, "Drivers_Time_by_Site.pdf"), width=8.5, height=11)
 ggplot(data=drivers.basic) + facet_grid(driver~Site, scales="free") +
 	geom_line(aes(x=Year, y=value, color=driver), size=1.25) +
 	geom_ribbon(data=mean.site2, aes(x=Year, ymin=p.005, ymax=p.995), alpha=0.5) +
-	geom_line(data=drivers.stack[drivers.stack$Extent=="0850-2010" & drivers.stack$Scale=="t.100",], aes(x=Year, y=value, color=driver), size=1.25) +
+	geom_line(data=drivers.stack[drivers.stack$Extent=="0850-2010" & drivers.stack$Resolution=="t.100",], aes(x=Year, y=value, color=driver), size=1.25) +
 	scale_x_continuous(breaks=c(1250,1750)) +
 	scale_color_manual(values=c("green3", "red2", "blue2", "goldenrod3", "goldenrod4", "purple3", "navajowhite4", "salmon4")) +
 	guides(color=F) +
@@ -206,19 +349,19 @@ dev.off()
 # ----------------------------------------
 # Make some simple plots of correlation
 # Note: because of the number of data points, these need to be saved in a "flattened" format
-for(s in unique(drivers$Scale)){
+for(s in unique(drivers$Resolution)){
 	png(file.path(fig.dir, paste0("Driver_Correlations_",s,"0850-2010.png")))
-	plot(drivers[drivers$Scale==s, vars.met], main=paste0("Met Driver Correlations 0850-2010, ", s))
+	plot(drivers[drivers$Resolution==s, vars.met], main=paste0("Met Driver Correlations 0850-2010, ", s))
 	dev.off()
 }
 
 # run the correlation matrices
-scales <- unique(drivers$Scale)
+scales <- unique(drivers$Resolution)
 vars.met
 
 # Need to replae vars.met with something that lists the relevant pairs without doing the redundnat pairs
 for(s in 1:length(scales)){
-	data.temp <- drivers[drivers$Scale==scales[s],]
+	data.temp <- drivers[drivers$Resolution==scales[s],]
 
 	# to get proper pairing we need each variable matched with the ones we haven't done yet so
 	for(i in 1:(length(vars.met)-1)){
@@ -246,7 +389,7 @@ summary(cor.res)
 
 # graph the changes in correlation
 # Note: graphing the absolute value so that going down is always a decrease in correlation
-pdf(file.path(fig.dir, "Driver_Correlations_Across_Scale.pdf"))
+pdf(file.path(fig.dir, "Driver_Correlations_Across_Resolution.pdf"))
 ggplot(data=cor.res[,]) + facet_grid(v2 ~ v1) +
 	# geom_ribbon(aes(x=as.numeric(scale), ymin=abs(cor.lo), ymax=abs(cor.hi)), fill="red2", alpha=0.7) +
 	geom_hline(data=cor.res[cor.res$scale=="t.001",], aes(yintercept=abs(cor.est)), linetype="dashed", size=0.25) +
@@ -255,7 +398,7 @@ ggplot(data=cor.res[,]) + facet_grid(v2 ~ v1) +
 	# geom_line(aes(x=as.numeric(scale), y=cor.est), size=0.25) +
 	scale_fill_manual(values=c("blue2", "red2")) +
 	guides(fill=guide_legend(title="Corr. Sign")) +
-	labs(x="Scale", y="Absolute Value of Correlation (R2)", title="Change in Driver Correlation Across Temporal Resolution") +
+	labs(x="Resolution", y="Absolute Value of Correlation (R2)", title="Change in Driver Correlation Across Temporal Resolution") +
 	theme_bw()
 dev.off()
 # ----------------------------------------
