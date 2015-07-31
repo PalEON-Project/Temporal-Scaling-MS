@@ -118,18 +118,26 @@ sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
 #resolutions <- c("t.001", "t.010", "t.050", "t.100")
-resolutions <- c("t.001", "t.010") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
+resolutions <- c("t.001", "t.010", "t.050") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010)) 
-response <- "NPP"
+response.all <- c("NPP", "NEE", "AGB.diff")
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".gs")
-k=4
+k=3
 e=1	
 # -------------------------------------------------
 
 # -------------------------------------------------
 # Set up the appropriate data for each model into a list
 # -------------------------------------------------
+for(y in 1:length(response.all)){
+	response <- response.all[y]
+	print("-------------------------------------")
+	print("-------------------------------------")
+	print(paste0("------ Processing Var: ", response, " ------"))
+	# M1 <- 1:length(model.name)
+	# M2 <- which(!model.name=="jules.stat")
+	#if(# response=="AGB.diff") models <- which(!model.name=="jules.stat") else models <- 1:length(model.name)
 
 for(m in 1:length(model.name)){
 	paleon.models <- list()
@@ -137,13 +145,13 @@ for(m in 1:length(model.name)){
 	m.order <- model.order[m]
 
 	print("-------------------------------------")
-	print("-------------------------------------")
-	print("-------------------------------------")
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
 	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
+	
+	if(!max(dat.mod[,response], na.rm=T)>0) next # If a variable is missing, just skip over this model for now
 
 for(r in 1:length(resolutions)){ # Resolution loop
 
@@ -287,3 +295,4 @@ dev.off()
 
 # -------------------------------------------------
 } # End by Model Loop
+} # End Response loop

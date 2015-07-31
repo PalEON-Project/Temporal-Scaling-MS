@@ -26,7 +26,7 @@ rgb.line <- function(df, size, y, red, green, blue){
 
 plot.weights.time <- function(df, y="fit.full", red="weight.tair", green="weight.CO2", blue="weight.precipf", xmin=min(df$Year), xmax=max(df$Year), breaks=seq(min(df$Year), max(df$Year), by=(max(df$Year)-min(df$Year))/5)[2:5], plot.labs=labs(x="Year"), formats=theme_bw()){
 ggplot(data=df) + facet_grid(Site~Resolution, scales="free") +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5, size=1.5) +
 	rgb.line(df=df[df$Resolution=="t.001" & df$Site=="PHA",], size=2, y=y, red=red, green=green, blue=blue) +
 	rgb.line(df=df[df$Resolution=="t.010" & df$Site=="PHA",], size=2, y=y, red=red, green=green, blue=blue) +
 	rgb.line(df=df[df$Resolution=="t.050" & df$Site=="PHA",], size=2, y=y, red=red, green=green, blue=blue) +
