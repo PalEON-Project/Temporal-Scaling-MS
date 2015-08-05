@@ -274,6 +274,7 @@ summary(tree.data[,])
 
 rwi.data <- merge(rwi.stack2, tree.data[,c("TreeID", "PlotID", "Site", "Site2", "Species", "Canopy", "Status", "DBH", "BA.tree")], all.x=T, all.y=F)
 rwi.data <- rwi.data[complete.cases(rwi.data$DBH),] # Get rid of antying without a DBH/Basal Area 
+rwi.data <- rwi.data[rwi.data$RWI<5,] # Get rid of freakishly huge RWI
 summary(rwi.data)
 
 # calculate the relative importance of each stem through time
@@ -337,7 +338,7 @@ summary(chron.pdl)
 # PHO
 chron.me029 <- chron(me029.detrend, biweight=T)
 chron.me029$Year <- as.numeric(row.names(chron.me029))
-chron.me029$PlotID <- as.factor("mn019")
+chron.me029$PlotID <- as.factor("me029")
 
 chron.pho <- chron.me029
 names(chron.pho) <- c("RWI", "n.samples", "Year", "PlotID")
