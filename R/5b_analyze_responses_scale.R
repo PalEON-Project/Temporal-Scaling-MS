@@ -86,10 +86,12 @@ models2 <- recode(models, "'ed2'='ed2_'")
     if(i==1) {
       ci.terms   <- mod.out$ci.terms
       dat.ecosys <- cbind(mod.out$data[,], mod.out$ci.response[,c("mean", "lwr", "upr")])
+	  wt.terms   <- mod.out$weights
       # sim.terms <- mod.out$sim.terms
     } else {
-      ci.terms  <- rbind(ci.terms, mod.out$ci.terms )
+      ci.terms   <- rbind(ci.terms, mod.out$ci.terms )
       dat.ecosys <- rbind(dat.ecosys, cbind(mod.out$data, mod.out$ci.response[,c("mean", "lwr", "upr")]))
+	  wt.terms   <- merge(wt.terms, mod.out$weights, all.x=T, all.y=T) # Note: need to use merge bc this was only done with the relevant drivers
       # sim.terms <- rbind(sim.terms, mod.out$sim.terms)
     }
     
@@ -102,6 +104,7 @@ models2 <- recode(models, "'ed2'='ed2_'")
     dat.ecosys <- rbind(dat.ecosys,
                         cbind(mod.out$data[!(mod.out$data$Resolution=="t.001" & substr(mod.out$data$Extent,1,3)=="850"),], 
                               mod.out$ci.response[!(mod.out$ci.response$Resolution=="t.001" & substr(mod.out$ci.response$Extent,1,3)=="850"),c("mean", "lwr", "upr")]))
+	  wt.terms   <- merge(wt.terms, mod.out$weights[!(mod.out$weights$Resolution=="t.001" & substr(mod.out$weights$Extent,1,3)=="850"),], all.x=T, all.y=T)
     # # sim.terms <- rbind(sim.terms, mod.out$sim.terms)
     # !(mod.out$ci.response$Resolution=="t.001" & substr(mod.out$ci.response$Extent,1,3)=="850")
     # }
@@ -112,14 +115,17 @@ models2 <- recode(models, "'ed2'='ed2_'")
   #ci.terms$Response <- response.all[r]
   
 #}# Fix Extent Labels for consistency
-ci.terms$Extent <- as.factor(ifelse(ci.terms$Extent=="850-2010", "0850-2010", paste(ci.terms$Extent)))
+ci.terms$Extent   <- as.factor(ifelse(ci.terms$Extent=="850-2010", "0850-2010", paste(ci.terms$Extent)))
 dat.ecosys$Extent <- as.factor(ifelse(dat.ecosys$Extent=="850-2010", "0850-2010", paste(dat.ecosys$Extent)))
+wt.terms$Extent   <- as.factor(ifelse(wt.terms$Extent=="850-2010", "0850-2010", paste(wt.terms$Extent)))
 summary(ci.terms)
 summary(dat.ecosys)
+summary(wt.terms)
 
 # Get rid of Linkages, because it's just weird
 ci.terms   <- ci.terms[!ci.terms$Model=="linkages",]
 dat.ecosys <- dat.ecosys[!dat.ecosys$Model=="linkages",]
+wt.terms   <- wt.terms[!wt.terms$Model=="linkages",]
 ecosys     <- ecosys[!ecosys$Model=="linkages",]
 
 
@@ -195,7 +201,7 @@ ggplot(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="
 dev.off()
 
 
-pdf(file.path(fig.dir, "NPP_ModelFits.pdf"))
+pdf(file.path(fig.dir, "NPP_ModelFits_PHA.pdf"))
 print(
 ggplot(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="t.001" & dat.ecosys$Site=="PHA",]) + facet_wrap(~Model.Order) +
 	geom_line(aes(x=Year, y=NPP, color=Model.Order), size=1) +
@@ -203,7 +209,7 @@ ggplot(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="
 	geom_line(aes(x=Year, y=fit.gam), alpha=0.8, size=0.5, color="gray40") +
 	scale_color_manual(values=colors.use) +
 	# scale_x_continuous(limits=c(1900,2010)) +
-	ggtitle("NPP 0850-2010") +
+	ggtitle("PHA NPP 0850-2010") +
 	theme_bw() + guides(color=F)
 )
 print(
@@ -213,7 +219,7 @@ ggplot(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="
 	geom_line(aes(x=Year, y=fit.gam), alpha=0.8, size=0.8, color="gray40") +
 	scale_color_manual(values=colors.use) +
 	scale_x_continuous(limits=c(1900,2010)) +
-	ggtitle("NPP 1900-2010") +
+	ggtitle("PHA NPP 1900-2010") +
 	theme_bw() + guides(color=F)
 )
 print(
@@ -223,7 +229,7 @@ ggplot(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="
 	geom_line(aes(x=Year, y=fit.gam), alpha=0.8, size=0.8, color="gray40") +
 	scale_color_manual(values=colors.use) +
 	scale_x_continuous(limits=c(1800,1820)) +
-	ggtitle("NPP 1800-1820") +
+	ggtitle("PHA NPP 1800-1820") +
 	theme_bw() + guides(color=F)
 )
 print(
@@ -233,15 +239,19 @@ ggplot(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="
 	geom_line(aes(x=Year, y=fit.gam), alpha=0.8, size=0.8, color="gray40") +
 	scale_color_manual(values=colors.use) +
 	scale_x_continuous(limits=c(1990,2010)) +
-	ggtitle("NPP 1990-2010") +
+	ggtitle("PHA NPP 1990-2010") +
 	theme_bw() + guides(color=F)
 )
 dev.off()
 # ----------------------------------------
 
 
+
+
+
+
 # ----------------------------------------
-# Standardize driver responses to the mean model NPP
+# Compare driver responses across models by standardizing driver responses to the mean model NPP
 # ----------------------------------------
 # Across all scales (res + extent) finding the mean NPP
 # NOTE: not worrying about Site because the terms are across sites
@@ -422,7 +432,200 @@ ggplot(data=ci.terms2[ci.terms2$Effect %in% big3,]) +
 dev.off()
 # ----------------------------------------
 
+
 # ----------------------------------------
+# Using the model-wide weights to do the drivers through time by site
+# ----------------------------------------
+source("R/0_GAMM_Plots.R")
+
+models.all <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+models.use <- models.all[as.numeric(levels(wt.terms$Model.Order))]
+
+wt.terms$Model.Order <- recode(wt.terms$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
+levels(wt.terms$Model.Order) <- models.all[as.numeric(levels(wt.terms$Model.Order))]
+summary(wt.terms)
+
+indices.wt <- wt.terms$Site=="PHA" & wt.terms$Resolution=="t.001" & wt.terms$Extent=="0850-2010" 
+indices.dat <- dat.ecosys$Site=="PHA" & dat.ecosys$Resolution=="t.001" & dat.ecosys$Extent=="0850-2010" 
+
+pdf(file.path(fig.dir, "NPP_Drivers_Time_PHA.pdf"))
+print(
+ggplot(data=wt.terms[indices.wt,]) + facet_wrap(~Model) +
+ 	geom_line(data= dat.ecosys[indices.dat,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="clm.cn",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.precipf"])), size=2) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="ed2",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.precipf"])), size=2) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="ed2.lu",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.precipf"])), size=2) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="jules.stat",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.precipf"])), size=2) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="jules.triffid",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.precipf"])), size=2) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="lpj.guess",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.precipf"])), size=2) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="lpj.wsl",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.precipf"])), size=2)+
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="sibcasa",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.precipf"])), size=2) +
+	scale_x_continuous(limits=c(850,2010), expand=c(0,0)) +
+    theme_bw()
+)
+print(
+ggplot(data=wt.terms[indices.wt,]) + facet_wrap(~Model) +
+ 	geom_line(data= dat.ecosys[indices.dat,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="clm.cn",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="ed2",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="ed2.lu",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="jules.stat",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="jules.triffid",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="lpj.guess",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="lpj.wsl",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.precipf"])), size=3)+
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="sibcasa",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.precipf"])), size=3) +
+	scale_x_continuous(limits=c(1800,1900), expand=c(0,0)) +
+    theme_bw()
+)
+print(
+ggplot(data=wt.terms[indices.wt,]) + facet_wrap(~Model) +
+ 	geom_line(data= dat.ecosys[indices.dat,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="clm.cn",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="ed2",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="ed2.lu",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="jules.stat",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="jules.triffid",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="lpj.guess",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="lpj.wsl",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.precipf"])), size=3)+
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="sibcasa",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.precipf"])), size=3) +
+	scale_x_continuous(limits=c(1901,2010), expand=c(0,0)) +
+    theme_bw()
+)
+dev.off()
+
+pdf(file.path(fig.dir, "NPP_Drivers_Time_PHA_1800-2010.pdf"), width=11, height=8.5)
+print(
+ggplot(data=wt.terms[indices.wt,]) + facet_wrap(~Model.Order) +
+ 	geom_line(data= dat.ecosys[indices.dat,], aes(x=Year, y=NPP), alpha=0.5, size=1.5) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="clm.cn",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="clm.cn","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="ed2",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="ed2.lu",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="ed2.lu","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="jules.stat",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.stat","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="jules.triffid",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="jules.triffid","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="lpj.guess",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.guess","weight.precipf"])), size=3) +
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="lpj.wsl",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="lpj.wsl","weight.precipf"])), size=3)+
+	geom_line(data=wt.terms[indices.wt & wt.terms$Model=="sibcasa",], aes(x=Year, y=fit.full),
+	          color=rgb(abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.tair"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.CO2"]),
+                        abs(wt.terms[indices.wt & wt.terms$Model=="sibcasa","weight.precipf"])), size=3) +
+	scale_x_continuous(limits=c(1700,2010), expand=c(0,0), breaks=c(1750, 1850, 1950)) +
+	scale_y_continuous(name=expression(bold(paste("NPP (Mg C ha"^"-1"," yr"^"-1",")"))), expand=c(0,0)) +
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank(), 
+	      axis.text.x=element_text(angle=0, color="black", size=rel(2.5)), 
+	      axis.text.y=element_text(color="black", size=rel(2.5)), 
+	      axis.title.x=element_text(face="bold", size=rel(2.25), vjust=-0.5),  
+	      axis.title.y=element_text(face="bold", size=rel(2.25), vjust=1)) +
+	theme(strip.text=element_text(size=rel(1.5)))
+)
+dev.off()
+# ----------------------------------------
+
+
+
+
+
+
+
+
+# ----------------------------------------
+# Look at scale-based changes in driver responses
 # Standardize changes in scale to be deviation from the annual 850-2010 response
 #
 # Note: because in what we already ran, we only did the CI & sims over the range of the condition in a given model, 
