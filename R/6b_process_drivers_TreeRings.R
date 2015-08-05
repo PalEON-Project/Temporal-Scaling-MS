@@ -78,6 +78,11 @@ source('R/0_gamm.calculate2.R', chdir = TRUE)
 dat.tr <- read.csv("Data/TreeRings_processed/TreeRing_Chronologies.csv")
 summary(dat.tr)
 
+# Subsetting tree rings to only be post-1901 because then we're running with CRUNCEP data with
+#   observed variability rather than a model representation
+dat.tr <- dat.tr[dat.tr$Year>=1901,]
+dat.tr <- dat.tr[complete.cases(dat.tr),]
+summary(dat.tr)
 
 # Read ecosys file
 # Ecosys file = organized, post-processed m.name outputs
@@ -111,7 +116,7 @@ resolutions <- c("t.001", "t.010")
 response <- "NPP"
 predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 predictor.suffix <- c(".gs")
-k=4
+k=3
 # r=1	
 # -------------------------------------------------
 
@@ -120,22 +125,46 @@ k=4
 # NOTE: Running it separately here because it requires a slightly different model
 #       structure than the other models
 # -------------------------------------------------
+source('R/0_process.gamm.R', chdir = TRUE)
+source('R/0_gamm_Plots.R', chdir = TRUE)
+
 predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
 
-dat.mod <- dat.tr[,c("Site", "Site2", "PlotID", "Year", paste0(predictors, ".gs"))]
-names(dat.mod)[(ncol(dat.mod)-length(predictors)+1):ncol(dat.mod)] <- predictors
-dat.mod$NPP <- dat.tr$xxxstd
-summary(dat.mod)
 
 # Making up a model & Model.Order
+tr.type <- c("All", "ITRDB", "NPP")
+NPP.prefix <- c("HO", "LF", "TP")
+
+for(t in tr.type){
+
+fig.dir <- file.path(fig.base, "AllDrivers_GS_TreeRings", paste0("TreeRings_",t))
+dat.dir <- file.path(dat.base, "AllDrivers_GS_TreeRings", paste0("TreeRings_",t))
+
+# Make sure the appropriate file paths are in place
+if(!dir.exists(dat.dir)) dir.create(dat.dir)
+if(!dir.exists(fig.dir)) dir.create(fig.dir)
+
+
+if(t == "All") 	 rows.use <- 1:nrow(dat.tr)
+if(t == "ITRDB") rows.use <- which(!(substr(dat.tr$PlotID,1,2) %in% NPP.prefix))
+if(t == "NPP")   rows.use <- which(substr(dat.tr$PlotID,1,2) %in% NPP.prefix)
+
+
 m.name="tree.rings"
 m.order="Tree_Rings"
+
+dat.mod <- dat.tr[rows.use,c("Site", "PlotID", "Year", paste0(predictors, ".gs"))]
+names(dat.mod)[(ncol(dat.mod)-length(predictors)+1):ncol(dat.mod)] <- predictors
+dat.mod$NPP <- dat.tr[rows.use, "RWI"]
+dat.mod <- dat.mod[complete.cases(dat.mod),]
 dat.mod$Model       <- as.factor(m.name)
 dat.mod$Model.Order <- as.factor(m.order)
 dat.mod$Updated      <- as.factor("Yes")
+# summary(dat.mod)
 
-source('R/0_process.gamm.R', chdir = TRUE)
-source('R/0_gamm_Plots.R', chdir = TRUE)
+dat.tr2 <- dat.mod
+# Get rid of CLM-BGC because its actual drivers are messed up
+ecosys3 <- ecosys2[!ecosys2$Model=="clm.bgc" & (ecosys2$Site %in% unique(dat.tr2$Site)) & ecosys2$Year>=min(dat.tr2$Year) & ecosys2$Year<=max(dat.mod$Year),]
 
 
 for(r in 1:length(resolutions)){ # Resolution loop
@@ -147,7 +176,7 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	inc <- round(as.numeric(substr(resolutions[r],3,5)),0) # making sure we're always dealign with whole numbers
 	yrs <- seq(from=run.end-round(inc/2,0), to=run.start+round(inc/2,0), by=-inc)
 
-	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Site2", "PlotID", "Year")]
+	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "PlotID", "Year")]
 
 	# Making a note of the extent & resolution
 	ext <- as.factor(paste(run.start, run.end, sep="-"))
@@ -166,7 +195,7 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	} else {
 		for(s in plotIDs){
 			for(y in yrs){
-				data.temp[data.temp$PlotID==s & data.temp$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$PlotID==s & dat.mod$Year>=round(y-inc/2, 0) & dat.mod$Year<=round(y+inc/2, 0),c(response, predictors.all)], 2, FUN=mean)
+				data.temp[data.temp$PlotID==s & data.temp$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$PlotID==s & dat.mod$Year>=round(y-inc/2, 0) & dat.mod$Year<=round(y+inc/2, 0),c(response, predictors.all)], 2, FUN=mean, na.rm=F)
 			}
 		}
 	}
@@ -262,21 +291,18 @@ ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free_x") + theme
 	labs(title=paste0("Driver Effects: ",m.order), y="Effect Size") # +
 )
 dev.off()
-
+# } # End Tree-ring data type
 # -------------------------------------------------
 
 
 # -------------------------------------------------
 # Run the Models!
 # -------------------------------------------------
-# Get rid of CLM-BGC because its actual drivers are messed up
-ecosys2 <- ecosys2[!ecosys2$Model=="clm.bgc",]
-
 # Setting up a loop for 1 m.name, 1 temporal scale
-sites       <- unique(ecosys2$Site)
-model.name  <- unique(ecosys2$Model)
-model.order <- unique(ecosys2$Model.Order)
-
+sites       <- unique(ecosys3$Site)
+model.name  <- unique(ecosys3$Model)
+model.order <- unique(ecosys3$Model.Order)
+response = "NPP"
 for(m in 1:length(model.name)){
 	paleon.models <- list()
 	m.name  <- model.name[m]
@@ -288,7 +314,7 @@ for(m in 1:length(model.name)){
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
 	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
-	dat.mod <- ecosys2[ecosys2$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
+	dat.mod <- ecosys3[ecosys3$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
 
 for(r in 1:length(resolutions)){ # Resolution loop
@@ -326,6 +352,9 @@ for(r in 1:length(resolutions)){ # Resolution loop
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
+
+	# Make a new variable called Y with the response variable so it can be generalized
+	data.temp$Y <- data.temp[,response]
 
 	paleon.models[[paste(resolutions[r])]] <- data.temp
 } # End Resolution Loop
@@ -370,7 +399,7 @@ save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name, "_",
 pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_GS_", m.order, "_", response, ".pdf")))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	# scale_x_continuous(limits=c(850,2010)) +
@@ -381,7 +410,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free")
 )
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
+ 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
 	scale_x_continuous(limits=c(1850,2010)) +
@@ -406,3 +435,4 @@ ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_b
 dev.off()
 # -------------------------------------------------
 } # End by Model Loop
+} # End Tree Ring Subset

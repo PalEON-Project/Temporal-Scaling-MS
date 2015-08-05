@@ -43,7 +43,7 @@ library(car)
 setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms"
-in.tr  <- "AllDrivers_GS_TreeRings"
+in.tr  <- "AllDrivers_GS_TreeRings/TreeRings_All"
 out.dir <- "Data/analysis_response_scale_TreeRings"
 fig.dir <- "Figures/analysis_response_scale_TreeRings"
 
@@ -138,12 +138,12 @@ summary(dat.ecosys)
 dat.ecosys$Model.Order2 <- as.factor(ifelse(dat.ecosys$Model=="tree.rings", paste0("Tree Rings, ", dat.ecosys$PlotID), paste(dat.ecosys$Model.Order)))
 levels(dat.ecosys$Model.Order2)
 
-colors.use2 <- c(colors.use, "gray40", "gray60", "gray80", "gray10", "gray30", "gray50", "gray70", "gray90")
+colors.use2 <- c(colors.use, rep("gray50", length(unique(dat.ecosys[dat.ecosys$Model=="tree.rings", "Model.Order2"]))))
 
 # Graphing Individual Models with the Base Effect Predictions
 pdf(file.path(fig.dir, "NPP_Annual_AllSites.pdf"), height=8.5, width=11)
 print(
-ggplot(data=dat.ecosys[,]) + facet_wrap(~Site) +
+ggplot(data=dat.ecosys[dat.ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=NPP, color=Model.Order2), size=0.25) +
 	# geom_line(aes(x=Year, y=fit.gam, color=Model.Order), alpha=0.8, size=0.25) +
 	# geom_line(data=dat.ecosys[dat.ecosys$Resolution=="t.001" & dat.ecosys$Model=="tree.rings",], 
@@ -153,7 +153,7 @@ ggplot(data=dat.ecosys[,]) + facet_wrap(~Site) +
 	theme_bw()
 )
 print(
-ggplot(data=dat.ecosys[,]) + facet_wrap(~Site) +
+ggplot(data=dat.ecosys[dat.ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=NPP.rel*100, color=Model.Order2), size=0.25) +
 	# geom_line(aes(x=Year, y=fit.gam, color=Model.Order), alpha=0.8, size=0.25) +
 	# geom_line(data=dat.ecosys[dat.ecosys$Resolution=="t.001" & dat.ecosys$Model=="tree.rings",], 
@@ -170,14 +170,14 @@ ggplot(data=dat.ecosys[,]) + facet_wrap(~Site) +
 	      panel.background=element_blank())
 )
 print(
-ggplot(data=dat.ecosys[,]) + facet_wrap(~Site) +
+ggplot(data=dat.ecosys[dat.ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=NPP.rel*100, color=Model.Order2), size=0.8) +
 	# geom_line(aes(x=Year, y=fit.gam, color=Model.Order), alpha=0.8, size=0.25) +
 	# geom_line(data=dat.ecosys[dat.ecosys$Resolution=="t.001" & dat.ecosys$Model=="tree.rings",], 
 			  # aes(x=Year, y=NPP.rel*100, color=PlotID), size=0.5) +
 	labs(x="Year", y="%dNPP", title="Relative NPP, 1990-2010") +
-	scale_y_continuous(limits=c(0,200)) +
-	scale_x_continuous(limits=c(1990,2010)) +
+	# scale_y_continuous(limits=c(0,200)) +
+	scale_x_continuous(limits=c(1950,1970)) +
 	scale_color_manual(values=colors.use2) +
 	# guides(col=guide_legend(nrow=2)) +
 	# theme(legend.position="top") +
@@ -261,12 +261,12 @@ colors.use <- c(as.vector(model.colors[model.colors$Model.Order %in% models.use,
 
 # Creating a cheat data frame that lets values go off the graph
 ci.terms.graph <- ci.terms
-ci.terms.graph[ci.terms.graph$mean.rel<(-1.25),"mean.rel"] <- NA 
-ci.terms.graph[ci.terms.graph$lwr.rel<(-1.25),"lwr.rel"] <- -1.25 
-ci.terms.graph[ci.terms.graph$upr.rel<(-1.25),"upr.rel"] <- -1.25 
-ci.terms.graph[which(ci.terms.graph$mean.rel>1.25),"mean.rel"] <- NA 
-ci.terms.graph[ci.terms.graph$lwr.rel>(1.25),"lwr.rel"] <- 1.25 
-ci.terms.graph[ci.terms.graph$upr.rel>(1.25),"upr.rel"] <- 1.25 
+ci.terms.graph[ci.terms.graph$mean.rel<(-0.5),"mean.rel"] <- NA 
+ci.terms.graph[ci.terms.graph$lwr.rel<(-0.5),"lwr.rel"] <- -0.5 
+ci.terms.graph[ci.terms.graph$upr.rel<(-0.5),"upr.rel"] <- -0.5 
+ci.terms.graph[which(ci.terms.graph$mean.rel>0.5),"mean.rel"] <- NA 
+ci.terms.graph[ci.terms.graph$lwr.rel>(0.5),"lwr.rel"] <- 0.5 
+ci.terms.graph[ci.terms.graph$upr.rel>(0.5),"upr.rel"] <- 0.5 
 summary(ci.terms.graph)
 
 pdf(file.path(fig.dir, "NPP_RelChange_Resolution.pdf"))
@@ -281,13 +281,13 @@ ggplot(data= ci.terms.graph[,]) +
 dev.off()
 
 pdf(file.path(fig.dir, "NPP_RelChange_BaseEffect.pdf"))
-ggplot(data=ci.terms[ci.terms$Resolution=="t.001",]) + 
+ggplot(data=ci.terms.graph[ci.terms.graph$Resolution=="t.001",]) + 
 	facet_wrap(~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
 	scale_fill_manual(values=colors.use) +
 	scale_color_manual(values=colors.use) +
-	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 850-2010") +
+	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 1901-2010") +
 	theme_bw()
 dev.off()
 
@@ -300,7 +300,7 @@ ggplot(data=ci.terms[ci.terms$Resolution=="t.001" & ci.terms$Effect %in% big3,])
 	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
 	scale_fill_manual(values=colors.use) +
 	scale_color_manual(values=colors.use) +
-	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 850-2010") +
+	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 1901-2010") +
 	theme_bw()
 dev.off()
 
