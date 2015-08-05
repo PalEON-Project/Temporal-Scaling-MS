@@ -139,13 +139,13 @@ summary(dat.ecosys2)
 
 # Trimming outliers
 dat.ecosys2 <- dat.ecosys2[dat.ecosys2$dAGB>quantile(dat.ecosys2$dAGB, 0.05, na.rm=T) & dat.ecosys2$dAGB<quantile(dat.ecosys2$dAGB, 0.95, na.rm=T) ,]
-dat.ecosys2 <- dat.ecosys2[!is.na(dat.ecosys2$Resolution) & !dat.ecosys2$Scale,]
+dat.ecosys2 <- dat.ecosys2[!is.na(dat.ecosys2$Resolution) & !is.na(dat.ecosys2$Extent),]
 summary(dat.ecosys2)
 
 
-pdf(file.path(fig.dir, "ModelVars_Correlation.pdf"))
+pdf(file.path(fig.dir, "ModelVars_Correlation_Resolution.pdf"))
 print(
-ggplot(data=dat.ecosys2) + 
+ggplot(data=dat.ecosys2[dat.ecosys2$Extent=="0850-2010",]) + 
 	# facet_grid(Model.Order ~ Resolution, scales="free") +
 	facet_grid(Resolution ~ Model.Order, scales="free") +
 	geom_point(aes(y=dAGB, x=NPP, color=Site), size=0.8) +
@@ -156,7 +156,7 @@ ggplot(data=dat.ecosys2) +
 	theme_bw()
 )
 print(
-ggplot(data=dat.ecosys2) + 
+ggplot(data=dat.ecosys2[dat.ecosys2$Extent=="0850-2010",]) + 
 	# facet_grid(Model.Order ~ Resolution, scales="free") +
 	facet_grid(Resolution ~ Model.Order, scales="free") +
 	geom_point(aes(y=NEE, x=dAGB, color=Site), size=0.8) +
@@ -167,7 +167,7 @@ ggplot(data=dat.ecosys2) +
 	theme_bw()
 )
 print(
-ggplot(data=dat.ecosys2) + 
+ggplot(data=dat.ecosys2[dat.ecosys2$Extent=="0850-2010",]) + 
 	# facet_grid(Model.Order ~ Resolution, scales="free") +
 	facet_grid(Resolution ~ Model.Order, scales="free") +
 	geom_point(aes(y=NEE, x=NPP, color=Site), size=0.8) +
@@ -179,4 +179,66 @@ ggplot(data=dat.ecosys2) +
 )
 dev.off()
 
+pdf(file.path(fig.dir, "ModelVars_Correlation_Extemt.pdf"))
+print(
+ggplot(data=dat.ecosys2[dat.ecosys2$Resolution=="t.001",]) + 
+	# facet_grid(Model.Order ~ Resolution, scales="free") +
+	facet_grid(Extent ~ Model.Order, scales="free") +
+	geom_point(aes(y=dAGB, x=NPP, color=Site), size=0.8) +
+	scale_y_continuous(limits=c(-1,1)) +
+	ggtitle("dAGB vs. NPP") +
+	# theme(legend.position="top") #+
+	guides(color=F) +
+	theme_bw()
+)
+print(
+ggplot(data=dat.ecosys2[dat.ecosys2$Resolution=="t.001",]) + 
+	# facet_grid(Model.Order ~ Resolution, scales="free") +
+	facet_grid(Extent ~ Model.Order, scales="free") +
+	geom_point(aes(y=NEE, x=dAGB, color=Site), size=0.8) +
+	scale_y_continuous(limits=c(-1,1)) +
+	ggtitle("NEE vs. dAGB") +
+	# theme(legend.position="top") #+
+	guides(color=F) +
+	theme_bw()
+)
+print(
+ggplot(data=dat.ecosys2[dat.ecosys2$Resolution=="t.001",]) + 
+	# facet_grid(Model.Order ~ Resolution, scales="free") +
+	facet_grid(Extent ~ Model.Order, scales="free") +
+	geom_point(aes(y=NEE, x=NPP, color=Site), size=0.8) +
+	scale_y_continuous(limits=c(-1,1)) +
+	ggtitle("NEE vs. NPP") +
+	# theme(legend.position="top") #+
+	guides(color=F) +
+	theme_bw()
+)
+dev.off()
+
+# Printing/Saving model correlations by site/scale
+res.corr.npp.agb <- data.frame(Model=unique(dat.ecosys2$Model))
+ext.corr.npp.agb <- data.frame(Model=unique(dat.ecosys2$Model))
+for(m in unique(dat.ecosys2$Model)){
+	for(r in unique(dat.ecosys2$Resolution)){
+		lm.temp <- lm(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Resolution==r & dat.ecosys2$Extent=="0850-2010","dAGB"] ~ dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Resolution==r & dat.ecosys2$Extent=="0850-2010","NPP"])
+		res.corr.npp.agb[res.corr.npp.agb$Model==m, r] <- summary(lm.temp)$r.squared
+	}
+	for(e in unique(dat.ecosys2$Extent)){
+		lm.temp <- lm(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Resolution=="t.001","dAGB"] ~ dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Resolution=="t.001" & dat.ecosys2$Extent==e,"NPP"])
+		ext.corr.npp.agb[ext.corr.npp.agb$Model==m, e] <- summary(lm.temp)$r.squared
+	}
+}
+
+res.corr.npp.nee <- data.frame(Model=unique(dat.ecosys2$Model))
+ext.corr.npp.nee <- data.frame(Model=unique(dat.ecosys2$Model))
+for(m in unique(dat.ecosys2$Model)){
+	for(r in unique(dat.ecosys2$Resolution)){
+		lm.temp <- lm(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Resolution==r & dat.ecosys2$Extent=="0850-2010","NEE"] ~ dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Resolution==r & dat.ecosys2$Extent=="0850-2010","NPP"])
+		res.corr.npp.nee[res.corr.npp.nee$Model==m, r] <- summary(lm.temp)$r.squared
+	}
+	for(e in unique(dat.ecosys2$Extent)){
+		lm.temp <- lm(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Resolution=="t.001","NEE"] ~ dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Resolution=="t.001" & dat.ecosys2$Extent==e,"NPP"])
+		ext.corr.npp.nee[ext.corr.npp.nee$Model==m, e] <- summary(lm.temp)$r.squared
+	}
+}
 # ----------------------------------------
