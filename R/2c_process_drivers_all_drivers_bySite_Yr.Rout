@@ -1,0 +1,1046 @@
+
+R version 3.2.0 (2015-04-16) -- "Full of Ingredients"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # ----------------------------------------
+> # Temporal Scaling Analyses -- Annual Met Drivers
+> # Non-linear driver effects through time
+> # Christy Rollinson, crollinson@gmail.com
+> # Date Created: 10 July 2015
+> # ----------------------------------------
+> # -------------------------
+> # Objectives & Overview
+> # -------------------------
+> # Driving Questions: What is the relative control of different drivers within each model?
+> # Rationale: Not all models use all inputs, and many drivers are correlated, so we need to 
+> #            see if the temperature pattern is really a radiation pattern, etc. 
+> # -------------------------
+> #
+> # -------------------------
+> # Data/Results Generation:
+> # -------------------------
+> # (Fit GAMM per site per m.name)
+> # 1) Temporal Grain (Resolution)
+> #    -- Fit GAMM over constant wind.yrow with different degrees of smoothing (1 yr - 250 yr)
+> # -------------------------
+> #
+> # -------------------------
+> # Interpretation Analyses:
+> # -------------------------
+> # 1) Space-Time Comparison
+> #    -- Hypothesis: Driver responses across sites within a m.name converge at coarser temporal grains 
+> #       and larger extents because the models have time to adjust and seek equilibrium.
+> #
+> #    -- Analysis: Use the posterior CIs for each smoothing term to see if the driver curves for sites
+> #                 within a m.name are statstically different at different sites at different scales (or 
+> #                 alternatively if there are statistical differences in [parts of] the curves between
+> #                 scales)
+> #
+> #
+> # 2) Multi-Model Driver Comparison
+> #    -- Hypothesis: Because models were built & parameterized to perform well in the modern era, there 
+> #       will be greater agreement of the direction & primary driver of change in the more recent time 
+> #       periods than over the full extent of the PalEON runs.
+> #    -- Hypothesis about temporal grain?
+> #
+> #    -- Analysis: For each given scale, compare the m.name response curves for each driver.  Determine 
+> #                 which drivers are most similar/variable among models and at what scales?  Are there
+> #                 particular ranges of each driver response where models responses are most similar/different?
+> # -------------------------
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Load Libaries
+> # ----------------------------------------
+> library(mgcv)
+Loading required package: nlme
+This is mgcv 1.8-7. For overview type 'help("mgcv-package")'.
+> # library(ncdf4)
+> # library(lme4)
+> # library(R2jags)
+> library(ggplot2); library(grid)
+> library(car)
+> # library(zoo)
+> # library(mvtnorm)
+> # library(MCMCpack)
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Define constants
+> # ----------------------------------------
+> sec2yr <- 1*60*60*24*365
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Set Directories
+> # ----------------------------------------
+> # setwd("~/Desktop/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+> setwd("..")
+> dat.base="Data/gamms"
+> fig.base="Figures/gamms"
+> 
+> # Making sure the appropriate file paths exist
+> if(!dir.exists(dat.base)) dir.create(dat.base)
+> if(!dir.exists(fig.base)) dir.create(fig.base)
+> 
+> # Setting the data & figure directories
+> fig.dir <- file.path(fig.base, "AllDrivers_Yr_byResolution_Site")
+> dat.dir <- file.path(dat.base, "AllDrivers_Yr_byResolution_Site")
+> 
+> # Make sure the appropriate file paths are in place
+> if(!dir.exists(dat.dir)) dir.create(dat.dir)
+> if(!dir.exists(fig.dir)) dir.create(fig.dir)
+> # ----------------------------------------
+> 
+> 
+> # ----------------------------------------
+> # Load data files & function scripts
+> # ----------------------------------------
+> # Ecosys file = organized, post-processed m.name outputs
+> #	generated with 1_generate_ecosys.R
+> load(file.path("Data", "EcosysData_Raw.Rdata"))
+> summary(ecosys)
+  Site            Year                Model            GPP        
+ PBL:11610   Min.   : 850   clm.bgc      : 6966   Min.   : 0.544  
+ PDL:11610   1st Qu.:1140   clm.cn       : 6966   1st Qu.: 6.520  
+ PHA:11610   Median :1430   ed2          : 6966   Median :10.268  
+ PHO:11610   Mean   :1430   ed2.lu       : 6966   Mean   :12.802  
+ PMB:11610   3rd Qu.:1720   jules.stat   : 6966   3rd Qu.:15.293  
+ PUN:11610   Max.   :2010   jules.triffid: 6966   Max.   :39.704  
+                            (Other)      :27864   NA's   :6978    
+      AGB              LAI                 NPP               NEE            
+ Min.   :  0.00   Min.   :0.000e+00   Min.   : -1.387   Min.   :-3.000e+01  
+ 1st Qu.: 32.52   1st Qu.:2.000e+00   1st Qu.:  3.096   1st Qu.:-1.000e+00  
+ Median : 66.60   Median :4.000e+00   Median :  5.333   Median : 0.000e+00  
+ Mean   : 89.51   Mean   :5.419e+35   Mean   :  8.962   Mean   : 1.550e+44  
+ 3rd Qu.:138.47   3rd Qu.:7.000e+00   3rd Qu.:  8.816   3rd Qu.: 2.000e+00  
+ Max.   :392.17   Max.   :9.969e+36   Max.   :116.977   Max.   : 3.146e+45  
+ NA's   :12       NA's   :6633        NA's   :12        NA's   :10          
+    AutoResp        HeteroResp         SoilCarb           SoilMoist     
+ Min.   : 0.628   Min.   :-0.2708   Min.   :   0.1313   Min.   : 3.861  
+ 1st Qu.: 3.365   1st Qu.: 3.2719   1st Qu.:  55.5216   1st Qu.:16.723  
+ Median : 4.998   Median : 5.0802   Median : 140.4952   Median :25.388  
+ Mean   : 6.889   Mean   : 9.1364   Mean   : 391.1458   Mean   :29.917  
+ 3rd Qu.: 9.254   3rd Qu.: 8.9179   3rd Qu.: 750.0033   3rd Qu.:39.776  
+ Max.   :24.857   Max.   :82.2347   Max.   :2088.6595   Max.   :87.184  
+ NA's   :6978     NA's   :12        NA's   :12          NA's   :6978    
+      Evap                 tair          precipf           swdown     
+ Min.   :      -539   Min.   :269.8   Min.   : 210.3   Min.   :122.0  
+ 1st Qu.:       115   1st Qu.:276.4   1st Qu.: 566.3   1st Qu.:145.9  
+ Median :       187   Median :277.4   Median : 692.0   Median :165.8  
+ Mean   : 116818665   Mean   :277.6   Mean   : 747.0   Mean   :160.3  
+ 3rd Qu.:       359   3rd Qu.:278.9   3rd Qu.: 919.0   3rd Qu.:170.6  
+ Max.   :1603007238   Max.   :283.6   Max.   :1554.3   Max.   :193.1  
+ NA's   :12           NA's   :12      NA's   :12       NA's   :6978   
+     lwdown           wind           psurf            qair       Updated    
+ Min.   :237.2   Min.   :1.898   Min.   :96896   Min.   :0.003   Yes:69660  
+ 1st Qu.:271.0   1st Qu.:2.829   1st Qu.:97196   1st Qu.:0.004              
+ Median :276.8   Median :3.556   Median :98263   Median :0.005              
+ Mean   :277.7   Mean   :3.374   Mean   :98221   Mean   :0.005              
+ 3rd Qu.:284.5   3rd Qu.:4.051   3rd Qu.:99147   3rd Qu.:0.005              
+ Max.   :304.7   Max.   :4.874   Max.   :99484   Max.   :0.007              
+ NA's   :13944   NA's   :20910   NA's   :20910   NA's   :20910              
+        Model.Order       tair.yr        precipf.yr       swdown.yr    
+ CLM-BGC      : 6966   Min.   :270.3   Min.   : 322.0   Min.   :146.1  
+ CLM-CN       : 6966   1st Qu.:276.3   1st Qu.: 602.3   1st Qu.:165.4  
+ ED2          : 6966   Median :277.4   Median : 733.3   Median :168.6  
+ ED2-LU       : 6966   Mean   :277.5   Mean   : 789.1   Mean   :169.0  
+ JULES-STATIC : 6966   3rd Qu.:278.8   3rd Qu.: 980.3   3rd Qu.:172.3  
+ JULES-TRIFFID: 6966   Max.   :283.1   Max.   :1546.5   Max.   :192.3  
+ (Other)      :27864                                                   
+   lwdown.yr        qair.yr            psurf.yr        wind.yr     
+ Min.   :248.8   Min.   :0.003224   Min.   :96896   Min.   :1.921  
+ 1st Qu.:273.7   1st Qu.:0.004353   1st Qu.:97196   1st Qu.:2.891  
+ Median :278.8   Median :0.004594   Median :98262   Median :3.570  
+ Mean   :280.4   Mean   :0.004692   Mean   :98221   Mean   :3.409  
+ 3rd Qu.:287.0   3rd Qu.:0.004976   3rd Qu.:99147   3rd Qu.:4.058  
+ Max.   :304.7   Max.   :0.006422   Max.   :99484   Max.   :4.874  
+                                                                   
+     CO2.yr         tair.gs        precipf.gs       swdown.gs    
+ Min.   :272.2   Min.   :281.5   Min.   : 395.9   Min.   :200.4  
+ 1st Qu.:279.1   1st Qu.:287.6   1st Qu.: 862.3   1st Qu.:235.7  
+ Median :281.5   Median :288.6   Median :1005.2   Median :241.4  
+ Mean   :285.2   Mean   :288.5   Mean   :1028.7   Mean   :241.1  
+ 3rd Qu.:283.4   3rd Qu.:289.5   3rd Qu.:1172.2   3rd Qu.:246.8  
+ Max.   :389.7   Max.   :293.2   Max.   :2134.3   Max.   :270.1  
+                                                                 
+   lwdown.gs        qair.gs            psurf.gs        wind.gs     
+ Min.   :298.8   Min.   :0.005663   Min.   :96857   Min.   :1.640  
+ 1st Qu.:328.0   1st Qu.:0.007436   1st Qu.:97129   1st Qu.:2.311  
+ Median :332.1   Median :0.007845   Median :98251   Median :2.996  
+ Mean   :332.3   Mean   :0.007929   Mean   :98195   Mean   :2.846  
+ 3rd Qu.:336.5   3rd Qu.:0.008407   3rd Qu.:99182   3rd Qu.:3.459  
+ Max.   :355.7   Max.   :0.010713   Max.   :99571   Max.   :3.987  
+                                                                   
+     CO2.gs           CO2       
+ Min.   :272.2   Min.   :272.2  
+ 1st Qu.:279.1   1st Qu.:279.1  
+ Median :281.5   Median :281.5  
+ Mean   :285.2   Mean   :285.2  
+ 3rd Qu.:283.4   3rd Qu.:283.4  
+ Max.   :389.8   Max.   :389.7  
+                                
+> model.colors
+           Model          color           contact   Model.Order
+4     CLM4.5-BGC         green3           Yao Liu       CLM-BGC
+5      CLM4.5-CN  darkseagreen3           Yao Liu        CLM-CN
+1            ED2    dodgerblue4 Christy Rollinson           ED2
+2         ED2-LU   deepskyblue2 Christy Rollinson        ED2-LU
+9   JULES-STATIC    darkorange3    Tristan Quiafe  JULES-STATIC
+10 JULES-TRIFFID     goldenrod3    Tristan Quiafe JULES-TRIFFID
+8       LINKAGES   navajowhite4         Ann Raiho      LINKAGES
+6      LPJ-GUESS      deeppink2    Jorg Steinkamp     LPJ-GUESS
+7        LPJ-WSL      deeppink4       Ben Poulter       LPJ-WSL
+11       SiBCASA         salmon    Keven Schaefer       SiBCASA
+3         CLM4.5         green3           Yao Liu        CLM4.5
+12   CLM4.5-DGVM darkolivegreen           Yao Liu   CLM4.5-DGVM
+> 
+> # Scripts to run the gamms to predict a response variable as a function of Temp, Precip, & CO2.yr
+> # 	predict.gamm.model.site.R = function to run a single 1 site - m.name combo at a time (fit curves independently)
+> # 	predict.gamm.mode.R		= function to get overal m.name responses with random site effects 
+> # 	Note: these two functions were split because they now incorporate AR1 autocorrelation that can make the 
+> #		  overal m.name fitting with random site effects very slow
+> source('R/0_process.gamm.R', chdir = TRUE)
+> source('R/0_GAMM_Plots.R', chdir = TRUE)
+> 
+> 
+> # Read in model color scheme
+> model.colors
+           Model          color           contact   Model.Order
+4     CLM4.5-BGC         green3           Yao Liu       CLM-BGC
+5      CLM4.5-CN  darkseagreen3           Yao Liu        CLM-CN
+1            ED2    dodgerblue4 Christy Rollinson           ED2
+2         ED2-LU   deepskyblue2 Christy Rollinson        ED2-LU
+9   JULES-STATIC    darkorange3    Tristan Quiafe  JULES-STATIC
+10 JULES-TRIFFID     goldenrod3    Tristan Quiafe JULES-TRIFFID
+8       LINKAGES   navajowhite4         Ann Raiho      LINKAGES
+6      LPJ-GUESS      deeppink2    Jorg Steinkamp     LPJ-GUESS
+7        LPJ-WSL      deeppink4       Ben Poulter       LPJ-WSL
+11       SiBCASA         salmon    Keven Schaefer       SiBCASA
+3         CLM4.5         green3           Yao Liu        CLM4.5
+12   CLM4.5-DGVM darkolivegreen           Yao Liu   CLM4.5-DGVM
+> # ----------------------------------------
+> 
+> 
+> # # -----------------------
+> # # Some exploratory Graphing
+> # # -----------------------
+> # ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+>   # geom_line(aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.6) +
+>   # geom_line(aes(x=Year, y=AGB.100, color=Model.Order), size=1.5) +
+>   # scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+>   # ggtitle("Annual & Centennial AGB") +
+>   # theme_bw()
+> 
+> # # quantile(ecosys$AGB.diff, c(0.025, 0.33, 0.67, 0.975), na.rm=T)
+> # ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+>   # # geom_line(aes(x=Year, y=AGB.diff, color=Model.Order), size=1, alpha=0.6) +
+>   # geom_line(aes(x=Year, y=AGB.diff.100, color=Model.Order), size=1.5) +
+>   # scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+>   # scale_y_continuous(limits=quantile(ecosys$AGB.diff.100, c(0.025, 0.975), na.rm=T)) +
+>   # ggtitle("Annual & Centennial dAGB") +
+>   # theme_bw()
+> 
+> # ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+>   # geom_line(aes(x=Year, y=NPP, color=Model.Order), size=1, alpha=0.6) +
+>   # geom_line(aes(x=Year, y=NPP.100, color=Model.Order), size=1.5) +
+>   # scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+>   # # scale_y_continuous(limits=quantile(ecosys$NPP.100, c(0.025, 0.975), na.rm=T)) +
+>   # ggtitle("Annual & Centennial NPP") +
+>   # theme_bw()
+> # # -----------------------
+> 
+> # ----------------------------------------
+> 
+> 
+> 
+> # ------------------------
+> # MegaLoop -- Looping through all models by Variable, by Extent
+> # ------------------------
+> # Get rid of CLM-BGC because its actual drivers are messed up
+> ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
+> 
+> # -----------------
+> # Matrix of Models and Drivers
+> # -----------------
+> # Var    ED2  ED2-LU  CLM-BGC  CLM-CN  LPJ-WSL  LPJ-GUESS  JULES-STAT  JULES-TRIFFID  SIBCASA  LINKAGES
+> # tair.yr    X     X        X       X        X         X          X             X           X        X
+> # precipf.yr X     X        X       X        X         X          X             X           X        X
+> # swdown.yr  X     X        X       X        X         X          X             X           X
+> # lwdown.yr  X     X                         X                    X             X           X
+> # wind.yr    X     X        X       X                             X             X           X
+> # psurf.yr   X     X        X       X                             X             X           X
+> # qair.yr    X     X        X       X                             X             X           X
+> # CO2.yr     X     X        X       X        X         X          X             X           X
+> # Ndep                   ?       ?
+> 
+> # Setting up a loop for 1 m.name, 1 temporal scale
+> sites       <- unique(ecosys$Site)
+> model.name  <- unique(ecosys$Model)
+> model.order <- unique(ecosys$Model.Order)
+> resolutions <- c("t.001", "t.010", "t.050", "t.100")
+> response <- "NPP"
+> predictors.all <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
+> k=4
+> 	
+> for(m in 1:length(model.name)){
++ 	m.name  <- model.name[m]
++ 	m.order <- model.order[m]
++ 	print("-------------------------------------")
++ 	print("-------------------------------------")
++ 	print("-------------------------------------")
++ 	print(paste0("------ Processing Model: ", m.order, " ------"))
++ 
++ 	# if(m.name=="lpj.guess") resolutions = resolutions.all[1:3] else resolutions = resolutions.all
++ 	dat.mod  <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all)]
++ 
++ for(r in 1:length(resolutions)){ # Resolution loop
++ 	print(       "-------------------------------------")
++ 	print(paste0("------ Processing Resolution: ", resolutions[r], " ------"))
++ 
++     # -----------
++ 	# NOTE: To really get the resolution analysis right, we don't want running averages; we want
++ 	#    single values that are the mean of a given window
++     # -----------
++ 	# Figure out which years to take: 
++ 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
++ 	# Note: Make sure always rounding to a whole number so we don't end up with fractions of years
++ 	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
++ 	run.start <- 850
++ 	inc <- round(as.numeric(substr(resolutions[r],3,5)),0) # making sure we're always dealign with whole numbers
++ 	yrs <- seq(from=run.end-round(inc/2,0), to=run.start+round(inc/2,0), by=-inc)
++ 
++ 	dat.mod2 <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year")]
++ 
++ 	# Making a note of the extent & resolution
++ 	ext <- paste("850-2010")
++ 	dat.mod2$Extent <- as.factor(ext)
++ 	dat.mod2$Resolution <- as.factor(resolutions[r])
++ 
++ 	# Making place-holders for the response & predictors so the loop works correctly
++ 	dat.mod2[,c(response, predictors.all)] <- NA
++ 
++ 	# Calculating the mean for each wind.yrow for resolution
++ 	# Note: because we're now only analyzing single points rathern than the full running mean, 
++ 	#    we're now making the year in the middle of the resolution
++ 	if(inc>1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
++ 		for(s in sites){
++ 			for(y in yrs){
++ 				dat.mod2[dat.mod2$Site==s & dat.mod2$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Site==s & dat.mod$Year>=round(y-inc/2, 0) & dat.mod$Year<=round(y+inc/2,0), c(response, predictors.all)], 2, FUN=mean)
++ 			}
++ 		}
++ 	} else {
++ 		dat.mod2[,c(response, predictors.all)] <- dat.mod[,c(response, predictors.all)]
++ 	}
++ 
++ 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
++ 	dat.mod2 <- dat.mod2[complete.cases(dat.mod2[,response]),]
++ 
++ 
++ for(s in 1:length(sites)){
++ 	print(paste0("------ Processing Site: ", sites[s], " ------"))
++ 
++ 	data.temp <- dat.mod2[dat.mod2$Site==sites[s],]
++ 
++     # -----------
++ 	# Running the gamm; note this now has AR1 temporal autocorrelation
++ 	# -----------
++ 	# Running the gamm; note this now has AR1 temporal autocorrelation
++ 	# This is different from model.site.gam in that it has an added random site slope.
++ 	#	This random effect lets us gauge the overall model.name response to our fixed effects 
++ 	#   regardless of the site.  
++ 	#   Pros: Generalized and helps characterize the basic model responses
++ 	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
++ 
++ 	# Select which set of predictors based on which model it is
++ 	# Each of the models is having different stability issues
++ 	if(substr(m.name,1,2)=="ed"){
++ 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
++ 		# if(m.name=="ed2.lu" & sites[s]=="PHA" & (resolutions[r]=="t.001" | resolutions[r]=="t.100")){
++ 			# gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))		
++ 			# } else {
++ 			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
++ 		# }
++ 	}
++ 	if(substr(m.name,1,3)=="clm") {
++ 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
++     if(m.name=="clm.cn" & resolutions[r]=="t.100" & sites[s]=="PBL"){
++       gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(opt="optim"))      
++     } else {
++       gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
++     }
++ 	}
++ 	if(substr(m.name,1,3)=="lpj") {
++ 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "CO2.yr")
++ 		# # if(m.name == "lpj.wsl") {
++ 		# if(m.name == "lpj.wsl" & resolutions[r]=="t.050" & sites[s]=="PDL") {
++ 			# gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
++ 		# } else {
++ 			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
++ 		# }
++ 
++ 	}
++ 	if(substr(m.name,1,3)=="jul") {
++ 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
++ 		if(m.name=="jules.stat" & ((resolutions[r]=="t.010" & sites[s]=="PHO"))) {
++ 			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1))
++ 		} else {
++ 			gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
++ 		}
++ 	# , control=list(niterEM=0, sing.tol=1e-20, opt="optim")
++ 	}
++ 	if(substr(m.name,1,3)=="sib") {
++ 		predictors <- c("tair.yr", "precipf.yr", "swdown.yr", "lwdown.yr", "psurf.yr", "qair.yr", "wind.yr", "CO2.yr")
++ 		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k) + s(swdown.yr, k=k) + s(lwdown.yr, k=k) + s(qair.yr, k=k) + s(psurf.yr, k=k) + s(wind.yr, k=k) + s(CO2.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20, opt="optim"))
++ 	}
++ 	if(substr(m.name,1,3)=="lin") {
++ 		predictors <- c("tair.yr", "precipf.yr")
++ 		gam1 <- gamm(NPP ~ s(tair.yr, k=k) + s(precipf.yr, k=k), data=data.temp, correlation=corARMA(form=~Year, p=1), control=list(niterEM=0, sing.tol=1e-20))
++ 	}
++     print(summary(gam1$gam))		
++ 
++ 	# get rid of values for predictors not used in the models for clarity later on
++ 	data.temp[,predictors.all[!(predictors.all %in% predictors)]] <- NA
++ 
++ 	# Storing the predicted values from the gam
++ 	data.temp$fit.gam <- predict(gam1$gam, newdata=data.temp)
++ 
++ 	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, resolution=resolutions[r], response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
++ 	
++ 	if(r==1 & s==1) {
++ 		mod.out <- list()
++ 		mod.out$data         <- mod.temp$data
++ 		mod.out$weights      <- mod.temp$weights
++ 		mod.out$ci.response  <- mod.temp$ci.response
++ 		mod.out$sim.response <- mod.temp$sim.response
++ 		mod.out$ci.terms     <- mod.temp$ci.terms
++ 		mod.out$sim.terms    <- mod.temp$sim.terms
++ 		mod.out[[paste("gamm", ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
++ 	} else {
++ 		mod.out$data         <- rbind(mod.out$data,         mod.temp$data)
++ 		mod.out$weights      <- rbind(mod.out$weights,      mod.temp$weights)
++ 		mod.out$ci.response  <- rbind(mod.out$ci.response,  mod.temp$ci.response)
++ 		mod.out$sim.response <- rbind(mod.out$sim.response, mod.temp$sim.response)
++ 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     mod.temp$ci.terms)
++ 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    mod.temp$sim.terms)
++ 		mod.out[[paste("gamm", ext, substr(resolutions[r],3,nchar(paste(resolutions[r]))), sep=".")]] <- mod.temp$gamm
++ 	}
++ } # end sites
++ } # end resolutions
++ save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_", m.name,"_", response, ".Rdata")))
++ 
++ m.order <- unique(mod.out$data$Model.Order)
++ col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
++ 
++ pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_Yr_Site_", m.order, "_", response, ".pdf")))
++ print(
++ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
++  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
++ 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
++ 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
++ 	# scale_x_continuous(limits=c(850,2010)) +
++ 	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
++ 	# scale_fill_manual(values=col.model) +
++ 	# scale_color_manual(values=col.model) +		
++ 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
++ )
++ print(	
++ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
++  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
++ 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
++ 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
++ 	scale_x_continuous(limits=c(1850,2010)) +
++ 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
++ 	# scale_fill_manual(values=col.model) +
++ 	# scale_color_manual(values=col.model) +		
++ 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
++ )
++ dev.off()
++ 
++ 
++ pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_Yr_Site_", m.order, "_", response, ".pdf")))
++ for(p in predictors){
++ print(
++ ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Resolution, scales="free") + theme_bw() +		
++ 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
++ 	geom_line(aes(x=x, y=mean, color=Site), size=2) +
++ 	geom_hline(yintercept=0, linetype="dashed") +
++ 	# scale_color_manual(values=c("red2", "blue", "green3")) +
++ 	# scale_fill_manual(values=c("red2", "blue", "green3")) +
++ 	labs(title=paste0("Driver Effects: ", p, ": ", m.order), y=paste0(p, " Effect Size")) # +
++ )
++ }
++ dev.off()
++ 
++ } # end model
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "------ Processing Model: LINKAGES ------"
+[1] "-------------------------------------"
+[1] "------ Processing Resolution: t.001 ------"
+[1] "------ Processing Site: PBL ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)    52.04      14.11   3.688 0.000236 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 0.056   0.813
+s(precipf.yr)   1      1 0.014   0.905
+
+R-sq.(adj) =  -0.00195   
+  Scale est. = 586.87    n = 1161
+[1] "------ Processing Site: PDL ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   71.003      6.544   10.85   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 0.175   0.676
+s(precipf.yr)   1      1 0.002   0.967
+
+R-sq.(adj) =  -0.00161   
+  Scale est. = 219.25    n = 1161
+[1] "------ Processing Site: PHA ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  12.6045     0.5479      23   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 2.320   0.128
+s(precipf.yr)   1      1 1.154   0.283
+
+R-sq.(adj) =  -0.00119   
+  Scale est. = 2.1032    n = 1161
+[1] "------ Processing Site: PHO ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   8.5499     0.4134   20.68   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value  
+s(tair.yr)      1      1 5.760  0.0165 *
+s(precipf.yr)   1      1 2.098  0.1477  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.00101   
+  Scale est. = 1.1048    n = 1161
+[1] "------ Processing Site: PMB ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   14.587      2.524    5.78 9.59e-09 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 0.762   0.383
+s(precipf.yr)   1      1 0.396   0.530
+
+R-sq.(adj) =  -0.00182   
+  Scale est. = 25.195    n = 1161
+[1] "------ Processing Site: PUN ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   41.995      4.592   9.146   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 1.917   0.166
+s(precipf.yr)   1      1 0.001   0.971
+
+R-sq.(adj) =  -0.00161   
+  Scale est. = 54.007    n = 1161
+[1] "-------------------------------------"
+[1] "------ Processing Resolution: t.010 ------"
+[1] "------ Processing Site: PBL ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   66.630      1.199   55.57   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                edf Ref.df      F  p-value    
+s(tair.yr)    2.772  2.772 11.998 9.41e-07 ***
+s(precipf.yr) 1.000  1.000  8.018  0.00548 ** 
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.307   
+  Scale est. = 165.32    n = 116
+[1] "------ Processing Site: PDL ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   74.036      1.312   56.43   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value  
+s(tair.yr)      1      1 1.405  0.2384  
+s(precipf.yr)   1      1 4.783  0.0308 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.0354   
+  Scale est. = 197.96    n = 116
+[1] "------ Processing Site: PHA ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  12.4046     0.1141   108.7   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                edf Ref.df      F p-value    
+s(tair.yr)    2.704  2.704 11.369 2.6e-06 ***
+s(precipf.yr) 1.000  1.000  3.778  0.0544 .  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.216   
+  Scale est. = 1.4971    n = 116
+[1] "------ Processing Site: PHO ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  8.37449    0.08881   94.29   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value  
+s(tair.yr)      1      1 6.222   0.014 *
+s(precipf.yr)   1      1 1.110   0.294  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.0682   
+  Scale est. = 0.90712   n = 116
+[1] "------ Processing Site: PMB ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  13.1868     0.4498   29.32   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 0.703   0.404
+s(precipf.yr)   1      1 0.002   0.968
+
+R-sq.(adj) =  -0.0109   
+  Scale est. = 23.268    n = 116
+[1] "------ Processing Site: PUN ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  44.1774     0.7231    61.1   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value  
+s(tair.yr)      1      1 0.727  0.3955  
+s(precipf.yr)   1      1 3.116  0.0802 .
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.0107   
+  Scale est. = 60.128    n = 116
+[1] "-------------------------------------"
+[1] "------ Processing Resolution: t.050 ------"
+[1] "------ Processing Site: PBL ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   66.930      1.916   34.93   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value    
+s(tair.yr)      1      1  2.96 0.10059    
+s(precipf.yr)   1      1 18.64 0.00029 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.444   
+  Scale est. = 80.789    n = 23
+[1] "------ Processing Site: PDL ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   74.159      2.165   34.26   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value  
+s(tair.yr)      1      1 0.069  0.7952  
+s(precipf.yr)   1      1 4.713  0.0419 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.112   
+  Scale est. = 103.08    n = 23
+[1] "------ Processing Site: PHA ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  12.4022     0.1908   64.99   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                edf Ref.df     F p-value   
+s(tair.yr)    2.575  2.575 7.897 0.00125 **
+s(precipf.yr) 1.000  1.000 2.482 0.13193   
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.464   
+  Scale est. = 0.80118   n = 23
+[1] "------ Processing Site: PHO ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   8.3607     0.1557   53.68   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                edf Ref.df     F p-value  
+s(tair.yr)    1.462  1.462 1.932  0.3300  
+s(precipf.yr) 1.000  1.000 3.598  0.0725 .
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =   0.25   
+  Scale est. = 0.53366   n = 23
+[1] "------ Processing Site: PMB ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  13.1465     0.8466   15.53 1.27e-12 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 0.206   0.655
+s(precipf.yr)   1      1 0.000   0.991
+
+R-sq.(adj) =  -0.0875   
+  Scale est. = 15.768    n = 23
+[1] "------ Processing Site: PUN ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   44.230      1.449   30.52   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value  
+s(tair.yr)      1      1 2.111  0.1616  
+s(precipf.yr)   1      1 3.369  0.0811 .
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.057   
+  Scale est. = 46.215    n = 23
+[1] "-------------------------------------"
+[1] "------ Processing Resolution: t.100 ------"
+[1] "------ Processing Site: PBL ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   66.968      2.312   28.96 2.19e-09 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value  
+s(tair.yr)      1      1 1.562  0.2465  
+s(precipf.yr)   1      1 9.438  0.0148 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =   0.36   
+  Scale est. = 53.465    n = 11
+[1] "------ Processing Site: PDL ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   73.507      2.085   35.26 4.58e-10 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value  
+s(tair.yr)      1      1 0.150  0.7084  
+s(precipf.yr)   1      1 7.789  0.0231 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.301   
+  Scale est. = 43.453    n = 11
+[1] "------ Processing Site: PHA ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  12.4191     0.1481   83.88 1.12e-09 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                edf Ref.df      F p-value   
+s(tair.yr)    2.738  2.738 20.335 0.00594 **
+s(precipf.yr) 1.820  1.820  1.751 0.28020   
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.793   
+  Scale est. = 0.21921   n = 11
+[1] "------ Processing Site: PHO ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   8.2873     0.1107   74.86 1.13e-12 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df      F  p-value    
+s(tair.yr)      1      1  1.106 0.323517    
+s(precipf.yr)   1      1 25.647 0.000721 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.713   
+  Scale est. = 0.12257   n = 11
+[1] "------ Processing Site: PMB ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   12.943      1.015   12.76 1.34e-06 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 0.016   0.903
+s(precipf.yr)   1      1 0.009   0.926
+
+R-sq.(adj) =  -0.248   
+  Scale est. = 10.293    n = 11
+[1] "------ Processing Site: PUN ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair.yr, k = k) + s(precipf.yr, k = k)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)   44.362      2.032   21.83 2.04e-08 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+              edf Ref.df     F p-value
+s(tair.yr)      1      1 0.966   0.354
+s(precipf.yr)   1      1 1.215   0.302
+
+R-sq.(adj) =  -0.0973   
+  Scale est. = 41.282    n = 11
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "------ Processing Model: JULES-STATIC ------"
+[1] "-------------------------------------"
+[1] "------ Processing Resolution: t.001 ------"
+[1] "------ Processing Site: PBL ------"
+Error in `coef<-.corARMA`(`*tmp*`, value = value[parMap[, i]]) : 
+  Coefficient matrix not invertible
+Calls: gamm ... coef<- -> coef<-.modelStruct -> coef<- -> coef<-.corARMA
+In addition: There were 50 or more warnings (use warnings() to see the first 50)
+Execution halted

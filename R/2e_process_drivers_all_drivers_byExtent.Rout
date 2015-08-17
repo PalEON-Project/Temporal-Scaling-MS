@@ -1,0 +1,498 @@
+
+R version 3.2.0 (2015-04-16) -- "Full of Ingredients"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # ----------------------------------------
+> # Temporal Scaling Analyses
+> # Non-constant driver effects through time
+> # Christy Rollinson, crollinson@gmail.com
+> # Date Created: 10 July 2015
+> # ----------------------------------------
+> # -------------------------
+> # Objectives & Overview
+> # -------------------------
+> # Driving Questions: What is the relative control of different drivers within each model?
+> # Rationale: Not all models use all inputs, and many drivers are correlated, so we need to see if the temperature pattern is really a radiation pattern, etc. 
+> # -------------------------
+> #
+> # -------------------------
+> # Data/Results Generation:
+> # -------------------------
+> # (Fit GAMM per site per m.name)
+> # 1) Temporal Grain (Resolution)
+> #    -- Fit GAMM over constant window with different degrees of smoothing (1 yr - 250 yr)
+> # -------------------------
+> #
+> # -------------------------
+> # Interpretation Analyses:
+> # -------------------------
+> # 1) Space-Time Comparison
+> #    -- Hypothesis: Driver responses across sites within a m.name converge at coarser temporal grains 
+> #       and larger extents because the models have time to adjust and seek equilibrium.
+> #
+> #    -- Analysis: Use the posterior CIs for each smoothing term to see if the driver curves for sites
+> #                 within a m.name are statstically different at different sites at different scales (or 
+> #                 alternatively if there are statistical differences in [parts of] the curves between
+> #                 scales)
+> #
+> #
+> # 2) Multi-Model Driver Comparison
+> #    -- Hypothesis: Because models were built & parameterized to perform well in the modern era, there 
+> #       will be greater agreement of the direction & primary driver of change in the more recent time 
+> #       periods than over the full extent of the PalEON runs.
+> #    -- Hypothesis about temporal grain?
+> #
+> #    -- Analysis: For each given scale, compare the m.name response curves for each driver.  Determine 
+> #                 which drivers are most similar/variable among models and at what scales?  Are there
+> #                 particular ranges of each driver response where models responses are most similar/different?
+> # -------------------------
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Load Libaries
+> # ----------------------------------------
+> # library(ncdf4)
+> library(mgcv)
+Loading required package: nlme
+This is mgcv 1.8-6. For overview type 'help("mgcv-package")'.
+> library(ggplot2); library(grid)
+> library(car)
+> # library(zoo)
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Define constants
+> # ----------------------------------------
+> sec2yr <- 1*60*60*24*365
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Set Directories
+> # ----------------------------------------
+> # setwd("~/Desktop/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+> setwd("..")
+> dat.base="Data/gamms_byModel"
+> fig.base="Figures/gamms_byModel"
+> 
+> # Making sure the appropriate file paths exist
+> if(!dir.exists(dat.base)) dir.create(dat.base)
+> if(!dir.exists(fig.base)) dir.create(fig.base)
+> # ----------------------------------------
+> 
+> 
+> # ----------------------------------------
+> # Load data files & function scripts
+> # ----------------------------------------
+> # Ecosys file = organized, post-processed m.name outputs
+> #	generated with 1_generate_ecosys.R
+> load(file.path("Data", "EcosysData.Rdata"))
+> 
+> # Scripts to run the gamms to predict a response variable as a function of Temp, Precip, & CO2
+> # 	predict.gamm.model.site.R = function to run a single 1 site - m.name combo at a time (fit curves independently)
+> # 	predict.gamm.mode.R		= function to get overal m.name responses with random site effects 
+> # 	Note: these two functions were split because they now incorporate AR1 autocorrelation that can make the 
+> #		  overal m.name fitting with random site effects very slow
+> source('R/0_process.gamm.R', chdir = TRUE)
+> source('R/0_GAMM_Plots.R', chdir = TRUE)
+> 
+> 
+> # Read in model color scheme
+> # model.colors <- read.csv("raw_inputs/Model.Colors.csv")
+> model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
+> levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+> model.colors
+           Model          color           contact   Model.Order
+4     CLM4.5-BGC         green3           Yao Liu       CLM-BGC
+5      CLM4.5-CN  darkseagreen3           Yao Liu        CLM-CN
+1            ED2    dodgerblue4 Christy Rollinson           ED2
+2         ED2-LU   deepskyblue2 Christy Rollinson        ED2-LU
+9   JULES-STATIC    darkorange3    Tristan Quiafe  JULES-STATIC
+10 JULES-TRIFFID     goldenrod3    Tristan Quiafe JULES-TRIFFID
+8       LINKAGES   navajowhite4         Ann Raiho      LINKAGES
+6      LPJ-GUESS      deeppink2    Jorg Steinkamp     LPJ-GUESS
+7        LPJ-WSL      deeppink4       Ben Poulter       LPJ-WSL
+11       SiBCASA         salmon    Keven Schaefer       SiBCASA
+3         CLM4.5         green3           Yao Liu        CLM4.5
+12   CLM4.5-DGVM darkolivegreen           Yao Liu   CLM4.5-DGVM
+> # ----------------------------------------
+> 
+> 
+> # # -----------------------
+> # # Some exploratory Graphing
+> # # -----------------------
+> # ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+>   # geom_line(aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.6) +
+>   # geom_line(aes(x=Year, y=AGB.100, color=Model.Order), size=1.5) +
+>   # scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+>   # ggtitle("Annual & Centennial AGB") +
+>   # theme_bw()
+> 
+> # # quantile(ecosys$AGB.diff, c(0.025, 0.33, 0.67, 0.975), na.rm=T)
+> # ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+>   # # geom_line(aes(x=Year, y=AGB.diff, color=Model.Order), size=1, alpha=0.6) +
+>   # geom_line(aes(x=Year, y=AGB.diff.100, color=Model.Order), size=1.5) +
+>   # scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+>   # scale_y_continuous(limits=quantile(ecosys$AGB.diff.100, c(0.025, 0.975), na.rm=T)) +
+>   # ggtitle("Annual & Centennial dAGB") +
+>   # theme_bw()
+> 
+> # ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+>   # geom_line(aes(x=Year, y=NPP, color=Model.Order), size=1, alpha=0.6) +
+>   # geom_line(aes(x=Year, y=NPP.100, color=Model.Order), size=1.5) +
+>   # scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+>   # # scale_y_continuous(limits=quantile(ecosys$NPP.100, c(0.025, 0.975), na.rm=T)) +
+>   # ggtitle("Annual & Centennial NPP") +
+>   # theme_bw()
+> # # -----------------------
+> 
+> # ----------------------------------------
+> 
+> 
+> # ----------------------------------------
+> # Model approach: AGB ~ 3 non-interactive temporal smoothers: AGB, Temp, Precip
+> # ----------------------------------------
+> # ------------------------------------------------
+> # All Sites: (for 1 site, see m.name selection script)
+> # ------------------------------------------------
+> 
+> # ------------------------
+> # MegaLoop -- Looping through all models by Variable, by Extent
+> # ------------------------
+> # Just going to run this at the annual resolution
+> ecosys <- ecosys[ecosys$Scale=="t.001" & !ecosys$Model=="clm.bgc",]
+> summary(ecosys)
+      Year                Model        Site            GPP        
+ Min.   : 850   clm.cn       : 6966   PBL:10449   Min.   : 0.544  
+ 1st Qu.:1140   ed2          : 6966   PDL:10449   1st Qu.: 6.238  
+ Median :1430   ed2.lu       : 6966   PHA:10449   Median :10.106  
+ Mean   :1430   jules.stat   : 6966   PHO:10449   Mean   :13.051  
+ 3rd Qu.:1720   jules.triffid: 6966   PMB:10449   3rd Qu.:16.563  
+ Max.   :2010   linkages     : 6966   PUN:10449   Max.   :39.704  
+                (Other)      :20898               NA's   :6978    
+      AGB              LAI                 NPP               NEE            
+ Min.   :  0.00   Min.   :0.000e+00   Min.   : -1.387   Min.   :-3.000e+01  
+ 1st Qu.: 30.57   1st Qu.:2.000e+00   1st Qu.:  2.864   1st Qu.: 0.000e+00  
+ Median : 61.76   Median :5.000e+00   Median :  5.167   Median : 0.000e+00  
+ Mean   : 86.54   Mean   :5.484e+35   Mean   :  9.244   Mean   : 1.550e+44  
+ 3rd Qu.:135.98   3rd Qu.:8.000e+00   3rd Qu.: 10.014   3rd Qu.: 2.000e+00  
+ Max.   :392.17   Max.   :9.969e+36   Max.   :116.977   Max.   : 3.146e+45  
+ NA's   :12       NA's   :6633        NA's   :12        NA's   :10          
+    AutoResp        HeteroResp         SoilCarb           SoilMoist     
+ Min.   : 0.628   Min.   :-0.2708   Min.   :   0.1313   Min.   : 3.861  
+ 1st Qu.: 3.299   1st Qu.: 3.0171   1st Qu.:  51.7958   1st Qu.:16.959  
+ Median : 5.176   Median : 4.9118   Median : 103.1821   Median :27.817  
+ Mean   : 7.203   Mean   : 9.4732   Mean   : 403.5556   Mean   :31.269  
+ 3rd Qu.: 9.748   3rd Qu.:11.4617   3rd Qu.: 758.4459   3rd Qu.:41.264  
+ Max.   :24.857   Max.   :82.2347   Max.   :2088.6595   Max.   :87.184  
+ NA's   :6978     NA's   :12        NA's   :12          NA's   :6978    
+      Evap                 tair          precipf           swdown     
+ Min.   :      -539   Min.   :269.8   Min.   : 210.3   Min.   :122.0  
+ 1st Qu.:       109   1st Qu.:276.4   1st Qu.: 581.7   1st Qu.:144.3  
+ Median :       194   Median :277.4   Median : 710.3   Median :165.1  
+ Mean   : 129800984   Mean   :277.6   Mean   : 766.1   Mean   :159.3  
+ 3rd Qu.:       418   3rd Qu.:278.9   3rd Qu.: 952.0   3rd Qu.:170.3  
+ Max.   :1603007238   Max.   :283.6   Max.   :1554.3   Max.   :193.1  
+ NA's   :12           NA's   :12      NA's   :12       NA's   :6978   
+     lwdown           wind           psurf            qair       Updated    
+ Min.   :237.2   Min.   :1.898   Min.   :96896   Min.   :0.003   Yes:62694  
+ 1st Qu.:272.3   1st Qu.:2.882   1st Qu.:97196   1st Qu.:0.004              
+ Median :277.7   Median :3.557   Median :98263   Median :0.005              
+ Mean   :278.9   Mean   :3.379   Mean   :98221   Mean   :0.005              
+ 3rd Qu.:285.9   3rd Qu.:4.051   3rd Qu.:99147   3rd Qu.:0.005              
+ Max.   :304.7   Max.   :4.874   Max.   :99484   Max.   :0.007              
+ NA's   :13944   NA's   :20910   NA's   :20910   NA's   :20910              
+        Model.Order         CO2           AGB.diff            GPP.dev      
+ CLM-CN       : 6966   Min.   :272.2   Min.   :-47.01561   Min.   :-0.697  
+ ED2          : 6966   1st Qu.:279.1   1st Qu.: -0.12851   1st Qu.:-0.028  
+ ED2-LU       : 6966   Median :281.5   Median :  0.00000   Median : 0.063  
+ JULES-STATIC : 6966   Mean   :285.2   Mean   :  0.02107   Mean   : 0.165  
+ JULES-TRIFFID: 6966   3rd Qu.:283.4   3rd Qu.:  0.34574   3rd Qu.: 0.239  
+ LINKAGES     : 6966   Max.   :389.8   Max.   :186.77210   Max.   : 4.092  
+ (Other)      :20898                   NA's   :66          NA's   :6978    
+    AGB.dev          LAI.dev              NPP.dev            NEE.dev          
+ Min.   :-0.960   Min.   :-1.000e+00   Min.   :-6.84829   Min.   :-5.678e+46  
+ 1st Qu.:-0.026   1st Qu.: 0.000e+00   1st Qu.:-0.07249   1st Qu.:-2.000e+00  
+ Median : 0.136   Median : 0.000e+00   Median : 0.05706   Median : 0.000e+00  
+ Mean   : 0.387   Mean   : 1.775e+35   Mean   : 0.11264   Mean   : 2.286e+44  
+ 3rd Qu.: 0.608   3rd Qu.: 0.000e+00   3rd Qu.: 0.26670   3rd Qu.: 1.000e+00  
+ Max.   : 6.385   Max.   : 8.230e+36   Max.   : 6.57022   Max.   : 1.208e+47  
+ NA's   :6972     NA's   :6976         NA's   :12         NA's   :10          
+  AutoResp.dev    HeteroResp.dev      SoilCarb.dev       SoilMoist.dev   
+ Min.   :-0.588   Min.   :-2.64500   Min.   :-0.701756   Min.   :-0.676  
+ 1st Qu.:-0.033   1st Qu.:-0.05697   1st Qu.:-0.125059   1st Qu.:-0.024  
+ Median : 0.055   Median : 0.04934   Median :-0.022884   Median : 0.052  
+ Mean   : 0.121   Mean   : 0.16416   Mean   :-0.031001   Mean   : 0.108  
+ 3rd Qu.: 0.216   3rd Qu.: 0.21569   3rd Qu.: 0.005554   3rd Qu.: 0.163  
+ Max.   : 2.838   Max.   : 6.69960   Max.   : 2.515207   Max.   : 3.901  
+ NA's   :6978     NA's   :12         NA's   :12          NA's   :6978    
+    Evap.dev           tair.dev          precipf.dev         swdown.dev    
+ Min.   :-0.96922   Min.   :-0.026573   Min.   :-0.48779   Min.   :-0.156  
+ 1st Qu.:-0.13113   1st Qu.:-0.004261   1st Qu.:-0.04866   1st Qu.:-0.022  
+ Median :-0.01354   Median :-0.001773   Median : 0.04174   Median :-0.006  
+ Mean   :-0.02059   Mean   :-0.002020   Mean   : 0.05248   Mean   :-0.007  
+ 3rd Qu.: 0.07580   3rd Qu.: 0.000437   3rd Qu.: 0.14233   3rd Qu.: 0.010  
+ Max.   : 2.89617   Max.   : 0.014382   Max.   : 1.02331   Max.   : 0.095  
+ NA's   :12         NA's   :12          NA's   :12         NA's   :6978    
+   lwdown.dev        wind.dev        psurf.dev         qair.dev     
+ Min.   :-0.110   Min.   :-0.466   Min.   :-0.003   Min.   :-0.273  
+ 1st Qu.:-0.013   1st Qu.:-0.194   1st Qu.: 0.000   1st Qu.:-0.019  
+ Median :-0.004   Median :-0.073   Median : 0.000   Median : 0.014  
+ Mean   :-0.004   Mean   :-0.131   Mean   : 0.000   Mean   : 0.017  
+ 3rd Qu.: 0.006   3rd Qu.:-0.051   3rd Qu.: 0.001   3rd Qu.: 0.048  
+ Max.   : 0.062   Max.   : 0.321   Max.   : 0.003   Max.   : 0.327  
+ NA's   :13944    NA's   :20910    NA's   :20910    NA's   :20910   
+    CO2.dev            tair.abs.dev     precipf.abs.dev   swdown.abs.dev   
+ Min.   :-0.0251514   Min.   :-7.3656   Min.   :-301.69   Min.   :-27.671  
+ 1st Qu.:-0.0005098   1st Qu.:-1.1849   1st Qu.: -34.41   1st Qu.: -3.579  
+ Median : 0.0078795   Median :-0.4933   Median :  29.01   Median : -0.986  
+ Mean   : 0.0211432   Mean   :-0.5615   Mean   :  33.19   Mean   : -1.101  
+ 3rd Qu.: 0.0149463   3rd Qu.: 0.1214   3rd Qu.:  96.59   3rd Qu.:  1.521  
+ Max.   : 0.3957425   Max.   : 4.0146   Max.   : 665.28   Max.   : 16.660  
+                      NA's   :12        NA's   :12        NA's   :6978     
+ lwdown.abs.dev     wind.abs.dev    psurf.abs.dev       qair.abs.dev   
+ Min.   :-29.175   Min.   :-1.659   Min.   :-299.528   Min.   :-0.001  
+ 1st Qu.: -3.689   1st Qu.:-0.720   1st Qu.: -48.242   1st Qu.: 0.000  
+ Median : -0.985   Median :-0.340   Median :   5.699   Median : 0.000  
+ Mean   : -1.027   Mean   :-0.491   Mean   :   2.592   Mean   : 0.000  
+ 3rd Qu.:  1.797   3rd Qu.:-0.219   3rd Qu.:  56.189   3rd Qu.: 0.000  
+ Max.   : 17.447   Max.   : 0.926   Max.   : 271.058   Max.   : 0.001  
+ NA's   :13944     NA's   :20910    NA's   :20910      NA's   :20910   
+  CO2.abs.dev         Scale      
+ Min.   : -7.0239   t.001:62694  
+ 1st Qu.: -0.1424   t.010:    0  
+ Median :  2.2005   t.050:    0  
+ Mean   :  5.9045   t.100:    0  
+ 3rd Qu.:  4.1740   t.250:    0  
+ Max.   :110.5165                
+                                 
+> 
+> # Setting up a loop for 1 m.name, 1 temporal scale
+> sites       <- unique(ecosys$Site)
+> model.name  <- unique(ecosys$Model)
+> model.order <- unique(ecosys$Model.Order)
+> scales      <- unique(ecosys$Scale)
+> 
+> # -----------------
+> # Matrix of Models and Drivers
+> # -----------------
+> # Var    ED2  ED2-LU  CLM-BGC  CLM-CN  LPJ-WSL  LPJ-GUESS  JULES-STAT  JULES-TRIFFID  SIBCASA  LINKAGES
+> # tair    X     X        X       X        X         X          X             X           X        X
+> # precip  X     X        X       X        X         X          X             X           X        X
+> # swdown  X     X        X       X        X         X          X             X           X
+> # lwdown  X     X                         X                    X             X           X
+> # wind    X     X        X       X                             X             X           X
+> # psurf   X     X        X       X                             X             X           X
+> # qair    X     X        X       X                             X             X           X
+> # co2     X     X        X       X        X         X          X             X           X
+> # Ndep                   ?       ?
+> 
+> k=4
+> response <- "NPP"
+> predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+> extents <- data.frame(Start=c(850, 1900, 1990), End=c(2010, 2010, 2010)) 
+> t.res <- unique(ecosys$Scale) # temporal resolution
+> 	
+> for(m in 6:length(model.name)){
++ 	print("-------------------------------------")
++ 	print("-------------------------------------")
++ 	print("-------------------------------------")
++ 	print(paste0("------ Processing Model: ", model.order[m], " ------"))
++ 	m.name  <- model.name[m]
++ 	m.order <- model.order[m]
++ 
++ 	# Make sure folders for each model exist
++ 	if(!dir.exists(file.path(dat.base, m.order))) dir.create(file.path(dat.base, m.order))
++ 	if(!dir.exists(file.path(fig.base, m.order))) dir.create(file.path(fig.base, m.order))
++ 
++ 	fig.dir <- file.path(fig.base, m.order, "AllDrivers_byExtent")
++ 	dat.dir <- file.path(dat.base, m.order, "AllDrivers_byExtent")
++ 
++ 	# Make sure the appropriate file paths are in place
++ 	if(!dir.exists(dat.dir)) dir.create(dat.dir)
++ 	if(!dir.exists(fig.dir)) dir.create(fig.dir)
++ 
++ for(t in 1:nrow(extents)){
++ 	print(       "-------------------------------------")
++ 	print(paste0("------ Processing Extent: ", extents[t,1], " - ", extents[t,2], " ------"))
++ 
++ 
++ 	extent <- as.numeric(extents[t,])
++ 	data.temp <- ecosys[ecosys$Model==m.name & ecosys$Year>=extent[1] & ecosys$Year<=extent[2], c("Model", "Updated", "Model.Order", "Site", "Year", "Scale", response, predictors.all)]
++ 	# Making a note of the extent
++ 	ext <- as.factor(paste(min(data.temp$Year), max(data.temp$Year), sep="-"))
++ 	data.temp$Extent <- as.factor(ext)
++ 
++ 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
++ 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
++ 
++     # -----------
++ 	# Running the gamm; note this now has AR1 temporal autocorrelation
++ 	# -----------
++ 	# Running the gamm; note this now has AR1 temporal autocorrelation
++ 	# This is different from model.site.gam in that it has an added random site slope.
++ 	#	This random effect lets us gauge the overall model.name response to our fixed effects 
++ 	#   regardless of the site.  
++ 	#   Pros: Generalized and helps characterize the basic model responses
++ 	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
++ 
++ 	# Select which set of predictors based on which model it is
++ 	# Each of the models is having different stability issues
++ 	if(substr(m.name,1,2)=="ed"){
++ 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
++ 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
++ 	}
++ 	if(substr(m.name,1,3)=="clm") {
++ 		# Note: CLM-BGC was being weird & wouldn't work, but it's one Yao is supposed to redo
++ 		predictors <- c("tair", "precipf", "swdown", "psurf", "qair", "wind", "CO2")
++ 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
++ 		#, control=list(niterEM=0, sing.tol=1e-20, sing.tol=1e-20)
++ 	}
++ 	if(substr(m.name,1,3)=="lpj") {
++ 		predictors <- c("tair", "precipf", "swdown", "CO2")
++ 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
++ 	}
++ 	if(substr(m.name,1,3)=="jul") {
++ 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
++ 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
++ 	}
++ 	if(substr(m.name,1,3)=="sib") {
++ 		predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
++ 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
++ 	}
++ 	if(substr(m.name,1,3)=="lin") {
++ 		predictors <- c("tair", "precipf")
++ 		gam1 <- gamm(NPP ~ s(tair, k=k) + s(precipf, k=k) + Site -1, random=list(Site=~Site), data=data.temp, correlation=corARMA(form=~Year, p=1))
++ 	}
++     print(summary(gam1$gam))	
++ 
++ 	# Storing the predicted values from the gam
++ 	data.temp$fit.gam <- predict(gam1$gam, newdata=data.temp)
++ 
++ 	mod.temp <- process.gamm(gamm.model=gam1, data=data.temp, model.name=m.name, extent=ext, scale=t.res, response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
++ 	
++ 	if(t==1) {
++ 		mod.out <- list()
++ 		mod.out$data         <- mod.temp$data
++ 		mod.out$weights      <- mod.temp$weights
++ 		mod.out$ci.response  <- mod.temp$ci.response
++ 		mod.out$sim.response <- mod.temp$sim.response
++ 		mod.out$ci.terms     <- mod.temp$ci.terms
++ 		mod.out$sim.terms    <- mod.temp$sim.terms
++ 		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
++ 	} else {
++ 		mod.out$data         <- rbind(mod.out$data,         mod.temp$data)
++ 		mod.out$weights      <- rbind(mod.out$weights,      mod.temp$weights)
++ 		mod.out$ci.response  <- rbind(mod.out$ci.response,  mod.temp$ci.response)
++ 		mod.out$sim.response <- rbind(mod.out$sim.response, mod.temp$sim.response)
++ 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     mod.temp$ci.terms)
++ 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    mod.temp$sim.terms)
++ 		mod.out[[paste("gamm", ext, substr(scales[t],3,nchar(paste(scales[t]))), sep=".")]] <- mod.temp$gamm
++ 	}
++ 	
++ } # end scales
++ save(mod.out, file=file.path(dat.dir, paste("gamm", m.name, response, "Rdata", sep=".")))
++ 
++ m.order <- unique(mod.out$data$Model.Order)
++ col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
++ 
++ pdf(file.path(fig.dir, paste0("GAMM_ResponsePrediction_AllDrivers_", m.order, "_", response, "_0850-2010", ".pdf")))
++ print(
++ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
++  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
++ 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
++ 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
++ 	# scale_x_continuous(limits=c(850,2010)) +
++ 	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
++ 	# scale_fill_manual(values=col.model) +
++ 	# scale_color_manual(values=col.model) +		
++ 	labs(title=paste(m.order, response, sep=", "), x="Year", y=response)
++ )
++ print(	
++ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Extent, scales="free") + theme_bw() +
++  	geom_line(data= mod.out$data[,], aes(x=Year, y=NPP), alpha=0.5) +
++ 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
++ 	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
++ 	scale_x_continuous(limits=c(1990,2010)) +
++ 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
++ 	# scale_fill_manual(values=col.model) +
++ 	# scale_color_manual(values=col.model) +		
++ 	labs(title=paste(m.order, response, "1990 - 2010", sep=", "), x="Year", y=response)
++ )
++ dev.off()
++ 
++ 
++ 
++ pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_", m.order, "_", response, ".pdf")))
++ print(
++ ggplot(data=mod.out$ci.terms[,]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
++ 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
++ 	geom_line(aes(x=x, y=mean, color= Extent), size=2) +
++ 	geom_hline(yintercept=0, linetype="dashed") +
++ 	# scale_color_manual(values=c("red2", "blue", "green3")) +
++ 	# scale_fill_manual(values=c("red2", "blue", "green3")) +
++ 	labs(title=paste0("Driver Effects: ",m.order), y="Effect Size") # +
++ )
++ dev.off()
++ 
++ } # end model
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "------ Processing Model: SiBCASA ------"
+[1] "-------------------------------------"
+[1] "------ Processing Extent: 850 - 2010 ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair, k = k) + s(precipf, k = k) + s(swdown, k = k) + 
+    s(lwdown, k = k) + s(qair, k = k) + s(psurf, k = k) + s(wind, 
+    k = k) + s(CO2, k = k) + Site - 1
+
+Parametric coefficients:
+        Estimate Std. Error t value Pr(>|t|)    
+SitePBL  5.24058    0.05689   92.11   <2e-16 ***
+SitePDL  4.74228    0.06064   78.21   <2e-16 ***
+SitePHA  7.19549    0.05635  127.69   <2e-16 ***
+SitePHO  5.85608    0.05196  112.70   <2e-16 ***
+SitePMB  3.69517    0.03578  103.28   <2e-16 ***
+SitePUN  5.41349    0.02581  209.71   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+             edf Ref.df       F  p-value    
+s(tair)    2.903  2.903  37.970  < 2e-16 ***
+s(precipf) 2.992  2.992 398.386  < 2e-16 ***
+s(swdown)  2.807  2.807  13.092 6.87e-08 ***
+s(lwdown)  2.964  2.964  69.286  < 2e-16 ***
+s(qair)    2.964  2.964 170.477  < 2e-16 ***
+s(psurf)   2.033  2.033   5.658  0.00337 ** 
+s(wind)    1.000  1.000   6.194  0.01284 *  
+s(CO2)     2.831  2.831 449.246  < 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.947   
+  Scale est. = 0.0818    n = 6966
+[1] "-------------------------------------"
+[1] "------ Processing Extent: 1900 - 2010 ------"
+Error in lme.formula(y ~ X - 1, random = rand, data = strip.offset(mf),  : 
+  nlminb problem, convergence error code = 1
+  message = iteration limit reached without convergence (10)
+Calls: gamm -> eval -> eval -> lme -> lme.formula
+Execution halted

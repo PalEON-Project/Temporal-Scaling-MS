@@ -1,0 +1,599 @@
+
+R version 3.2.0 (2015-04-16) -- "Full of Ingredients"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # ----------------------------------------
+> # Temporal Scaling Analyses
+> # Changes in Strength of Interactions with Temporal Scale
+> # Christy Rollinson, crollinson@gmail.com
+> # Date Created: 7 May 2015
+> # ----------------------------------------
+> # -------------------------
+> # Objectives & Overview
+> # -------------------------
+> # Driving Questions: How important are interactions between Temp, Precip, & CO2 and how do they 
+> #                    vary with temporal scale?
+> # Rationale: The GAMMs get us non-linear response functions that allow temoral variation in what's driving
+> #			 patterns in models. However, getting driver interactions in these models is difficult at best.
+> # -------------------------
+> #
+> # -------------------------
+> # Data/Results Generation:
+> # -------------------------
+> # (Fit Bayesian Linear Mixed Model per model)
+> # 1) Temporal Grain (Resolution)
+> #    -- Fit LMM over constant window with different degrees of smoothing (1 yr - 250 yr)
+> # 2) Temporal Extent 
+> #	 -- Fit LMM to different windows (30 yrs 1990-2010, 100 yrs 1910-2010, full window)
+> # ** Response variables of interest: NPP, possibly dAGB (AGB 1st difference)
+> # -------------------------
+> #
+> # -------------------------
+> # Interpretation Analyses:
+> # -------------------------
+> # 1) Multi-Model Scale Comparison
+> #    -- Hypothesis: Interactions among drivers stronger at very fine resolutions (sub-annual, which we can't test)
+> #                   and large resolutions where combination of factors determines a relative equilibrium point.  
+> #                   At finer & intermediate grains, the interannual variability is too great for the interactions
+> #                   to be clear.
+> #
+> #    -- Analysis: Run mixed-model anova on posterior distributions of interaction coefficients to determine if 
+> #                 there are statstically significant trends in temporal scale and differences among levels of
+> #                 interactions (i.e. 3-way interaction shows stronger shifts than 2-way, etc)
+> # -------------------------
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Load Libaries
+> # ----------------------------------------
+> library(ncdf4)
+> library(lme4)
+Loading required package: Matrix
+> library(R2jags)
+Loading required package: rjags
+Loading required package: coda
+Linked to JAGS 3.4.0
+Loaded modules: basemod,bugs
+
+Attaching package: 'R2jags'
+
+The following object is masked from 'package:coda':
+
+    traceplot
+
+> library(ggplot2); library(grid)
+> library(car)
+> library(zoo)
+
+Attaching package: 'zoo'
+
+The following objects are masked from 'package:base':
+
+    as.Date, as.Date.numeric
+
+> # library(mvtnorm)
+> # library(MCMCpack)
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Set Directories
+> # ----------------------------------------
+> # setwd("~/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+> setwd("..")
+> path.data <- "Data"
+> fig.dir <- "Figures"
+> 
+> # Making sure the appropriate file paths exist
+> if(!dir.exists(path.data)) dir.create(path.data)
+> if(!dir.exists(fig.dir)) dir.create(fig.dir)
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Load data files & function scripts
+> # ----------------------------------------
+> # Ecosys file = organized, post-processed model outputs
+> #	generated with 1_generate_ecosys.R
+> load(file.path(path.data, "EcosysData.Rdata"))
+> 
+> # Read in model color scheme
+> model.colors <- read.csv("raw_inputs/Model.Colors.csv")
+> model.colors $Model.Order <- recode(model.colors$Model, "'CLM4.5-BGC'='01'; 'CLM4.5-CN'='02'; 'ED2'='03'; 'ED2-LU'='04';  'JULES-STATIC'='05'; 'JULES-TRIFFID'='06'; 'LINKAGES'='07'; 'LPJ-GUESS'='08'; 'LPJ-WSL'='09'; 'SiBCASA'='10'")
+> levels(model.colors$Model.Order)[1:10] <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+> model.colors
+           Model          color           contact   Model.Order
+1            ED2    dodgerblue4 Christy Rollinson           ED2
+2         ED2-LU   deepskyblue2 Christy Rollinson        ED2-LU
+3         CLM4.5         green3           Yao Liu        CLM4.5
+4     CLM4.5-BGC         green3           Yao Liu       CLM-BGC
+5      CLM4.5-CN  darkseagreen3           Yao Liu        CLM-CN
+6      LPJ-GUESS      deeppink2    Jorg Steinkamp     LPJ-GUESS
+7        LPJ-WSL      deeppink4       Ben Poulter       LPJ-WSL
+8       LINKAGES   navajowhite4         Ann Raiho      LINKAGES
+9   JULES-STATIC    darkorange3    Tristan Quiafe  JULES-STATIC
+10 JULES-TRIFFID     goldenrod3    Tristan Quiafe JULES-TRIFFID
+11       SiBCASA         salmon    Keven Schaefer       SiBCASA
+12   CLM4.5-DGVM darkolivegreen           Yao Liu   CLM4.5-DGVM
+> # ----------------------------------------
+> 
+> 
+> # # -----------------------
+> # # Some exploratory Graphing
+> # # -----------------------
+> # ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+> 	# geom_line(aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.6) +
+> 	# geom_line(aes(x=Year, y=AGB.100, color=Model.Order), size=1.5) +
+> 	# scale_color_manual(values=as.vector(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])) +
+> 	# theme_bw()
+> # # -----------------------
+> # ----------------------------------------
+> 
+> 
+> 
+> # ----------------------------------------
+> # Model Specifications
+> # ----------------------------------------
+> # Model:  y[i] ~  dnorm(mu[i], sigma) # assumes constant variance 
+> #        mu[i] <- beta[1] + 
+> #				  beta[2]*TEMP[i]*PRECIP[i]*CO2 + 
+> #				  beta[3]*TEMP[i]*PRECIP[i] + beta[4]*TEMP[i]*PRECIP[i] + beta[5]*PRECIP[i]*CO2[i]
+> # 
+> # Priors: beta[1:5], sigma
+> #	      sigma ~ dnorm(0,0.001)
+> #		  for(i in 1:5) beta[i] ~ dnorm(0,0.001)
+> # ----------------------------------------
+> 
+> interactions <- function(){
++ 	# Priors
++ 	for(t in 1:nt){	
++ 		beta00[t] ~ dnorm(0, 1.0E-2)
++ 		beta01[t] ~ dnorm(0, 1.0E-2)
++ 		beta02[t] ~ dnorm(0, 1.0E-2)
++ 		beta03[t] ~ dnorm(0, 1.0E-2)
++ 		beta04[t] ~ dnorm(0, 1.0E-2)
++ 		beta05[t] ~ dnorm(0, 1.0E-2)
++ 		beta06[t] ~ dnorm(0, 1.0E-2)
++ 		beta07[t] ~ dnorm(0, 1.0E-2)
++ 		beta08[t] ~ dnorm(0, 1.0E-2)
++ 		beta09[t] ~ dnorm(0, 1.0E-2)
++ 		beta10[t] ~ dnorm(0, 1.0E-2)
++ 		beta11[t] ~ dnorm(0, 1.0E-2)
++ 		beta12[t] ~ dnorm(0, 1.0E-2)
++ 		beta13[t] ~ dnorm(0, 1.0E-2)
++ 		beta14[t] ~ dnorm(0, 1.0E-2)
++ 		beta15[t] ~ dnorm(0, 1.0E-2)
++ 	}
++ 	# sigma ~ dnorm(0, 1.0E-6)
++     tau ~ dgamma(0.001,0.001)
++     sigma <- 1/tau
++ 	tau2 <- 1/tau
++ 	for(s in 1:ns){		
++ 		# alpha0[s] ~ dnorm(0, tau2)  # + 
++ 		alpha1[s] ~ dnorm(0, tau2)  # + 
++ 		# alpha2[s] ~ dnorm(0, tau2)  # + 
++ 		# alpha3[s] ~ dnorm(0, tau2)  # + 
++ 		# alpha4[s] ~ dnorm(0, tau2)  # + 
++ 		# alpha5[s] ~ dnorm(0, tau2)  # + 
++ 		# alpha6[s] ~ dnorm(0, tau2)  # + 
++ 		# alpha7[s] ~ dnorm(0, tau2)  # + 
++ 	}
++ 	for(i in 1:n){
++ #		mu[i] <- beta0[T.SCALE[i]]*alpha0[SITE[i]] + 
++ 		mu[i] <- beta00[T.SCALE[i]] + 
++ 				 beta01[T.SCALE[i]]*TEMP[i] + 
++ 				 beta02[T.SCALE[i]]*PRECIP[i] + 
++ 				 beta03[T.SCALE[i]]*CO2[i] + 
++ 				 beta04[T.SCALE[i]]*SWDOWN[i] + 
++ 				 beta05[T.SCALE[i]]*TEMP[i]*PRECIP[i] + 
++ 				 beta06[T.SCALE[i]]*TEMP[i]*CO2[i] + 
++ 				 beta07[T.SCALE[i]]*TEMP[i]*SWDOWN[i] + 
++ 				 beta08[T.SCALE[i]]*PRECIP[i]*CO2[i] + 
++ 				 beta09[T.SCALE[i]]*PRECIP[i]*SWDOWN[i] + 
++ 				 beta10[T.SCALE[i]]*CO2[i]*SWDOWN[i] + 
++ 				 beta11[T.SCALE[i]]*TEMP[i]*PRECIP[i]*CO2[i] + 
++ 				 beta12[T.SCALE[i]]*TEMP[i]*PRECIP[i]*SWDOWN[i] + 
++ 				 beta13[T.SCALE[i]]*TEMP[i]*CO2[i]*SWDOWN[i] + 
++ 				 beta14[T.SCALE[i]]*PRECIP[i]*CO2[i]*SWDOWN[i] + 
++ 				 beta15[T.SCALE[i]]*TEMP[i]*PRECIP[i]*CO2[i]*SWDOWN[i] + 
++ 				 alpha1[SITE[i]] 
++ 		# mu[i] <- beta*TEMP[i]
++ 		y[i] ~  dnorm(mu[i], sigma)
++ 	}
++ 	}
+> 
+> # ----------------------------------------
+> 
+> 
+> 
+> # ----------------------------------------
+> # Running the Bayesian Interaction Models 
+> # ----------------------------------------
+> # Note: Setting up a loop to go through each model
+> # ----------------------------------------
+> data.base="Data/interactions_byModel2"
+> fig.base="Figures/interactions_byModel2"
+> 
+> if(!dir.exists(data.base)) dir.create(data.base)
+> if(!dir.exists(fig.base)) dir.create(fig.base)
+> 
+> 
+> # Just get rid of Linkages because it doesn't have CO2 OR swdown
+> ecosys <- ecosys[!ecosys$Model=="linkages",]
+> 
+> # Setting up a loop for 1 m.name, 1 temporal scale
+> sites    <- unique(ecosys$Site)
+> model.name    <- unique(ecosys$Model); 
+> model.order   <- unique(ecosys$Model.Order)
+> 
+> 
+> for(m in 1:length(model.name)){
++ 	m.name  <- model.name[m]
++ 	m.order <- model.order[m]
++ 
++ 	# out.dir   <- file.path(data.base, m.order)
++ 	fig.dir  <- file.path(fig.base, m.order)
++ 
++ 	# Making sure the proper file structure is in place
++ 	# if(!dir.exists(out.dir)) dir.create(out.dir)
++ 	if(!dir.exists(fig.dir)) dir.create(fig.dir)
++ 
++ 
++ 	print(" ")
++ 	print(" ")
++ 	print(" ")
++ 	print(" ")
++ 	print(       "      ----------------------      ")
++ 	print(paste0("------ Processing Model: ",m.name, " ------"))
++ 
++     # if(m.name=="jules.stat") var <- "NPP" else var <- c("NPP", "AGB.diff")
++ 
++ # for(v in var){
++ v="NPP"
++ 	print(" ")
++ 	print(" ")
++ 	print(       "      ----------------------      ")
++ 	print(paste0("------ Processing Variable: ",v, " ------"))
++ 
++ # -----------------------
++ # Organize the jags inputs
++ # -----------------------
++ dat <- ecosys[ecosys$Model==m.name,]
++ dat <- dat[complete.cases(dat[,v]),]
++ summary(dat)
++ dim(dat)
++ 
++ y       <- dat[,v]
++ TEMP    <- dat$tair
++ PRECIP  <- dat$precipf
++ CO2     <- dat$CO2
++ SWDOWN  <- dat$swdown
++ T.SCALE <- as.numeric(dat$Scale)
++ SITE    <- as.numeric(dat$Site)
++ 
++ n       <- length(y)
++ nt		<- length(unique(T.SCALE))
++ ns      <- length(unique(SITE))
++ 
++ params <- c("beta00", "beta01", "beta02", "beta03", "beta04", "beta05", "beta06", "beta07", "beta08", "beta09", "beta10", "beta11", "beta12", "beta13", "beta14", "beta15", "alpha1", "sigma")
++ # -----------------------
++ 
++ # -----------------------
++ # Run and save the output
++ # -----------------------
++ dat.jags <- list(y=y, n=n, nt=nt, T.SCALE=T.SCALE, TEMP=TEMP, PRECIP=PRECIP, CO2=CO2, SWDOWN=SWDOWN, ns=ns, SITE=SITE)
++ 
++ jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=10000, n.burnin=2000, model.file=interactions, DIC=F)
++ # jags.out <- jags(data=dat.jags, parameters.to.save=params, n.chains=3, n.iter=100, n.burnin=20, model.file=interactions, DIC=F)
++ 
++ out <- list(data=dat.jags, jags.out=jags.out)
++ 
++ out.mcmc <- as.mcmc(jags.out)
++ # print(summary(out.mcmc))
++ # class(summary(out.mcmc[,]))
++ # names(summary(out.mcmc))
++ # row.names(summary(out.mcmc)$quantiles)
++ # # summary(out.mcmc[,which(substr(dimnames(out.mcmc[[1]])[[2]], 1, 2)=="mu")])
++ # summary(out.mcmc)$statistics
++ 
++ pdf(file.path(fig.dir, paste0("Interactions_TracePlots_", m.order, "_", v, ".pdf")))
++ print(plot(out.mcmc))
++ dev.off()
++ 
++ # Write a data frame with the coefficient 95% ci from the full jags output
++ coefs.out <- data.frame(Model=m.name, var=row.names(summary(out.mcmc)$quantiles), mean=summary(out.mcmc)$statistics[,"Mean"], CI.025=summary(out.mcmc)$quantiles[,"2.5%"], CI.975=summary(out.mcmc)$quantiles[,"97.5%"])
++ coefs.out$Scale <- as.factor(ifelse(substr(coefs.out$var,1,4)=="beta", substr(coefs.out$var,8,8), NA))
++ coefs.out$Scale <- recode(coefs.out$Scale, "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'")
++ coefs.out$var2 <- as.factor(substr(coefs.out$var, 1, 6))
++ # summary(coefs.out)
++ 
++ out[["ci.coeff"]] <- coefs.out
++ # -----------------------
++ 
++ # -----------------------
++ # Pull from the MCMC iterations
++ # -----------------------
++ pulls <- 250
++ y.predict1 <- array(dim=c(n, pulls))
++ betas.samp <- data.frame(array(dim=c(n,0)))
++ 
++ for(i in 1:pulls){
++ 	c <- sample(1:length(out.mcmc), 1, replace=T)    # randomly pick a chain
++ 	r <- sample(1:nrow(out.mcmc[[c]]), 1, replace=T) # randomly pick an iteration 
++ 
++ 	for(t in 1:nt){
++ 	rows.t   <- which(T.SCALE==t)
++ 	temp.t   <- TEMP[rows.t]
++ 	precip.t <- PRECIP[rows.t]
++ 	co2.t    <- CO2[rows.t]
++ 	swdown.t <- SWDOWN[rows.t]
++ 	alpha    <- out.mcmc[[c]][r,paste0("alpha1[",SITE,"]")[rows.t]] # selecting the appropriate alpha for the vector
++ 
++ 	# predicting y from the coefficients (rather than saving mu, 
++ 	# which is very memory & time intensive)
++ 	betas.samp[i,paste0("beta00[",t,"]")] <- out.mcmc[[c]][r,paste0("beta00[",t,"]")]
++ 	betas.samp[i,paste0("beta01[",t,"]")] <- out.mcmc[[c]][r,paste0("beta01[",t,"]")]
++ 	betas.samp[i,paste0("beta02[",t,"]")] <- out.mcmc[[c]][r,paste0("beta02[",t,"]")]
++ 	betas.samp[i,paste0("beta03[",t,"]")] <- out.mcmc[[c]][r,paste0("beta03[",t,"]")]
++ 	betas.samp[i,paste0("beta04[",t,"]")] <- out.mcmc[[c]][r,paste0("beta04[",t,"]")]
++ 	betas.samp[i,paste0("beta05[",t,"]")] <- out.mcmc[[c]][r,paste0("beta05[",t,"]")]
++ 	betas.samp[i,paste0("beta06[",t,"]")] <- out.mcmc[[c]][r,paste0("beta06[",t,"]")]
++ 	betas.samp[i,paste0("beta07[",t,"]")] <- out.mcmc[[c]][r,paste0("beta07[",t,"]")]
++ 	betas.samp[i,paste0("beta08[",t,"]")] <- out.mcmc[[c]][r,paste0("beta08[",t,"]")]
++ 	betas.samp[i,paste0("beta09[",t,"]")] <- out.mcmc[[c]][r,paste0("beta09[",t,"]")]
++ 	betas.samp[i,paste0("beta10[",t,"]")] <- out.mcmc[[c]][r,paste0("beta10[",t,"]")]
++ 	betas.samp[i,paste0("beta11[",t,"]")] <- out.mcmc[[c]][r,paste0("beta11[",t,"]")]
++ 	betas.samp[i,paste0("beta12[",t,"]")] <- out.mcmc[[c]][r,paste0("beta12[",t,"]")]
++ 	betas.samp[i,paste0("beta13[",t,"]")] <- out.mcmc[[c]][r,paste0("beta13[",t,"]")]
++ 	betas.samp[i,paste0("beta14[",t,"]")] <- out.mcmc[[c]][r,paste0("beta14[",t,"]")]
++ 	betas.samp[i,paste0("beta15[",t,"]")] <- out.mcmc[[c]][r,paste0("beta15[",t,"]")]
++ 
++ 	y.predict1[rows.t,i] <- out.mcmc[[c]][r,paste0("beta00[",t,"]")] + 
++ 				 out.mcmc[[c]][r,paste0("beta01[",t,"]")]*temp.t + 
++ 				 out.mcmc[[c]][r,paste0("beta02[",t,"]")]*precip.t + 
++ 				 out.mcmc[[c]][r,paste0("beta03[",t,"]")]*co2.t + 
++ 				 out.mcmc[[c]][r,paste0("beta04[",t,"]")]*swdown.t + 
++ 				 out.mcmc[[c]][r,paste0("beta05[",t,"]")]*temp.t*precip.t + 
++ 				 out.mcmc[[c]][r,paste0("beta06[",t,"]")]*temp.t*co2.t + 
++ 				 out.mcmc[[c]][r,paste0("beta07[",t,"]")]*temp.t*swdown.t + 
++ 				 out.mcmc[[c]][r,paste0("beta08[",t,"]")]*precip.t*co2.t + 
++ 				 out.mcmc[[c]][r,paste0("beta09[",t,"]")]*precip.t*swdown.t + 
++ 				 out.mcmc[[c]][r,paste0("beta10[",t,"]")]*co2.t*swdown.t + 
++ 				 out.mcmc[[c]][r,paste0("beta11[",t,"]")]*temp.t*precip.t*co2.t + 
++ 				 out.mcmc[[c]][r,paste0("beta12[",t,"]")]*temp.t*precip.t*swdown.t + 
++ 				 out.mcmc[[c]][r,paste0("beta13[",t,"]")]*temp.t*co2.t*swdown.t + 
++ 				 out.mcmc[[c]][r,paste0("beta14[",t,"]")]*precip.t*co2.t*swdown.t + 
++ 				 out.mcmc[[c]][r,paste0("beta15[",t,"]")]*temp.t*precip.t*co2.t*swdown.t + 
++ 			     alpha
++ 	}
++ }
++ 
++ out.analy <- data.frame(Model=m.name, Scale=recode(T.SCALE, "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"), Site=rep(dat$Site, nt), Year=rep(dat$Year, nt), Response=y, CO2=CO2, Temp=TEMP, Precip=PRECIP, SWDOWN=SWDOWN, Pred.y=apply(y.predict1, 1, mean, na.rm=T), Pred.LB=apply(y.predict1, 1, quantile, 0.025, na.rm=T), Pred.UB=apply(y.predict1, 1, quantile, 0.975, na.rm=T))
++ 
++ betas.samp2 <- stack(betas.samp)[,c(2,1)]
++ names(betas.samp2) <- c("beta.name", "value")
++ betas.samp2$Model <- as.factor(m.name)
++ betas.samp2$Beta <- as.factor(substr(betas.samp2$beta.name, 1, 6))
++ betas.samp2$Scale <- as.factor(recode(substr(betas.samp2$beta.name,8,8), "'1'='t.001'; '2'='t.010'; '3'='t.050'; '4'='t.100'; '5'='t.250'"))
++ betas.samp2$Interaction <- betas.samp2$Beta
++ levels(betas.samp2$Interaction) <- recode(levels(betas.samp2$Interaction), "'beta00'='Intercept'; 'beta01'='TEMP'; 'beta02'='PRECIP'; 'beta03'='CO2'; 'beta04'='SWDOWN'; 'beta05'='TEMP x PRECIP'; 'beta06'='TEMP x CO2'; 'beta07'='TEMP x SWDOWN';  'beta08'='PRECIP x CO2'; 'beta09'='PRECIP X SWDOWN'; 'beta10'='CO2 X SWDOWN'; 'beta11'='TEMP x PRECIP x CO2'; 'beta12'='TEMP x PRECIP x SWDOWN'; 'beta13'='TEMP X CO2 X SWDOWN'; 'beta14'='PRECIP X CO2 X SWDOWN'; 'beta15'='TEMP x PRECIP x CO2 X SWDOWN'")
++ summary(betas.samp2)
++ 
++ out[["betas.sample"]] <- betas.samp2
++ out[["predicted"]] <- out.analy
++ # summary(out.analy)
++ 
++ col.model <- model.colors[model.colors$Model.Order %in% unique(dat$Model.Order),"color"]
++ 
++ pdf(file.path(fig.dir, paste0("Interactions_TimeFit_", m.order, "_", v, ".pdf")))
++ print(
++ ggplot(data=out.analy) + facet_grid(Site ~ Scale) +
++ 	geom_line(aes(x=Year, y=Response), siz=2)+
++ 	geom_ribbon(aes(x=Year, ymin=Pred.LB, ymax=Pred.UB), alpha=0.5, fill=col.model) +
++ 	geom_line(aes(x=Year, y=Pred.y), color=col.model) + 
++ 	theme_bw()
++ )
++ dev.off()
++ 
++ pdf(file.path(fig.dir, paste0("Interactions_BetasScale_", m.order, "_", v, ".pdf")))
++ print(
++ ggplot(betas.samp2[,]) + facet_grid(Interaction~., scales="free") +
++ 	geom_hline(aes(yintercept=0), color="black") +
++ 	geom_violin(aes(x=Scale, y=value, fill=Scale, color=Scale), alpha=0.3) +
++ 	theme_bw() +
++ 	theme(strip.text=element_text(size=rel(0.5)))
++ )
++ dev.off()
++ 
++ # summary(eval(parse(text=(paste("mcmc", m.name, v, sep=".")))))
++ # assign(paste("mcmc", m.name, v, sep="."), out)
++ save(out, file=file.path(data.base, paste0("Interactions_", m.order, "_", v, ".RData")))
++ # save(dat.jags, m.lpj.g, file=file.path(path.data, "Interactions_LPJ-GUESS.RData"))
++ # -----------------------
++ 
++ # } # end var
++ } # end model
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: ed2 ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+module glm loaded
+module dic loaded
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717979
+
+Initializing model
+
+NULL
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: lpj.guess ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717951
+
+Initializing model
+
+NULL
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: jules.triffid ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717297
+
+Initializing model
+
+NULL
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: lpj.wsl ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717932
+
+Initializing model
+
+NULL
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: clm.bgc ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717963
+
+Initializing model
+
+NULL
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: sibcasa ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717910
+
+Initializing model
+
+NULL
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: clm.cn ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717976
+
+Initializing model
+
+NULL
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: ed2.lu ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717982
+
+Initializing model
+
+NULL
+[1] " "
+[1] " "
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Model: jules.stat ------"
+[1] " "
+[1] " "
+[1] "      ----------------------      "
+[1] "------ Processing Variable: NPP ------"
+Compiling model graph
+   Resolving undeclared variables
+   Allocating nodes
+   Graph Size: 717302
+
+Initializing model
+
+NULL
+There were 50 or more warnings (use warnings() to see the first 50)
+> 
+> 
+> 
+> 
+> 
+> proc.time()
+     user    system   elapsed 
+86452.348     4.495 86587.979 

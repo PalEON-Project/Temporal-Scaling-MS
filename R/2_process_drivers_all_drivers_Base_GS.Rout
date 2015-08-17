@@ -1,0 +1,485 @@
+
+R version 3.2.0 (2015-04-16) -- "Full of Ingredients"
+Copyright (C) 2015 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # ----------------------------------------
+> # Temporal Scaling Analyses -- Create baseline growing season model
+> # Non-linear driver effects through time
+> # Christy Rollinson, crollinson@gmail.com
+> # Date Created: 10 July 2015
+> # ----------------------------------------
+> # -------------------------
+> # Objectives & Overview
+> # -------------------------
+> # Driving Questions: What is the relative control of different drivers within each model?
+> # Rationale: Not all models use all inputs, and many drivers are correlated, so we need to 
+> #            see if the temperature pattern is really a radiation pattern, etc. 
+> # -------------------------
+> #
+> # -------------------------
+> # Data/Results Generation:
+> # -------------------------
+> # (Fit GAMM per site per m.name)
+> # 1) Temporal Grain (Resolution)
+> #    -- Fit GAMM over constant wind.gsow with different degrees of smoothing (1 yr - 250 yr)
+> # -------------------------
+> #
+> # -------------------------
+> # Interpretation Analyses:
+> # -------------------------
+> # 1) Space-Time Comparison
+> #    -- Hypothesis: Driver responses across sites within a m.name converge at coarser temporal grains 
+> #       and larger extents because the models have time to adjust and seek equilibrium.
+> #
+> #    -- Analysis: Use the posterior CIs for each smoothing term to see if the driver curves for sites
+> #                 within a m.name are statstically different at different sites at different scales (or 
+> #                 alternatively if there are statistical differences in [parts of] the curves between
+> #                 scales)
+> #
+> #
+> # 2) Multi-Model Driver Comparison
+> #    -- Hypothesis: Because models were built & parameterized to perform well in the modern era, there 
+> #       will be greater agreement of the direction & primary driver of change in the more recent time 
+> #       periods than over the full extent of the PalEON runs.
+> #    -- Hypothesis about temporal grain?
+> #
+> #    -- Analysis: For each given scale, compare the m.name response curves for each driver.  Determine 
+> #                 which drivers are most similar/variable among models and at what scales?  Are there
+> #                 particular ranges of each driver response where models responses are most similar/different?
+> # -------------------------
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Load Libaries
+> # ----------------------------------------
+> library(parallel)
+> library(mgcv)
+Loading required package: nlme
+This is mgcv 1.8-7. For overview type 'help("mgcv-package")'.
+> # library(ncdf4)
+> # library(lme4)
+> # library(R2jags)
+> library(ggplot2); library(grid)
+> library(car)
+> # library(zoo)
+> # library(mvtnorm)
+> # library(MCMCpack)
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Define constants
+> # ----------------------------------------
+> sec2yr <- 1*60*60*24*365
+> # ----------------------------------------
+> 
+> # ----------------------------------------
+> # Set Directories
+> # ----------------------------------------
+> # setwd("~/Desktop/Dropbox/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+> setwd("..")
+> dat.base="Data/gamms"
+> fig.base="Figures/gamms"
+> 
+> # Making sure the appropriate file paths exist
+> if(!dir.exists(dat.base)) dir.create(dat.base)
+> if(!dir.exists(fig.base)) dir.create(fig.base)
+> 
+> # Setting the data & figure directories
+> fig.dir <- file.path(fig.base, "AllDrivers_GS_Base")
+> dat.dir <- file.path(dat.base, "AllDrivers_GS_Base")
+> 
+> # Make sure the appropriate file paths are in place
+> if(!dir.exists(dat.dir)) dir.create(dat.dir)
+> if(!dir.exists(fig.dir)) dir.create(fig.dir)
+> # ----------------------------------------
+> 
+> 
+> # ----------------------------------------
+> # Load data files & function scripts
+> # ----------------------------------------
+> # Ecosys file = organized, post-processed m.name outputs
+> #	generated with 1_generate_ecosys.R
+> load(file.path("Data", "EcosysData_Raw.Rdata"))
+> summary(ecosys)
+  Site            Year                Model            GPP        
+ PBL:11610   Min.   : 850   clm.bgc      : 6966   Min.   : 0.544  
+ PDL:11610   1st Qu.:1140   clm.cn       : 6966   1st Qu.: 6.520  
+ PHA:11610   Median :1430   ed2          : 6966   Median :10.268  
+ PHO:11610   Mean   :1430   ed2.lu       : 6966   Mean   :12.802  
+ PMB:11610   3rd Qu.:1720   jules.stat   : 6966   3rd Qu.:15.293  
+ PUN:11610   Max.   :2010   jules.triffid: 6966   Max.   :39.704  
+                            (Other)      :27864   NA's   :6978    
+      AGB              LAI                 NPP               NEE            
+ Min.   :  0.00   Min.   :0.000e+00   Min.   : -1.387   Min.   :-3.000e+01  
+ 1st Qu.: 32.52   1st Qu.:2.000e+00   1st Qu.:  3.096   1st Qu.:-1.000e+00  
+ Median : 66.60   Median :4.000e+00   Median :  5.333   Median : 0.000e+00  
+ Mean   : 89.51   Mean   :5.419e+35   Mean   :  8.962   Mean   : 1.550e+44  
+ 3rd Qu.:138.47   3rd Qu.:7.000e+00   3rd Qu.:  8.816   3rd Qu.: 2.000e+00  
+ Max.   :392.17   Max.   :9.969e+36   Max.   :116.977   Max.   : 3.146e+45  
+ NA's   :12       NA's   :6633        NA's   :12        NA's   :10          
+    AutoResp        HeteroResp         SoilCarb           SoilMoist     
+ Min.   : 0.628   Min.   :-0.2708   Min.   :   0.1313   Min.   : 3.861  
+ 1st Qu.: 3.365   1st Qu.: 3.2719   1st Qu.:  55.5216   1st Qu.:16.723  
+ Median : 4.998   Median : 5.0802   Median : 140.4952   Median :25.388  
+ Mean   : 6.889   Mean   : 9.1364   Mean   : 391.1458   Mean   :29.917  
+ 3rd Qu.: 9.254   3rd Qu.: 8.9179   3rd Qu.: 750.0033   3rd Qu.:39.776  
+ Max.   :24.857   Max.   :82.2347   Max.   :2088.6595   Max.   :87.184  
+ NA's   :6978     NA's   :12        NA's   :12          NA's   :6978    
+      Evap                 tair          precipf           swdown     
+ Min.   :      -539   Min.   :269.8   Min.   : 210.3   Min.   :122.0  
+ 1st Qu.:       115   1st Qu.:276.4   1st Qu.: 566.3   1st Qu.:145.9  
+ Median :       187   Median :277.4   Median : 692.0   Median :165.8  
+ Mean   : 116818665   Mean   :277.6   Mean   : 747.0   Mean   :160.3  
+ 3rd Qu.:       359   3rd Qu.:278.9   3rd Qu.: 919.0   3rd Qu.:170.6  
+ Max.   :1603007238   Max.   :283.6   Max.   :1554.3   Max.   :193.1  
+ NA's   :12           NA's   :12      NA's   :12       NA's   :6978   
+     lwdown           wind           psurf            qair       Updated    
+ Min.   :237.2   Min.   :1.898   Min.   :96896   Min.   :0.003   Yes:69660  
+ 1st Qu.:271.0   1st Qu.:2.829   1st Qu.:97196   1st Qu.:0.004              
+ Median :276.8   Median :3.556   Median :98263   Median :0.005              
+ Mean   :277.7   Mean   :3.374   Mean   :98221   Mean   :0.005              
+ 3rd Qu.:284.5   3rd Qu.:4.051   3rd Qu.:99147   3rd Qu.:0.005              
+ Max.   :304.7   Max.   :4.874   Max.   :99484   Max.   :0.007              
+ NA's   :13944   NA's   :20910   NA's   :20910   NA's   :20910              
+        Model.Order       tair.yr        precipf.yr       swdown.yr    
+ CLM-BGC      : 6966   Min.   :270.3   Min.   : 322.0   Min.   :146.1  
+ CLM-CN       : 6966   1st Qu.:276.3   1st Qu.: 602.3   1st Qu.:165.4  
+ ED2          : 6966   Median :277.4   Median : 733.3   Median :168.6  
+ ED2-LU       : 6966   Mean   :277.5   Mean   : 789.1   Mean   :169.0  
+ JULES-STATIC : 6966   3rd Qu.:278.8   3rd Qu.: 980.3   3rd Qu.:172.3  
+ JULES-TRIFFID: 6966   Max.   :283.1   Max.   :1546.5   Max.   :192.3  
+ (Other)      :27864                                                   
+   lwdown.yr        qair.yr            psurf.yr        wind.yr     
+ Min.   :248.8   Min.   :0.003224   Min.   :96896   Min.   :1.921  
+ 1st Qu.:273.7   1st Qu.:0.004353   1st Qu.:97196   1st Qu.:2.891  
+ Median :278.8   Median :0.004594   Median :98262   Median :3.570  
+ Mean   :280.4   Mean   :0.004692   Mean   :98221   Mean   :3.409  
+ 3rd Qu.:287.0   3rd Qu.:0.004976   3rd Qu.:99147   3rd Qu.:4.058  
+ Max.   :304.7   Max.   :0.006422   Max.   :99484   Max.   :4.874  
+                                                                   
+     CO2.yr         tair.gs        precipf.gs       swdown.gs    
+ Min.   :272.2   Min.   :281.5   Min.   : 395.9   Min.   :200.4  
+ 1st Qu.:279.1   1st Qu.:287.6   1st Qu.: 862.3   1st Qu.:235.7  
+ Median :281.5   Median :288.6   Median :1005.2   Median :241.4  
+ Mean   :285.2   Mean   :288.5   Mean   :1028.7   Mean   :241.1  
+ 3rd Qu.:283.4   3rd Qu.:289.5   3rd Qu.:1172.2   3rd Qu.:246.8  
+ Max.   :389.7   Max.   :293.2   Max.   :2134.3   Max.   :270.1  
+                                                                 
+   lwdown.gs        qair.gs            psurf.gs        wind.gs     
+ Min.   :298.8   Min.   :0.005663   Min.   :96857   Min.   :1.640  
+ 1st Qu.:328.0   1st Qu.:0.007436   1st Qu.:97129   1st Qu.:2.311  
+ Median :332.1   Median :0.007845   Median :98251   Median :2.996  
+ Mean   :332.3   Mean   :0.007929   Mean   :98195   Mean   :2.846  
+ 3rd Qu.:336.5   3rd Qu.:0.008407   3rd Qu.:99182   3rd Qu.:3.459  
+ Max.   :355.7   Max.   :0.010713   Max.   :99571   Max.   :3.987  
+                                                                   
+     CO2.gs           CO2       
+ Min.   :272.2   Min.   :272.2  
+ 1st Qu.:279.1   1st Qu.:279.1  
+ Median :281.5   Median :281.5  
+ Mean   :285.2   Mean   :285.2  
+ 3rd Qu.:283.4   3rd Qu.:283.4  
+ Max.   :389.8   Max.   :389.7  
+                                
+> model.colors
+           Model          color           contact   Model.Order
+4     CLM4.5-BGC         green3           Yao Liu       CLM-BGC
+5      CLM4.5-CN  darkseagreen3           Yao Liu        CLM-CN
+1            ED2    dodgerblue4 Christy Rollinson           ED2
+2         ED2-LU   deepskyblue2 Christy Rollinson        ED2-LU
+9   JULES-STATIC    darkorange3    Tristan Quiafe  JULES-STATIC
+10 JULES-TRIFFID     goldenrod3    Tristan Quiafe JULES-TRIFFID
+8       LINKAGES   navajowhite4         Ann Raiho      LINKAGES
+6      LPJ-GUESS      deeppink2    Jorg Steinkamp     LPJ-GUESS
+7        LPJ-WSL      deeppink4       Ben Poulter       LPJ-WSL
+11       SiBCASA         salmon    Keven Schaefer       SiBCASA
+3         CLM4.5         green3           Yao Liu        CLM4.5
+12   CLM4.5-DGVM darkolivegreen           Yao Liu   CLM4.5-DGVM
+> 
+> source('R/0_gamm.calculate.R', chdir = TRUE)
+> 
+> # Read in model color scheme
+> model.colors
+           Model          color           contact   Model.Order
+4     CLM4.5-BGC         green3           Yao Liu       CLM-BGC
+5      CLM4.5-CN  darkseagreen3           Yao Liu        CLM-CN
+1            ED2    dodgerblue4 Christy Rollinson           ED2
+2         ED2-LU   deepskyblue2 Christy Rollinson        ED2-LU
+9   JULES-STATIC    darkorange3    Tristan Quiafe  JULES-STATIC
+10 JULES-TRIFFID     goldenrod3    Tristan Quiafe JULES-TRIFFID
+8       LINKAGES   navajowhite4         Ann Raiho      LINKAGES
+6      LPJ-GUESS      deeppink2    Jorg Steinkamp     LPJ-GUESS
+7        LPJ-WSL      deeppink4       Ben Poulter       LPJ-WSL
+11       SiBCASA         salmon    Keven Schaefer       SiBCASA
+3         CLM4.5         green3           Yao Liu        CLM4.5
+12   CLM4.5-DGVM darkolivegreen           Yao Liu   CLM4.5-DGVM
+> # ----------------------------------------
+> 
+> 
+> # -------------------------------------------------
+> # Settings for the rest of this script
+> # -------------------------------------------------
+> # Get rid of CLM-BGC because its actual drivers are messed up
+> ecosys <- ecosys[!ecosys$Model=="clm.bgc",]
+> 
+> # Setting up a loop for 1 m.name, 1 temporal scale
+> sites       <- unique(ecosys$Site)
+> model.name  <- unique(ecosys$Model)
+> model.order <- unique(ecosys$Model.Order)
+> resolutions <- c("t.001", "t.010", "t.050", "t.100")
+> response <- "NPP"
+> predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+> predictor.suffix <- c(".gs")
+> k=3
+> r=1	
+> # -------------------------------------------------
+> 
+> # -------------------------------------------------
+> # Set up the appropriate data for each model into a list
+> # -------------------------------------------------
+> paleon.models <- list()
+> 
+> for(m in 1:length(model.name)){
++ 	m.name  <- model.name[m]
++ 	m.order <- model.order[m]
++ 
++ 	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
++ 	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
++ 	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
++ 
++ 	# Figure out which years to take: 
++ 	# Note: working backwards to help make sure we get modern end of the CO2.yr & temperature distributions
++ 	run.end <- ifelse(substr(m.name,1,3)=="jul", max(ecosys$Year)-1, max(ecosys$Year)) # Note: Jules missing 2010, so 
++ 	run.start <- 850
++ 	inc <- round(as.numeric(substr(resolutions[r],3,5)),0) # making sure we're always dealign with whole numbers
++ 	yrs <- seq(from=run.end-round(inc/2,0), to=run.start+round(inc/2,0), by=-inc)
++ 
++ 	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year")]
++ 
++ 	# Making a note of the extent & resolution
++ 	ext <- as.factor("850-2010")
++ 	data.temp$Extent <- as.factor(ext)
++ 	data.temp$Resolution <- as.factor(resolutions[r])
++ 
++ 	# Making place-holders for the response & predictors so the loop works correctly
++ 	data.temp[,c(response, predictors.all)] <- NA
++ 
++ 	# Calculating the mean for each wind.yrow for resolution
++ 	# Note: because we're now only analyzing single points rathern than the full running mean, 
++ 	#    we're now making the year in the middle of the resolution
++ 	if(inc==1){ # if we're working at coarser than annual scale, we need to find the mean for each bin
++ 		data.temp[,c(response, predictors.all)] <- dat.mod[,c(response, predictors.all)]
++ 	} else {
++ 		for(s in sites){
++ 			for(y in yrs){
++ 				data.temp[data.temp$Site==s & data.temp$Year==y,c(response, predictors.all)] <- apply(dat.mod[dat.mod$Site==s & dat.mod$Year>=round(y-inc/2, 0) & dat.mod$Year<=round(y+inc/2, 0),c(response, predictors.all)], 2, FUN=mean)
++ 			}
++ 		}
++ 	}
++ 
++ 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
++ 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
++ 
++ 	paleon.models[[paste(m.name)]] <- data.temp
++ }
+There were 18 warnings (use warnings() to see them)
+> # --------------------------------
+> 
+> # -------------------------------------------------
+> # Run the gamms
+> # -------------------------------------------------
+> models.base <- mclapply(paleon.models, paleon.gamms.models, mc.cores=length(paleon.models), response=response, k=k, predictors.all=predictors.all)
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "------ Processing Model: ED2 ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair, k = k) + s(precipf, k = k) + Site - 1
+
+Parametric coefficients:
+        Estimate Std. Error t value Pr(>|t|)    
+SitePBL   54.911      6.117   8.976  < 2e-16 ***
+SitePDL   69.797      6.117  11.410  < 2e-16 ***
+SitePHA   12.765      6.117   2.087   0.0369 *  
+SitePHO    8.724      6.117   1.426   0.1539    
+SitePMB   14.634      6.117   2.392   0.0168 *  
+SitePUN   42.692      6.117   6.979 3.25e-12 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+             edf Ref.df     F p-value   
+s(tair)    1.001  1.001 7.829 0.00515 **
+s(precipf) 1.002  1.002 0.000 0.98952   
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.859   
+  Scale est. = 137.9     n = 6966
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "------ Processing Model: ED2 ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair, k = k) + s(precipf, k = k) + s(swdown, k = k) + 
+    s(CO2, k = k) + Site - 1
+
+Parametric coefficients:
+        Estimate Std. Error t value Pr(>|t|)    
+SitePBL  2.06453    0.02482   83.17   <2e-16 ***
+SitePDL  2.10835    0.02322   90.81   <2e-16 ***
+SitePHA  5.36665    0.02519  213.04   <2e-16 ***
+SitePHO  5.20855    0.02726  191.10   <2e-16 ***
+SitePMB  4.23562    0.02545  166.44   <2e-16 ***
+SitePUN  4.98830    0.02520  197.97   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+             edf Ref.df        F  p-value    
+s(tair)    1.928  1.928   69.202  < 2e-16 ***
+s(precipf) 1.899  1.899 1264.776  < 2e-16 ***
+s(swdown)  1.000  1.000    7.928 0.004881 ** 
+s(CO2)     1.949  1.949    9.416 0.000128 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.865   
+  Scale est. = 0.49491   n = 6966
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "------ Processing Model: ED2 ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair, k = k) + s(precipf, k = k) + s(swdown, k = k) + 
+    s(CO2, k = k) + Site - 1
+
+Parametric coefficients:
+        Estimate Std. Error t value Pr(>|t|)    
+SitePBL  4.87033    0.01996   244.0   <2e-16 ***
+SitePDL  4.63604    0.01892   245.0   <2e-16 ***
+SitePHA  5.07231    0.02013   252.0   <2e-16 ***
+SitePHO  5.50932    0.02156   255.6   <2e-16 ***
+SitePMB  5.06666    0.02070   244.8   <2e-16 ***
+SitePUN  4.98403    0.02023   246.4   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+             edf Ref.df        F p-value    
+s(tair)    1.992  1.992   72.262  <2e-16 ***
+s(precipf) 1.997  1.997 2047.743  <2e-16 ***
+s(swdown)  1.661  1.661    2.098   0.251    
+s(CO2)     1.800  1.800  552.124  <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.689   
+  Scale est. = 0.25816   n = 6966
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "------ Processing Model: ED2 ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair, k = k) + s(precipf, k = k) + s(swdown, k = k) + 
+    s(lwdown, k = k) + s(qair, k = k) + s(psurf, k = k) + s(wind, 
+    k = k) + s(CO2, k = k) + Site - 1
+
+Parametric coefficients:
+        Estimate Std. Error t value Pr(>|t|)    
+SitePBL  0.94015    0.06066   15.50   <2e-16 ***
+SitePDL  0.95884    0.06210   15.44   <2e-16 ***
+SitePHA  1.41762    0.05837   24.29   <2e-16 ***
+SitePHO  2.20178    0.05812   37.88   <2e-16 ***
+SitePMB  2.42636    0.02621   92.57   <2e-16 ***
+SitePUN  1.16266    0.02082   55.85   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+             edf Ref.df        F  p-value    
+s(tair)    1.940  1.940  577.760  < 2e-16 ***
+s(precipf) 1.993  1.993  856.896  < 2e-16 ***
+s(swdown)  1.858  1.858    4.200  0.00971 ** 
+s(lwdown)  1.000  1.000    5.354  0.02070 *  
+s(qair)    1.250  1.250  389.632  < 2e-16 ***
+s(psurf)   1.000  1.000   16.062 6.19e-05 ***
+s(wind)    1.000  1.000   40.639 1.95e-10 ***
+s(CO2)     1.963  1.963 1050.007  < 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.904   
+  Scale est. = 0.13304   n = 6954
+[1] "-------------------------------------"
+[1] "-------------------------------------"
+[1] "------ Processing Model: ED2 ------"
+
+Family: gaussian 
+Link function: identity 
+
+Formula:
+NPP ~ s(tair, k = k) + s(precipf, k = k) + s(swdown, k = k) + 
+    s(lwdown, k = k) + s(qair, k = k) + s(psurf, k = k) + s(wind, 
+    k = k) + s(CO2, k = k) + Site - 1
+
+Parametric coefficients:
+        Estimate Std. Error t value Pr(>|t|)    
+SitePBL  2.16527    0.05987   36.17   <2e-16 ***
+SitePDL  1.91583    0.06140   31.20   <2e-16 ***
+SitePHA  2.14886    0.05689   37.77   <2e-16 ***
+SitePHO  2.05292    0.05691   36.08   <2e-16 ***
+SitePMB  2.35099    0.02708   86.81   <2e-16 ***
+SitePUN  1.81288    0.02259   80.26   <2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+             edf Ref.df      F  p-value    
+s(tair)    1.953  1.953 543.42  < 2e-16 ***
+s(precipf) 1.997  1.997 807.57  < 2e-16 ***
+s(swdown)  1.942  1.942  13.95 7.65e-07 ***
+s(lwdown)  1.000  1.000  16.96 3.86e-05 ***
+s(qair)    1.897  1.897 346.72  < 2e-16 ***
+s(psurf)   1.000  1.000  14.12 0.000173 ***
+s(wind)    1.972  1.972  21.07 1.41e-08 ***
+s(CO2)     1.414  1.414 923.98  < 2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.803   
+  Scale est. = 0.12994   n = 6954
+Warning message:
+In mclapply(paleon.models, paleon.gamms.models, mc.cores = length(paleon.models),  :
+  scheduled cores 4, 9, 5, 8 encountered errors in user code, all values of the jobs will be affected
+> 
+> # Make sure to save it here in case something bonks in the model-specific loops
+> save(mod.out, file=file.path(dat.dir, paste0("gamm_AllDrivers_Yr_AllModels", response, ".Rdata")))
+Error in save(mod.out, file = file.path(dat.dir, paste0("gamm_AllDrivers_Yr_AllModels",  : 
+  object 'mod.out' not found
+Execution halted
