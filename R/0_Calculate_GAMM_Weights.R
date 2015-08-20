@@ -11,8 +11,9 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	coef.gam <- coef(model.gam) # the gam coefficients
 	
 	# Some handy column indices
-	cols.list <- list(Site = which(substr(names(coef.gam),1,4)=="Site" | substr(names(coef.gam),1,11)=="(Intercept)"))
-	for(v in vars){
+	# cols.list <- list(Site = which(substr(names(coef.gam),1,4)=="Site" | substr(names(coef.gam),1,11)=="(Intercept)"))
+	cols.list <- list(Site = which(!substr(names(coef.gam),1,2)=="s("))
+	for(v in vars[!vars=="Y.lag"]){
 		cols.list[[v]] <- which(substr(names(coef.gam),1,(nchar(v)+3))==paste0("s(",v,")"))
 	}
 
