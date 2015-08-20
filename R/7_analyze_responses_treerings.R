@@ -43,7 +43,7 @@ library(car)
 setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms"
-in.tr  <- "AllDrivers_GS_TreeRings/TreeRings_All"
+in.tr  <- "Big4_GS_TreeRings/TreeRings_All"
 out.dir <- "Data/analysis_response_scale_TreeRings"
 fig.dir <- "Figures/analysis_response_scale_TreeRings"
 
@@ -99,6 +99,13 @@ summary(dat.ecosys)
 # Get rid of Linkages, because it's just weird
 ci.terms   <- ci.terms[!ci.terms$Model=="linkages",]
 dat.ecosys <- dat.ecosys[!dat.ecosys$Model=="linkages",]
+
+
+# Exporting PHA tree rings
+summary(dat.ecosys)
+dat.tr.pha <- dat.ecosys[dat.ecosys$Model=="tree.rings" & dat.ecosys$Site=="PHA" & dat.ecosys$Resolution=="t.001", ]
+summary(dat.tr.pha)
+write.csv(dat.tr.pha, file.path(out.dir, "TreeRings_PHA.csv"), row.names=F)
 
 # Write the files to csv so I don't have to mess with loading large .Rdata files again if I don't have to
 # write.csv(ci.terms.res,  file.path(out.dir, "Driver_Responses_CI_Resolution.csv"), row.names=F)
@@ -203,7 +210,9 @@ ggplot(data=dat.ecosys[dat.ecosys$Resolution=="t.001" & dat.ecosys$Site==s,])  +
 dev.off()
 
 
-extent.box <- data.frame(Year=850:1850, Min=0, Max=20)
+
+
+extent.box <- data.frame(Year=1901:1850, Min=0, Max=20)
 
 
 pdf(file.path(fig.dir, "NPP.Rel_ModelFits_PHA.pdf"))
@@ -214,19 +223,19 @@ ggplot(data=dat.ecosys[dat.ecosys$Resolution=="t.001" & dat.ecosys$Site=="PHA",]
 	geom_line(aes(x=Year, y=fit.gam.rel), alpha=0.8, size=0.5, color="gray40") +
 	scale_color_manual(values=c(colors.use, rep("black", 5))) +
 	# scale_x_continuous(limits=c(1900,2010)) +
-	ggtitle("NPP 0850-2010") +
+	ggtitle("NPP 1901-2010") +
 	theme_bw() + guides(color=F)
 )
-print(
-ggplot(data=dat.ecosys[dat.ecosys$Resolution=="t.001" & dat.ecosys$Site=="PHA",]) + facet_wrap(~Model.Order2) +
-	geom_line(aes(x=Year, y=NPP.rel, color=Model.Order2), size=1) +
-	geom_ribbon(aes(x=Year, ymin=lwr.rel, ymax=upr.rel), alpha=0.5) +
-	geom_line(aes(x=Year, y=fit.gam.rel), alpha=0.8, size=0.5, color="gray40") +
-	scale_color_manual(values=c(colors.use, rep("black", 5))) +
-	scale_x_continuous(limits=c(1900,2010)) +
-	ggtitle("NPP 1900-2010") +
-	theme_bw() + guides(color=F)
-)
+# print(
+# ggplot(data=dat.ecosys[dat.ecosys$Resolution=="t.001" & dat.ecosys$Site=="PHA",]) + facet_wrap(~Model.Order2) +
+	# geom_line(aes(x=Year, y=NPP.rel, color=Model.Order2), size=1) +
+	# geom_ribbon(aes(x=Year, ymin=lwr.rel, ymax=upr.rel), alpha=0.5) +
+	# geom_line(aes(x=Year, y=fit.gam.rel), alpha=0.8, size=0.5, color="gray40") +
+	# scale_color_manual(values=c(colors.use, rep("black", 5))) +
+	# scale_x_continuous(limits=c(1901,2010)) +
+	# ggtitle("NPP 1900-2010") +
+	# theme_bw() + guides(color=F)
+# )
 print(
 ggplot(data=dat.ecosys[dat.ecosys$Resolution=="t.001" & dat.ecosys$Site=="PHA",]) + facet_wrap(~Model.Order2) +
 	geom_line(aes(x=Year, y=NPP.rel, color=Model.Order2), size=1) +
@@ -257,7 +266,16 @@ dev.off()
 
 # Trying out the basic plot to compare model responses to drivers
 models.use <- unique(dat.ecosys[dat.ecosys$Model %in% ci.terms$Model,"Model.Order"])
-colors.use <- c(as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"]), "black")
+colors.use <- c(as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"]), "chartreuse")
+
+ci.terms$Effect.Order <- recode(ci.terms$Effect, "'tair'='1'; 'precipf'='2'; 'swdown'='3'; 'CO2'='4'")
+levels(ci.terms$Effect.Order) <- c("Temperature", "Precipitation", "SW Radiation", "CO2")
+summary(ci.terms[ci.terms$Resolution=="t.001" & ci.terms$Extent=="0850-2010",])
+ci.terms$Model.Order <- recode(ci.terms$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'; 'tree.rings'='11'")
+levels(ci.terms$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA", "Tree Rings")[as.numeric(levels(ci.terms$Model.Order))]
+
+ci.terms[ci.terms$Effect=="tair", "x"] <- ci.terms[ci.terms$Effect=="tair", "x"]-273.15
+summary(ci.terms)
 
 # Creating a cheat data frame that lets values go off the graph
 ci.terms.graph <- ci.terms
@@ -268,6 +286,7 @@ ci.terms.graph[which(ci.terms.graph$mean.rel>0.5),"mean.rel"] <- NA
 ci.terms.graph[ci.terms.graph$lwr.rel>(0.5),"lwr.rel"] <- 0.5 
 ci.terms.graph[ci.terms.graph$upr.rel>(0.5),"upr.rel"] <- 0.5 
 summary(ci.terms.graph)
+
 
 pdf(file.path(fig.dir, "NPP_RelChange_Resolution.pdf"))
 ggplot(data= ci.terms.graph[,]) + 
@@ -280,29 +299,54 @@ ggplot(data= ci.terms.graph[,]) +
 	theme_bw()
 dev.off()
 
-pdf(file.path(fig.dir, "NPP_RelChange_BaseEffect.pdf"))
+pdf(file.path(fig.dir, "NPP_RelChange_BaseEffect.pdf"), height=7.5, width=10)
+print(
 ggplot(data=ci.terms.graph[ci.terms.graph$Resolution=="t.001",]) + 
-	facet_wrap(~Effect, scales="free_x") +
-	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
-	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
+	facet_wrap(~Effect.Order, scales="free_x") +
+	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.5) +
+	geom_line(aes(x=x, y=mean.rel*100, color=Model.Order), size=1) +
+	geom_line(data=ci.terms.graph[ci.terms.graph$Resolution=="t.001" & ci.terms.graph$Model=="tree.rings",],
+			  aes(x=x, y=mean.rel*100, color=Model), color="chartreuse", size=2) +
 	scale_fill_manual(values=colors.use) +
 	scale_color_manual(values=colors.use) +
-	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 1901-2010") +
-	theme_bw()
+	scale_y_continuous(name="% Change NPP") +
+	guides(col=guide_legend(nrow=2, title="Model"), fill=guide_legend(nrow=2, title="Model")) +
+	theme(legend.position=c(0.5, 0.07)) +
+	theme(plot.title=element_text(face="bold", size=rel(1))) + 
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_rect(color="black"), 
+	      plot.background=element_rect(color="black")) +
+	theme(plot.title=element_text(face="bold", size=rel(1))) + 
+	theme(strip.text=element_text(size=rel(1.5), face="bold")) +
+	theme(legend.text=element_text(size=rel(1)), 
+	      legend.title=element_text(size=rel(1)),
+	      legend.key=element_blank(),
+	      legend.key.size=unit(1, "lines")) + 
+	      # legend.key.width=unit(2, "lines")) + 
+	theme(axis.text.x=element_text(color="black", size=rel(1.5)),
+		  axis.text.y=element_text(color="black", size=rel(1.5)), 
+		  axis.title.x=element_blank(),  
+		  axis.title.y=element_text(size=rel(1.5), face="bold"),
+		  axis.ticks.length=unit(-0.5, "lines"),
+	      axis.ticks.margin=unit(1.0, "lines"))
+)
 dev.off()
 
 
-big3 <- c("tair", "precipf", "CO2")
-pdf(file.path(fig.dir, "NPP_RelChange_BaseEffect_Big3.pdf"))
-ggplot(data=ci.terms[ci.terms$Resolution=="t.001" & ci.terms$Effect %in% big3,]) + 
-	facet_wrap(~Effect, scales="free_x") +
-	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
-	geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
-	scale_fill_manual(values=colors.use) +
-	scale_color_manual(values=colors.use) +
-	labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 1901-2010") +
-	theme_bw()
-dev.off()
+# big3 <- c("tair", "precipf", "CO2")
+# pdf(file.path(fig.dir, "NPP_RelChange_BaseEffect_Big3.pdf"))
+# ggplot(data=ci.terms[ci.terms$Resolution=="t.001" & ci.terms$Effect %in% big3,]) + 
+	# facet_wrap(~Effect, scales="free_x") +
+	# geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
+	# geom_line(aes(x=x, y=mean.rel, color=Model), size=0.75) +
+	# scale_fill_manual(values=colors.use) +
+	# scale_color_manual(values=colors.use) +
+	# labs(y="% Change NPP", title="Driver Sensitivity, Resolution: Annual, Extent: 1901-2010") +
+	# theme_bw()
+# dev.off()
 
 
 # ----------------------------------------

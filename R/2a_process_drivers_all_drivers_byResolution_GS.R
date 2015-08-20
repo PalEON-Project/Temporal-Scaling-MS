@@ -79,8 +79,8 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "AllDrivers_GS_byResolution")
-dat.dir <- file.path(dat.base, "AllDrivers_GS_byResolution")
+fig.dir <- file.path(fig.base, "Big4_GS_byResolution")
+dat.dir <- file.path(dat.base, "Big4_GS_byResolution")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -97,7 +97,7 @@ load(file.path("Data", "EcosysData_Raw.Rdata"))
 summary(ecosys)
 model.colors
 
-source('R/0_gamm.calculate2.R', chdir = TRUE)
+source('R/0_calculate.sensitivity_4drivers.R', chdir = TRUE)
 
 # Read in model color scheme
 model.colors
@@ -116,7 +116,8 @@ model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
 resolutions <- c("t.001", "t.010", "t.050", "t.100")
 response.all <- c("NPP", "AGB.diff", "NEE")
-predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+# predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+predictors.all <- c("tair", "precipf", "swdown", "CO2")
 predictor.suffix <- c(".gs")
 k=4
 # r=1	

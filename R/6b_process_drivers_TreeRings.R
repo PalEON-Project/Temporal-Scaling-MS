@@ -60,8 +60,8 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "AllDrivers_GS_TreeRings")
-dat.dir <- file.path(dat.base, "AllDrivers_GS_TreeRings")
+fig.dir <- file.path(fig.base, "Big4_GS_TreeRings")
+dat.dir <- file.path(dat.base, "Big4_GS_TreeRings")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -72,7 +72,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 # Load data files & function scripts
 # ----------------------------------------
-source('R/0_gamm.calculate2.R', chdir = TRUE)
+source('R/0_calculate.sensitivity_4drivers.R', chdir = TRUE)
 
 # Read in Tree Ring data
 dat.tr <- read.csv("Data/TreeRings_processed/TreeRing_Chronologies.csv")
@@ -114,7 +114,7 @@ summary(ecosys2)
 # -------------------------------------------------
 resolutions <- c("t.001", "t.010")
 response <- "NPP"
-predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+predictors.all <- c("tair", "precipf", "swdown", "CO2")
 predictor.suffix <- c(".gs")
 k=3
 # r=1	
@@ -128,7 +128,7 @@ k=3
 source('R/0_process.gamm.R', chdir = TRUE)
 source('R/0_gamm_Plots.R', chdir = TRUE)
 
-predictors <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+predictors <- c("tair", "precipf", "swdown", "CO2")
 
 
 # Making up a model & Model.Order
@@ -137,8 +137,8 @@ NPP.prefix <- c("HO", "LF", "TP")
 
 for(t in tr.type){
 
-fig.dir <- file.path(fig.base, "AllDrivers_GS_TreeRings", paste0("TreeRings_",t))
-dat.dir <- file.path(dat.base, "AllDrivers_GS_TreeRings", paste0("TreeRings_",t))
+fig.dir <- file.path(fig.base, "Big4_GS_TreeRings", paste0("TreeRings_",t))
+dat.dir <- file.path(dat.base, "Big4_GS_TreeRings", paste0("TreeRings_",t))
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -209,8 +209,10 @@ for(r in 1:length(resolutions)){ # Resolution loop
 	extent     <- c(as.numeric(substr(ext.name,1,ext.index-1)), as.numeric(substr(ext.name, ext.index+1,nchar(paste(ext.name)))))
 	resolution <- unique(data.temp$Resolution)
 
-	gam1 <- gam(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(lwdown, k=k) + s(qair, k=k) + s(psurf, k=k) + s(wind, k=k) + s(CO2, k=k) + Site -1, data=data.temp, correlation=corARMA(form=~Year|PlotID, p=1))
+	gam1 <- gam(NPP ~ s(tair, k=k) + s(precipf, k=k) + s(swdown, k=k) + s(CO2, k=k) + Site -1, data=data.temp, correlation=corARMA(form=~Year|PlotID, p=1))
 
+	mod.temp <- list()
+	mod.temp$gamm <- gam1
 	print(summary(gam1))	
 
 	# get rid of values for predictors not used in the models for clarity later on
@@ -408,17 +410,17 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free")
 	# scale_color_manual(values=col.model) +		
 	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
 )
-print(	
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
-	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
-	geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
-	scale_x_continuous(limits=c(1850,2010)) +
-	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-	# scale_fill_manual(values=col.model) +
-	# scale_color_manual(values=col.model) +		
-	labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
-)
+# print(	
+# ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
+ 	# geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
+	# geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr), alpha=0.5, fill=col.model) +
+	# geom_line(aes(x=Year, y=mean), size=0.35, color= col.model) +
+	# scale_x_continuous(limits=c(1850,2010)) +
+	# # scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	# # scale_fill_manual(values=col.model) +
+	# # scale_color_manual(values=col.model) +		
+	# labs(title=paste(m.order, response, sep=" - "), x="Year", y=response)
+# )
 dev.off()
 
 

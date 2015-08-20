@@ -46,10 +46,10 @@ library(zoo)
 setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms"
-in.res  <- "AllDrivers_YR_byResolution"
-in.ext  <- "AllDrivers_YR_byExtent"
-dat.dir <- "Data/analysis_drivers"
-fig.dir <- "Figures/analysis_drivers"
+in.res  <- "Big4_GS_byResolution"
+in.ext  <- "Big4_GS_byExtent"
+dat.dir <- "Data/analysis_drivers_big4"
+fig.dir <- "Figures/analysis_drivers_big4"
 
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
 if(!dir.exists(fig.dir)) dir.create(fig.dir)
@@ -113,7 +113,7 @@ dat.ecosys$Extent <- as.factor(ifelse(dat.ecosys$Extent=="850-2010", "0850-2010"
 summary(dat.ecosys)
 
 # subset just the met data (lets just use the drivers returned by JULES since it had the fewest issues)
-vars.met <- c("tair", "precipf", "swdown", "lwdown", "qair", "psurf", "wind", "CO2")
+vars.met <- c("tair", "precipf", "swdown", "CO2")
 drivers <- dat.ecosys[dat.ecosys$Model=="ed2", c("Year", "Site", "Resolution", "Extent", vars.met)]
 drivers$Met.Source <- as.factor(ifelse(drivers$Year<1850, "CCSM4_p1000", ifelse(drivers$Year>=1901, "CRUNCEP", "CCSM4_historical")))
 summary(drivers)
@@ -127,6 +127,7 @@ names(drivers.stack) <- c("Driver", "Value")
 drivers.stack$Year   <- drivers$Year
 drivers.stack$Site   <- drivers$Site
 drivers.stack$Extent <- drivers$Extent
+drivers.stack$Resolution <- drivers$Resolution
 drivers.stack$Source <- drivers$Met.Source
 summary(drivers.stack)
 
@@ -142,9 +143,11 @@ summary(drivers.stack)
 pdf(file.path(fig.dir, "MetDrivers_byDriver_Source.pdf"))
 for(d in unique(drivers.stack$Driver)){
 print(
-ggplot(data=drivers.stack[drivers.stack$Driver==d,]) + facet_wrap(~Site) +
+ggplot(data=drivers.stack[drivers.stack$Driver==d & drivers.stack$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_ribbon(aes(x=Year, ymin=Val.min, ymax=Val.max, fill=Source), alpha=0.5) +	
 	geom_line(aes(x=Year, y=Value)) +
+	geom_line(data=drivers.stack[drivers.stack$Driver==d & drivers.stack$Resolution=="t.050",], aes(x=Year, y=Value), color="gray50", size=1.5) +
+	geom_point(data=drivers.stack[drivers.stack$Driver==d & drivers.stack$Resolution=="t.050",], aes(x=Year, y=Value), color="gray50", size=2) +
 	scale_x_continuous(expand=c(0,0)) +
 	scale_y_continuous(expand=c(0,0)) +
 	labs(title=d) +
@@ -167,6 +170,8 @@ print(
 ggplot(data=drivers.stack[drivers.stack$Site==s,]) + facet_wrap(~Driver, scales="free_y") +
 	geom_ribbon(aes(x=Year, ymin=Val.min, ymax=Val.max, fill=Source), alpha=0.5) +	
 	geom_line(aes(x=Year, y=Value)) +
+	geom_line(data=drivers.stack[drivers.stack$Site==s & drivers.stack$Resolution=="t.050",], aes(x=Year, y=Value), color="gray50", size=1.5) +
+	geom_point(data=drivers.stack[drivers.stack$Site==s & drivers.stack$Resolution=="t.050",], aes(x=Year, y=Value), color="gray50", size=2) +
 	scale_x_continuous(expand=c(0,0)) +
 	scale_y_continuous(expand=c(0,0)) +
 	labs(title=s, y="Value") +
@@ -204,6 +209,200 @@ ggplot(data=drivers.stack[drivers.stack$Driver==d,]) + facet_wrap(~Site) +
 )
 dev.off()
 }
+dev.off()
+
+# ------------------
+# Plotting just PHA for talks, etc
+# ------------------
+summary(drivers.stack)
+
+# Subset PHA & rename/reorder drivers
+drivers.pha <- drivers.stack[drivers.stack$Site=="PHA",]
+drivers.pha$Driver.Order <- recode(drivers.pha$Driver, "'tair'='1'; 'precipf'='2'; 'swdown'='3'; 'CO2'='4'")
+levels(drivers.pha$Driver.Order) <- c("Temp", "Precip", "SW Rad", "CO2")
+
+# Conver tair into celcius
+drivers.pha[drivers.pha$Driver=="tair","Value"] <- drivers.pha[drivers.pha$Driver=="tair","Value"]-273.15
+
+
+pdf(file.path(fig.dir, "Drivers_Big4_0850-2010_ggplot_raw.pdf"), width=10, height=7.5)
+ggplot(data=drivers.pha) + facet_grid(Driver.Order~., scales="free_y") +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.001" & drivers.pha$Extent=="0850-2010",], 
+			  aes(x=Year, y=Value, color=Driver.Order), alpha=0.5) +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.050" & drivers.pha$Extent=="0850-2010",], 
+			  aes(x=Year, y=Value, color=Driver.Order), size=1.5) +
+	geom_point(data=drivers.pha[drivers.pha$Resolution=="t.050" & drivers.pha$Extent=="0850-2010",], 
+			   aes(x=Year, y=Value, color=Driver.Order), size=3) +
+	scale_y_continuous(name="", expand=c(0,0)) +
+	scale_x_continuous(expand=c(0,0), breaks=c(1000, 1250, 1500, 1750, 2000)) +
+	scale_color_manual(values=c("red", "blue", "darkgoldenrod2", "green2")) +
+	guides(color=F) +
+	theme(plot.title=element_text(face="bold", size=rel(3))) + 
+	theme(strip.text=element_text(size=rel(1.5))) +
+	theme(legend.text=element_text(size=rel(1.75)), 
+	      legend.title=element_text(size=rel(2)),
+	      legend.key=element_blank(),
+	      legend.key.size=unit(2, "lines")) + 
+	      # legend.key.width=unit(2, "lines")) + 
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank(), 
+	      axis.text.x=element_text(angle=0, color="black", size=rel(2.5)), 
+	      axis.text.y=element_text(color="black", size=rel(2.5)), 
+	      axis.title.x=element_text(face="bold", size=rel(2.25), vjust=-0.5),  
+	      axis.title.y=element_text(face="bold", size=rel(2.25), vjust=1))
+dev.off()
+
+# customizing a plot for each driver so thave independent y-axes
+
+plot.temp <- ggplot() + 
+	facet_grid(Driver.Order~., scales="free_y") +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.001" & 
+	                           drivers.pha$Extent=="0850-2010" & 
+	                           drivers.pha$Driver=="tair",], 
+			  aes(x=Year, y=Value, color=Driver.Order), alpha=0.5) +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.050" & 
+	                           drivers.pha$Extent=="0850-2010" & 
+	                           drivers.pha$Driver=="tair",], 
+			  aes(x=Year, y=Value, color=Driver.Order), size=1.5) +
+	geom_point(data=drivers.pha[drivers.pha$Resolution=="t.050" & 
+	                            drivers.pha$Extent=="0850-2010" & 
+	                            drivers.pha$Driver=="tair",], 
+			   aes(x=Year, y=Value, color=Driver.Order), size=3) +
+	geom_vline(xintercept=1901, linetype="dashed", size=1.5) +
+	scale_y_continuous(name=expression(paste("Temp ("^"o","C)")), expand=c(0,0)) +
+	scale_x_continuous(expand=c(0,0), breaks=c(1000, 1250, 1500, 1750, 2000)) +
+	scale_color_manual(values=c("red")) +
+	guides(color=F) +
+	theme(strip.text=element_text(size=rel(1.5), face="bold")) +
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank(), 
+	      axis.text.x=element_blank(), 
+	      axis.text.y=element_text(color="black", size=rel(1.25)), 
+	      axis.title.x=element_blank(),  
+	      axis.title.y=element_text(face="bold", size=rel(1.25), vjust=2),
+	      axis.ticks.length=unit(-0.5, "lines"),
+	      axis.ticks.margin=unit(1, "lines")) +
+	theme(plot.margin=unit(c(1,1,-1,0.9), "lines"))
+
+plot.precip <- ggplot() + 
+	facet_grid(Driver.Order~., scales="free_y") +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.001" & 
+	                           drivers.pha$Extent=="0850-2010" & 
+	                           drivers.pha$Driver=="precipf",], 
+			  aes(x=Year, y=Value, color=Driver.Order), alpha=0.5) +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.050" & 
+	                           drivers.pha$Extent=="0850-2010" & 
+	                           drivers.pha$Driver=="precipf",], 
+			  aes(x=Year, y=Value, color=Driver.Order), size=1.5) +
+	geom_point(data=drivers.pha[drivers.pha$Resolution=="t.050" & 
+	                            drivers.pha$Extent=="0850-2010" & 
+	                            drivers.pha$Driver=="precipf",], 
+			   aes(x=Year, y=Value, color=Driver.Order), size=3) +
+	geom_vline(xintercept=1901, linetype="dashed", size=1.5) +
+	scale_y_continuous(name=expression(paste("Precip (mm yr"^"-1",")")), expand=c(0,0)) +
+	scale_x_continuous(expand=c(0,0), breaks=c(1000, 1250, 1500, 1750, 2000)) +
+	scale_color_manual(values=c("blue")) +
+	guides(color=F) +
+	theme(strip.text=element_text(size=rel(1.5), face="bold")) +
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank(), 
+	      axis.text.x=element_blank(), 
+	      axis.text.y=element_text(color="black", size=rel(1)), 
+	      axis.title.x=element_blank(),  
+	      axis.title.y=element_text(face="bold", size=rel(1.25), vjust=0.6),
+	      axis.ticks.length=unit(-0.5, "lines"),
+	      axis.ticks.margin=unit(1, "lines")) +
+	theme(plot.margin=unit(c(0,1,-1,0.15), "lines"))
+
+plot.swdown <- ggplot() + 
+	facet_grid(Driver.Order~., scales="free_y") +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.001" & 
+	                           drivers.pha$Extent=="0850-2010" & 
+	                           drivers.pha$Driver=="swdown",], 
+			  aes(x=Year, y=Value, color=Driver.Order), alpha=0.5) +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.050" & 
+	                           drivers.pha$Extent=="0850-2010" & 
+	                           drivers.pha$Driver=="swdown",], 
+			  aes(x=Year, y=Value, color=Driver.Order), size=1.5) +
+	geom_point(data=drivers.pha[drivers.pha$Resolution=="t.050" & 
+	                            drivers.pha$Extent=="0850-2010" & 
+	                            drivers.pha$Driver=="swdown",], 
+			   aes(x=Year, y=Value, color=Driver.Order), size=3) +
+	geom_vline(xintercept=1901, linetype="dashed", size=1.5) +
+	scale_y_continuous(name=expression(paste("Rad (W m"^"-2",")")), expand=c(0,0)) +
+	scale_x_continuous(expand=c(0,0), breaks=c(1000, 1250, 1500, 1750, 2000)) +
+	scale_color_manual(values=c("darkgoldenrod3")) +
+	guides(color=F) +
+	theme(strip.text=element_text(size=rel(1.5), face="bold")) +
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank(), 
+	      axis.text.x=element_blank(), 
+	      axis.text.y=element_text(color="black", size=rel(1.25)), 
+	      axis.title.x=element_blank(),  
+	      axis.title.y=element_text(face="bold", size=rel(1.25), vjust=1),
+	      axis.ticks.length=unit(-0.5, "lines"),
+	      axis.ticks.margin=unit(1, "lines")) +
+	theme(plot.margin=unit(c(0,1,-1,0.3), "lines"))
+
+plot.co2 <- ggplot() + 
+	facet_grid(Driver.Order~., scales="free_y") +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.001" & 
+	                           drivers.pha$Extent=="0850-2010" & 
+	                           drivers.pha$Driver=="CO2",], 
+			  aes(x=Year, y=Value, color=Driver.Order), alpha=0.5) +
+	geom_line(data=drivers.pha[drivers.pha$Resolution=="t.050" & 
+	                           drivers.pha$Extent=="0850-2010" & 
+	                           drivers.pha$Driver=="CO2",], 
+			  aes(x=Year, y=Value, color=Driver.Order), size=1.5) +
+	geom_point(data=drivers.pha[drivers.pha$Resolution=="t.050" & 
+	                            drivers.pha$Extent=="0850-2010" & 
+	                            drivers.pha$Driver=="CO2",], 
+			   aes(x=Year, y=Value, color=Driver.Order), size=3) +
+	geom_vline(xintercept=1901, linetype="dashed", size=1.5) +
+	scale_y_continuous(name=expression(paste("CO2 (ppm)")), expand=c(0,0)) +
+	scale_x_continuous(expand=c(0,0), breaks=c(1000, 1250, 1500, 1750, 2000)) +
+	scale_color_manual(values=c("green4")) +
+	guides(color=F) +
+	theme(strip.text=element_text(size=rel(1.5), face="bold")) +
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank(), 
+	      axis.text.x=element_text(angle=0, color="black", size=rel(2.5)), 
+	      axis.text.y=element_text(color="black", size=rel(1.25)), 
+	      axis.title.x=element_text(face="bold", angle=0, color="black", size=rel(2.5)),  
+	      axis.title.y=element_text(face="bold", size=rel(1.25), vjust=1),
+	      axis.ticks.length=unit(-0.5, "lines"),
+	      axis.ticks.margin=unit(1, "lines")) +
+	theme(plot.margin=unit(c(0,1,1,0.56), "lines"))
+
+
+
+pdf(file.path(fig.dir, "Drivers_Big4_0850-2010.pdf"), width=10, height=7.5)
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(4,1)))
+print(plot.temp,   vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+print(plot.precip, vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
+print(plot.swdown, vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
+print(plot.co2,    vp = viewport(layout.pos.row = 4, layout.pos.col = 1))
+dev.off()
+
+
+# ------------------
+
 
 # ----------------------------------------
 

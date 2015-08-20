@@ -81,8 +81,8 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "AllDrivers_GS_byResolution_Site")
-dat.dir <- file.path(dat.base, "AllDrivers_GS_byResolution_Site")
+fig.dir <- file.path(fig.base, "Big4_GS_byResolution_Site")
+dat.dir <- file.path(dat.base, "Big4_GS_byResolution_Site")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -99,7 +99,7 @@ load(file.path("Data", "EcosysData_Raw.Rdata"))
 summary(ecosys)
 model.colors
 
-source('R/0_gamm.calculate2.R', chdir = TRUE)
+source('R/0_calculate.sensitivity_4drivers.R', chdir = TRUE)
 source('R/0_GAMM_Plots.R', chdir = TRUE)
 
 # Read in model color scheme
@@ -121,9 +121,10 @@ model.order <- unique(ecosys$Model.Order)
 resolutions <- c("t.001", "t.010", "t.050") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(850, 1850, 1990), End=c(2010, 2010, 2010)) 
 response.all <- c("NPP", "NEE", "AGB.diff")
-predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+# predictors.all <- c("tair", "precipf", "swdown", "lwdown", "psurf", "qair", "wind", "CO2")
+predictors.all <- c("tair", "precipf", "swdown", "CO2")
 predictor.suffix <- c(".gs")
-k=3
+k=4
 e=1	
 # -------------------------------------------------
 
@@ -271,15 +272,15 @@ dev.off()
 
 
 pdf(file.path(fig.dir, paste0("GAMM_DriverEffects_AllDrivers_GS_Site_", m.order, "_", response, ".pdf")))
-for(p in unique(mod.out$ci.terms$Effect)){
+for(r in unique(mod.out$ci.terms$Resolution)){
 print(
-ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==p,]) + facet_wrap(~ Resolution, scales="free") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Resolution==r,]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Site), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	# scale_color_manual(values=c("red2", "blue", "green3")) +
 	# scale_fill_manual(values=c("red2", "blue", "green3")) +
-	labs(title=paste0("Driver Effects: ", p, ": ", m.order), y=paste0(p, " Effect Size")) # +
+	labs(title=paste0("Driver Effects: ", r, ": ", m.order), y=paste0(r, " Effect Size")) # +
 )
 }
 dev.off()
