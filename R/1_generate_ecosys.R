@@ -49,8 +49,10 @@ summary(ecosys)
 met.yr <- read.csv(file.path(path.data, "analysis_drivers", "Drivers_Year_GrowingSeason.csv"))
 met.yr$CO2 <- met.yr$CO2.yr 
 
-# Merge the met drivers into ecosys
+# Merge the met drivers into ecosys; 
+# NOTE: this merge screws up the year/site/model ordering, so we need to resort
 ecosys <- merge(ecosys, met.yr, all.x=T, all.y=T)
+ecosys <- ecosys[order(ecosys$Model, ecosys$Site, ecosys$Year),]
 summary(ecosys)
 
 # Colors used for graphing
@@ -90,6 +92,13 @@ for(s in unique(ecosys$Site)){
 
 save(ecosys, model.colors, file=file.path(path.data, "EcosysData_Raw.Rdata"))
 # ----------------------------------------
+
+# ggplot(data=ecosys[ecosys$Site=="PHA" & ecosys$Year>=1990,]) +
+	# geom_line(aes(x=Year, y=AGB.diff, color=Model.Order)) +
+	# # scale_color_manual(values=model.colors$color) +
+	# # scale_y_continuous(limits=c(-1,1)) +
+	# # scale_x_continuous(limits=c(1990,2010)) +
+	# theme_bw()
 
 # ----------------------------------------
 # Standardizations:
