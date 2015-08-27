@@ -142,6 +142,37 @@ dat.ecosys2 <- dat.ecosys2[dat.ecosys2$dAGB>quantile(dat.ecosys2$dAGB, 0.05, na.
 dat.ecosys2 <- dat.ecosys2[!is.na(dat.ecosys2$Resolution) & !is.na(dat.ecosys2$Extent),]
 summary(dat.ecosys2)
 
+pdf(file.path(fig.dir, "ModelVars_Correlation_Resolution_dAGB_NPP_t001.pdf"))
+print(
+ggplot(data=dat.ecosys2[dat.ecosys2$Extent=="0850-2010" & dat.ecosys2$Resolution=="t.001",]) + 
+	facet_wrap( ~ Model.Order, scales="free") +
+	geom_point(aes(y=dAGB, x=NPP, color=Site), size=0.8) +
+	# scale_y_continuous(limits=c(-1,1)) +
+	ggtitle("dAGB vs. NPP") +
+	guides(color=guide_legend(nrow=2)) +
+	theme(legend.position=c(0.5, 0.2)) +
+	theme(plot.title=element_text(face="bold", size=rel(1))) + 
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_blank(), 
+	      panel.background=element_blank(), 
+	      plot.background=element_blank()) +
+	theme(plot.title=element_text(face="bold", size=rel(1))) + 
+	theme(strip.text=element_text(size=rel(1), face="bold")) +
+	theme(legend.text=element_text(size=rel(1)), 
+	      legend.title=element_text(size=rel(1)),
+	      legend.key=element_blank(),
+	      legend.key.size=unit(1, "lines")) #+ 
+	      # legend.key.width=unit(2, "lines")) + 
+	# theme(axis.text.x=element_text(color="black", size=rel(1)),
+		  # axis.text.y=element_text(color="black", size=rel(1)), 
+		  # axis.title.x=element_blank(),  
+		  # axis.title.y=element_text(size=rel(1), face="bold"),
+		  # axis.ticks.length=unit(-0.5, "lines"),
+	      # axis.ticks.margin=unit(1.0, "lines"))
+)
+dev.off()
 
 pdf(file.path(fig.dir, "ModelVars_Correlation_Resolution.pdf"))
 print(
