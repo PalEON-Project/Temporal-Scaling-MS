@@ -232,7 +232,7 @@ SITE    <- as.numeric(dat$Site)
 
 n       <- length(y)
 nt		<- length(unique(T.SCALE))
-ns		<- length(unique(SITE))
+ns      <- length(unique(SITE))
 
 params <- c("beta0", "beta1", "beta2", "beta3", "beta4", "beta5", "beta6", "beta7","alpha1", "sigma")
 # params <- c("beta", "sigma")
