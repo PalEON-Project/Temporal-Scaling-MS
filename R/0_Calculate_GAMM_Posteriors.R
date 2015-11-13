@@ -3,7 +3,10 @@ post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, lwr=0.
 
 	# -----------
 	# Simulating a posterior distribution of Betas to get variance on non-linear functions
-	# This is following Gavin Simpson's post here: http://www.fromthebottomoftheheap.net/2011/06/12/additive-model.gamling-and-the-hadcrut3v-global-mean-temperature-series/
+	# This is following Gavin Simpson's post here: 
+	# http://www.fromthebottomoftheheap.net/2011/06/12/additive-modelling-and-the-hadcrut3v-global-mean-temperature-series/
+	# His handy-dandy functions can be found here: https://github.com/gavinsimpson/random_code/
+	#      Including the derivative funcition that will probably come in handy later
 	# -----------
 	library(MASS)
 	set.seed(321)

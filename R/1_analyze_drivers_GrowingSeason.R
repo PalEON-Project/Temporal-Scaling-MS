@@ -39,10 +39,10 @@ library(ncdf4)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-# setwd("~/Desktop/Research/PalEON CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-setwd("..")
+# setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 path.data <- "Data"
-model.dir <- "~/Dropbox/PalEON CR/paleon_mip_site/phase1a_model_output"
+model.dir <- "~/Dropbox/PalEON_CR/paleon_mip_site/phase1a_model_output"
 dat.dir <- "Data/analysis_met_drivers"
 fig.dir <- "Figures/analysis_met_drivers"
 
@@ -60,7 +60,7 @@ met <- list()
 # 1.1 ED2 -- all met vars except swdown
 # -----------------------------------
 for(s in 1:length(site.list)){
-  dir.mod <- file.path(model.dir, "ED2.v6", site.list[s])
+  dir.mod <- file.path(model.dir, "ED2.v7", site.list[s])
   files.mod <- dir(dir.mod)
   metvars.list <- list()
   #-----------------------------------
@@ -92,10 +92,10 @@ for(i in which(!met.vars=="swdown")){
 }
 
 # -----------------------------------
-# 1.2 CLM 4.5 CN -- swdown
+# 1.2 SiBCASA -- swdown
 # -----------------------------------
 for(s in 1:length(site.list)){
-  dir.mod <- file.path(model.dir, "CLM-CN.v2", site.list[s])
+  dir.mod <- file.path(model.dir, "SiBCASA.v1", paste0(site.list[s], "_SiBCASA"))
   files.mod <- dir(dir.mod)
   metvars.list <- list()
   #-----------------------------------
