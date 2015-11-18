@@ -39,12 +39,12 @@ library(car)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms/Sensitivity_Models_Baseline"
-out.dir <- "Data/analyses/response_ensemble_baseline_TPC"
-fig.dir <- "Figures/analyses/response_ensemble_baseline_TPC"
+out.dir <- "Data/analyses/response_ensemble_baseline"
+fig.dir <- "Figures/analyses/response_ensemble_baseline"
 
 if(!dir.exists(out.dir)) dir.create(out.dir)
 if(!dir.exists(fig.dir)) dir.create(fig.dir)
@@ -57,12 +57,14 @@ load(file.path(path.data, "EcosysData.Rdata"))
 ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 
-load(file.path(in.base, "gamm_models_baseline_NPP_Site.Rdata"))
+load(file.path(in.base, "gamm_models_baseline_NPP.Rdata"))
 
 ci.terms   <- mod.out$ci.terms
 dat.ecosys <- cbind(mod.out$data, mod.out$ci.response[,c("mean", "lwr", "upr")])
 wt.terms   <- mod.out$weights
+sim.terms  <- mod.out$sim.terms
 
+sim.terms$Effect  <- as.factor(sim.terms$Effect)
 ci.terms$Extent   <- as.factor(ifelse(ci.terms$Extent=="850-2010", "0850-2010", paste(ci.terms$Extent)))
 dat.ecosys$Extent <- as.factor(ifelse(dat.ecosys$Extent=="850-2010", "0850-2010", paste(dat.ecosys$Extent)))
 wt.terms$Extent   <- as.factor(ifelse(wt.terms$Extent=="850-2010", "0850-2010", paste(wt.terms$Extent)))
@@ -70,19 +72,24 @@ wt.terms$Extent   <- as.factor(ifelse(wt.terms$Extent=="850-2010", "0850-2010", 
 summary(ci.terms)
 summary(dat.ecosys)
 summary(wt.terms)
+summary(sim.terms[,1:10])
 
 
 models.use <- unique(dat.ecosys[,"Model.Order"])
 colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"])
 
 
+pdf(file.path(fig.dir, "NPP_Sensitivity_Models_Raw_NoSite.pdf"), height=8.5, width=11)
+# png(file.path(fig.dir, "NPP_Sensitivity_Models_Raw_NoSite.png"))
+print(
 ggplot(data=ci.terms) + facet_wrap(~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model)) +
 	scale_fill_manual(values=colors.use) +
 	scale_color_manual(values=colors.use) +
 	theme_bw()
-
+)
+dev.off()
 
 # ----------------------------------------
 
@@ -98,11 +105,7 @@ summary(dat.ecosys)
 pdf(file.path(fig.dir, "NPP_Scales_PHA_0850-2010_Simple.pdf"), height=8.5, width=11)
 print(
 ggplot(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="t.001" & dat.ecosys$Site=="PHA",])  +
-	# geom_ribbon(data=extent.box, aes(x=Year, ymin=Min, ymax=Max), alpha=0.2) +
 	geom_line(aes(x=Year, y=NPP, color=Model.Order), size=0.5, alpha=0.8) +
-	# geom_line(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="t.050" & dat.ecosys$Site=="PHA",], aes(x=Year, y=NPP, color=Model.Order), size=2) +
-	# geom_point(data=dat.ecosys[dat.ecosys$Extent=="0850-2010" & dat.ecosys$Resolution=="t.050" & dat.ecosys$Site=="PHA",], aes(x=Year, y=NPP, color=Model.Order), size=5) +
-	# geom_vline(xintercept=1901, linetype="dashed", size=1.5) +
 	scale_x_continuous(limits=c(0850, 2010), expand=c(0,0)) +
 	scale_y_continuous(limits=c(0,20), expand=c(0,0)) +
 	scale_color_manual(values=colors.use) +
@@ -141,52 +144,56 @@ dev.off()
 # NOTE: we ARE relativizing per site here since the response curves were site-specific
 for(m in unique(ci.terms$Model)){
 	for(r in unique(ci.terms[ci.terms$Model==m, "Resolution"])){
-		for(s in unique(ci.terms[ci.terms$Model==m & ci.terms$Resolution==r, "Site"])){
 
 			# -----------------------
 			# Find the NPP to relativize each set off of
-			# Using 1800:1850 mean (Settlement-era) as reference point
+			# Using mean model NPP across sites since the GAMM response curves are for 
+			#    the whole model & not site-specific are parameterized
 			# -----------------------
 			# Find the start year for the extent
 			# yr <- ifelse(nchar(as.character(e))==8, as.numeric(substr(e,1,3)), as.numeric(substr(e,1,4)))
 
-			npp <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Year %in% 1800:1850 & dat.ecosys$Resolution==r & dat.ecosys$Site==s, "NPP"], na.rm=T)			
+			npp <- mean(dat.ecosys[dat.ecosys$Model==m  & dat.ecosys$Resolution==r, "NPP"], na.rm=T)			
 			# -----------------------
 			
 			# -----------------------
 			# Relativizing everything in dat.ecosys to make it comparable to tree rings
 			# -----------------------
-			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"NPP.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"NPP"])/npp
-			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"fit.gam.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"mean"])/npp
-			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"mean.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"mean"])/npp
-			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"lwr.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"lwr"])/npp
-			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"upr.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r & dat.ecosys$Site==s,"upr"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"NPP.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"NPP"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"fit.gam.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"mean"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"mean.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"mean"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"lwr.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"lwr"])/npp
+			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"upr.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"upr"])/npp
 			# -----------------------
 
 			
 			# -----------------------
 			# Finding the percent change in NPP relative to the mean for that particular scale
 			# -----------------------
-			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Site==s,"mean.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Site==s,"mean"])/npp
-			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Site==s,"lwr.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Site==s,"lwr"])/npp
-			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Site==s,"upr.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r & ci.terms$Site==s,"upr"])/npp
+			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"mean.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"mean"])/npp
+			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"lwr.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"lwr"])/npp
+			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"upr.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"upr"])/npp
+
+			# Tacking on the simulated distributions so we can do ensemble CIs or robust comparisons
+			sim.terms[sim.terms$Model==m & sim.terms$Resolution==r,7:ncol(sim.terms)] <- (sim.terms[sim.terms$Model==m & sim.terms$Resolution==r,7:ncol(sim.terms)])/npp
 			# -----------------------
 
 			# -----------------------
 			# Relativizing the factor fits through times and weights as well
 			# Note: because a fit of 0 means no change from the mean, we need to add 1 to all of these
 			# -----------------------
-			wt.terms[wt.terms$Model==m & wt.terms $Resolution==r & wt.terms$Site==s,"fit.tair.rel"] <- 1+(wt.terms[wt.terms$Model==m & wt.terms$Resolution==r & wt.terms$Site==s,"fit.tair"])/npp
-			wt.terms[wt.terms$Model==m & wt.terms $Resolution==r & wt.terms$Site==s,"fit.precipf.rel"] <- 1+ (wt.terms[wt.terms$Model==m & wt.terms$Resolution==r & wt.terms$Site==s,"fit.precipf"])/npp
-			wt.terms[wt.terms$Model==m & wt.terms $Resolution==r & wt.terms$Site==s,"fit.CO2.rel"] <- 1+(wt.terms[wt.terms$Model==m & wt.terms$Resolution==r & wt.terms$Site==s,"fit.CO2"])/npp
+			wt.terms[wt.terms$Model==m & wt.terms $Resolution==r,"fit.tair.rel"] <- 1+(wt.terms[wt.terms$Model==m & wt.terms$Resolution==r,"fit.tair"])/npp
+			wt.terms[wt.terms$Model==m & wt.terms $Resolution==r,"fit.precipf.rel"] <- 1+ (wt.terms[wt.terms$Model==m & wt.terms$Resolution==r,"fit.precipf"])/npp
+			wt.terms[wt.terms$Model==m & wt.terms $Resolution==r,"fit.CO2.rel"] <- 1+(wt.terms[wt.terms$Model==m & wt.terms$Resolution==r,"fit.CO2"])/npp
 			# -----------------------
 
-		}
+		# }
 	}
 }
 summary(dat.ecosys)
 summary(ci.terms)
 summary(wt.terms)
+summary(sim.terms[,1:10])
 
 # Trying out the basic plot to compare model responses to drivers
 models.use <- unique(dat.ecosys[dat.ecosys$Model %in% ci.terms$Model,"Model.Order"])
@@ -194,14 +201,29 @@ colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "
 
 # Creating a cheat data frame that lets values go off the graph
 ci.terms.graph <- ci.terms
-ci.terms.graph[ci.terms.graph$mean.rel<(-1.25),"mean.rel"] <- NA 
-ci.terms.graph[ci.terms.graph$lwr.rel<(-1.25),"lwr.rel"] <- -1.25 
-ci.terms.graph[ci.terms.graph$upr.rel<(-1.25),"upr.rel"] <- -1.25 
-ci.terms.graph[which(ci.terms.graph$mean.rel>1.25),"mean.rel"] <- NA 
-ci.terms.graph[ci.terms.graph$lwr.rel>(1.25),"lwr.rel"] <- 1.25 
-ci.terms.graph[ci.terms.graph$upr.rel>(1.25),"upr.rel"] <- 1.25 
+ci.terms.graph[ci.terms.graph$mean.rel<(-0.75),"mean.rel"] <- NA 
+ci.terms.graph[ci.terms.graph$lwr.rel<(-0.75),"lwr.rel"] <- -0.75 
+ci.terms.graph[ci.terms.graph$upr.rel<(-0.75),"upr.rel"] <- -0.75 
+ci.terms.graph[which(ci.terms.graph$mean.rel>1.0),"mean.rel"] <- NA 
+ci.terms.graph[ci.terms.graph$lwr.rel>(1.0),"lwr.rel"] <- 1.0 
+ci.terms.graph[ci.terms.graph$upr.rel>(1.0),"upr.rel"] <- 1.0 
 ci.terms.graph[ci.terms.graph$Effect=="tair", "x"] <- ci.terms.graph[ci.terms.graph$Effect=="tair", "x"]-273.15
 summary(ci.terms.graph)
+
+
+# Plot the relativized
+pdf(file.path(fig.dir, "NPP_Sensitivity_Models_Rel_NoSite.pdf"), height=8.5, width=11)
+print(
+ggplot(data=ci.terms.graph) + facet_wrap(~Effect, scales="free_x") +
+	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean.rel*100, color=Model)) +
+	scale_x_continuous(expand=c(0,0)) +
+	scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+	scale_fill_manual(values=colors.use) +
+	scale_color_manual(values=colors.use) +
+	theme_bw()
+)
+dev.off()
 
 
 # Merging wt.terms & dat.ecosys to get the relativized NPP lined up
@@ -211,13 +233,6 @@ summary(wt.terms2)
 indices.wt2 <- wt.terms2$Site=="PHA" & wt.terms2$Resolution=="t.001" & wt.terms2$Extent=="0850-2010" 
 indices.wt2b <- wt.terms2$Site=="PHA" & wt.terms2$Resolution=="t.010" & wt.terms2$Extent=="0850-2010" 
 
-
-ggplot(data=ci.terms) + facet_grid(Site~Effect, scales="free_x") +
-	geom_ribbon(aes(x=x, ymin=lwr.rel, ymax=upr.rel, fill=Model), alpha=0.5) +
-	geom_line(aes(x=x, y=mean.rel, color=Model)) +
-	scale_fill_manual(values=colors.use) +
-	scale_color_manual(values=colors.use) +
-	theme_bw()
 
 
 # pdf(file.path(fig.dir, "NPP_Rel_Drivers_Time_PHA_1800-2010.pdf"), width=11, height=7.5)

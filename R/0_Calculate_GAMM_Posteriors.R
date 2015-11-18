@@ -16,6 +16,7 @@ post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, lwr=0.
 
 
 	coef.gam <- coef(model.gam)
+	
 	# Generate a random distribution of betas using the covariance matrix
 	Rbeta <- mvrnorm(n=n, coef(model.gam), vcov(model.gam))
 

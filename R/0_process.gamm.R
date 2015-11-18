@@ -50,8 +50,13 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, resolutio
 		new.dat <- data.frame(	Site=site.vec,
 								Extent=as.factor(paste(extent[1], extent[2], sep="-")), 
 								Resolution=rep(resolution, n.out*ns))
+
 		for(v in vars){
-			new.dat[,v] <- rep(seq(min(data[,v],   na.rm=T), max(data[,v],   na.rm=T), length.out=n.out), ns)
+			if(is.factor(data[,v])){
+				new.dat[,v] <- as.factor(unique(data[,v])[1])
+			} else {
+				new.dat[,v] <- rep(seq(min(data[,v],   na.rm=T), max(data[,v],   na.rm=T), length.out=n.out), ns)
+			}
 		}								
 								
 		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T)

@@ -65,32 +65,21 @@ paleon.gams.models <- function(data, response, k, predictors.all, comp.effects){
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
 	if(comp.effects==T){
-	if(substr(model.name,1,3)=="lin") {
-		predictors <- c("tair", "precipf", "Evergreen", "Grass")
-		gam1 <- gam(Y ~ s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + (Evergreen + Grass) * (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
-	} else {
-		predictors <- c("tair", "precipf", "CO2", "Evergreen", "Grass")
-		gam1 <- gam(Y ~ s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + (Evergreen + Grass) * (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
-	}
+		predictors <- c("tair", "precipf", "CO2", "TreeID", "Year", "Evergreen", "Grass")
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, bs="cr") + s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + (Evergreen + Grass) * (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
 
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
-	if(substr(model.name,1,3)=="lin") {
-		predictors <- c("tair", "precipf")
-		gam1 <- gam(Y ~ s(tair, by=Site, k=k) + s(precipf, by=Site, k=k)  + (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
-	} else {
-		predictors <- c("tair", "precipf", "CO2")
-		gam1 <- gam(Y ~ s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
-	}
-
+		predictors <- c("tair", "precipf", "CO2", "TreeID", "Year")
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, bs="cr") + s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
 	}
 	# ----------------------------------------
 
 	# ----------------------------------------
 	print("-------------------------------------")
 	print("-------------------------------------")
-	print(paste0("------ Processing Model: ", m.order, " ------"))
+	print(paste0("------ Processing Model: ", model.name, " ------"))
 	print(summary(gam1))	
 
 	# get rid of values for predictors not used in the models for clarity later on

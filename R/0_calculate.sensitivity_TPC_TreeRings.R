@@ -19,7 +19,7 @@
 # Ndep                   ?       ?
 
 
-paleon.gams.models <- function(data, response, k, predictors.all, comp.effects){
+paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# data       = data frame with data for 1 model, 1 extent & 1 resolution
 	# model.name = name of model (goes into data tables to make life easier)
 	# Extent     = the temporal extent of the data (e.g. 850-2010, 1990-2010)
@@ -64,13 +64,13 @@ paleon.gams.models <- function(data, response, k, predictors.all, comp.effects){
 	# ----------------------------------------
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
-	if(comp.effects==T){
+	if(site.effects==T){
 	if(substr(model.name,1,3)=="lin") {
-		predictors <- c("tair", "precipf", "Evergreen", "Grass")
-		gam1 <- gam(Y ~ s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + (Evergreen + Grass) * (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
+		predictors <- c("tair", "precipf")
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, k=k) + s(precipf, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
 	} else {
-		predictors <- c("tair", "precipf", "CO2", "Evergreen", "Grass")
-		gam1 <- gam(Y ~ s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + (Evergreen + Grass) * (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
+		predictors <- c("tair", "precipf", "CO2")
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
 	}
 
 	# ----------------------------------------
@@ -78,10 +78,10 @@ paleon.gams.models <- function(data, response, k, predictors.all, comp.effects){
 	# ----------------------------------------
 	if(substr(model.name,1,3)=="lin") {
 		predictors <- c("tair", "precipf")
-		gam1 <- gam(Y ~ s(tair, by=Site, k=k) + s(precipf, by=Site, k=k)  + (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, k=k) + s(precipf, k=k), data=data, correlation=corARMA(form=~Year, p=1))
 	} else {
 		predictors <- c("tair", "precipf", "CO2")
-		gam1 <- gam(Y ~ s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) , data=data, correlation=corARMA(form=~Year, p=1))
 	}
 
 	}

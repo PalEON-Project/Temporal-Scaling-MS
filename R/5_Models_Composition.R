@@ -39,8 +39,8 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "Sensitivity_Models_Site")
-dat.dir <- file.path(dat.base, "Sensitivity_Models_Site")
+fig.dir <- file.path(fig.base, "Sensitivity_Models_Comp")
+dat.dir <- file.path(dat.base, "Sensitivity_Models_Comp")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -60,7 +60,7 @@ load(file.path("Data", "EcosysData_Raw.Rdata"))
 summary(ecosys)
 model.colors
 
-source('R/0_calculate.sensitivity_TPC_Site.R', chdir = TRUE)
+source('R/0_calculate.sensitivity_TPC_Comp.R', chdir = TRUE)
 source('R/0_GAMM_Plots.R', chdir = TRUE)
 
 # Read in model color scheme
@@ -88,7 +88,7 @@ e=1
 # -------------------------------------------------
 # Setting up the data and putting it in a list to run the gamms in parallel
 # -------------------------------------------------
-ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all]),]
+ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all, "Evergreen", "Grass")]),]
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
@@ -135,12 +135,12 @@ for(m in 1:length(model.name)){
 
 
 # --------------------------------------------------------------------------
-# Run & Process gamms -- No Composition Effect
+# Run & Process gamms -- No Site Effect
 # --------------------------------------------------------------------------
 cores.use <- min(12, length(paleon.models))
 # cores.use <- length(paleon.models)
 
-models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), comp.effects=F)
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), site.effects=F)
 # -------------------------------------------------
 
 # -------------------------------------------------
@@ -167,7 +167,7 @@ for(i in 1:length(models.base)){
 	}
 }
 
-save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site.Rdata"))
+save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Comp.Rdata"))
 # -------------------------------------------------
 
 
@@ -177,7 +177,7 @@ save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site.Rdata"))
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_Site.pdf"))
+pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_Comp.pdf"))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
@@ -203,36 +203,33 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + t
 dev.off()
 
 
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_Site.pdf"))
-for(e in unique(mod.out$ci.terms$Effect)[1:3]){
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_Comp.pdf"))
 print(
-ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[!(mod.out$ci.terms$Effect %in% c("Grass", "Evergreen")),]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0(e, " Sensitivity (Non-Relativized)"), y=paste0("NPP Contribution")) # +
+	labs(title=paste0("Driver Sensitivity (Non-Relativized)"), y=paste0("NPP Contribution")) # +
 )
-}
 dev.off()
 # -------------------------------------------------
 # --------------------------------------------------------------------------
 
-
-
+# Clear the memory!
+rm(mod.out, models.base)
 
 
 
 
 # --------------------------------------------------------------------------
-# Run & Process gamms -- WITH Composition Effects
+# Run & Process gamms -- WITH Site Effects
 # --------------------------------------------------------------------------
-paleon.models <- paleon.models[which(names(paleon.models)!="sibcasa")]
 cores.use <- min(12, length(paleon.models))
 # cores.use <- length(paleon.models)
 
-models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), comp.effects=T)
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), site.effects=T)
 # -------------------------------------------------
 
 # -------------------------------------------------
@@ -259,7 +256,7 @@ for(i in 1:length(models.base)){
 	}
 }
 
-save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site_Comp.Rdata"))
+save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Comp_Site.Rdata"))
 # -------------------------------------------------
 
 
@@ -269,7 +266,7 @@ save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site_Comp.Rdata"))
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_Site_Comp.pdf"))
+pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_Comp_Site.pdf"))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
@@ -295,19 +292,19 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + t
 dev.off()
 
 
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_Site_Comp.pdf"))
-for(e in unique(mod.out$ci.terms$Effect)[1:3]){
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_Comp_Site.pdf"))
 print(
-ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[!(mod.out$ci.terms$Effect %in% c("Grass", "Evergreen")),]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0(e, " Sensitivity (Non-Relativized)"), y=paste0("NPP Contribution")) # +
+	labs(title=paste0("Driver Sensitivity (Non-Relativized)"), y=paste0("NPP Contribution")) # +
 )
-}
 dev.off()
 # -------------------------------------------------
 # --------------------------------------------------------------------------
 
+# Clear the memory!
+rm(mod.out, models.base)
