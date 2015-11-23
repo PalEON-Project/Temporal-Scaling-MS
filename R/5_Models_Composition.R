@@ -102,7 +102,7 @@ for(m in 1:length(model.name)){
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
 	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
-	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix), "Evergreen", "Grass")]
+	dat.mod <- ecosys[ecosys$Resolution==resolutions & ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix), "Evergreen", "Grass")]
 	names(dat.mod)[7:(7+length(predictors.all)-1)] <- predictors.all
 	
 	if(!max(dat.mod[,response], na.rm=T)>0) next # If a variable is missing, just skip over this model for now

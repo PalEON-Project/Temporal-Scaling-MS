@@ -17,16 +17,17 @@ library(zoo)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
 
-inputs    <- "~/Dropbox/PalEON_CR/PalEON_MIP_Site/phase1a_output_variables"
+inputs    <- "~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/phase1a_output_variables"
 path.data <- "Data"
 fig.dir   <- "Figures"
 
 # Making sure the appropriate file paths exist
 if(!dir.exists(path.data)) dir.create(path.data)
 if(!dir.exists(fig.dir)) dir.create(fig.dir)
+# ----------------------------------------
 
 
 # ----------------------------------------
@@ -158,24 +159,22 @@ vars.all <- c(vars, vars.dev)
 
 # A lazy way of adding a Scale factor (this probably could be done more simply with a merge, but this works too)
 ecosys.010 <- ecosys.050 <- ecosys.100 <- ecosys.250 <- ecosys
-ecosys$Scale     <- as.factor("t.001")
-ecosys.010$Scale <- as.factor("t.010")
-ecosys.050$Scale <- as.factor("t.050")
-ecosys.100$Scale <- as.factor("t.100")
-ecosys.250$Scale <- as.factor("t.250")
-ecosys <- rbind(ecosys, ecosys.010, ecosys.050, ecosys.100, ecosys.250)
+ecosys$Resolution     <- as.factor("t.001")
+ecosys.010$Resolution <- as.factor("t.010")
+ecosys.050$Resolution <- as.factor("t.050")
+ecosys.100$Resolution <- as.factor("t.100")
+ecosys <- rbind(ecosys, ecosys.010, ecosys.050, ecosys.100)
 summary(ecosys)
 
 # Doing the scale by model & site
 for(s in unique(ecosys$Site)){
 	for(m in unique(ecosys$Model)){
 		for(v in vars.all){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.001", v]
+			temp <- ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.001", v]
 
-			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.010", v] <- rollapply(temp, FUN=mean, width=10, align="center", fill=NA)
-			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.050", v] <- rollapply(temp, FUN=mean, width=50, align="center", fill=NA)
-			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.100", v] <- rollapply(temp, FUN=mean, width=100, align="center", fill=NA)
-			# ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Scale=="t.250", v] <- rollapply(temp, FUN=mean, width=250, align="right", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.010", v] <- rollapply(temp, FUN=mean, width=10, align="center", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.050", v] <- rollapply(temp, FUN=mean, width=50, align="center", fill=NA)
+			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.100", v] <- rollapply(temp, FUN=mean, width=100, align="center", fill=NA)
 		}
 		# -----------------------
 	}
@@ -200,14 +199,14 @@ col.model <- paste(model.colors[model.colors$Model.Order %in% unique(ecosys$Mode
 # Plotting NPP by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "NPP_Annual_AllSites_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=NPP, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "NPP_Annual_PHA_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=NPP, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
@@ -215,16 +214,16 @@ dev.off()
 
 pdf(file.path(fig.dir, "NPP_Annual_Century_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100",], aes(x=Year, y=NPP, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100",], aes(x=Year, y=NPP, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "NPP_Annual_Century_AllSites_NoLINKAGES.pdf"))
 ggplot(data=ecosys[!ecosys$Model=="linkages",]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & !ecosys$Model=="linkages",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & !ecosys$Model=="linkages",], aes(x=Year, y=NPP, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & !ecosys$Model=="linkages",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & !ecosys$Model=="linkages",], aes(x=Year, y=NPP, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) + labs(y="NPP MgC ha-1 yr-1") +
 	theme_bw()
 dev.off()
@@ -232,8 +231,8 @@ dev.off()
 
 pdf(file.path(fig.dir, "NPP_Annual_PHA_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=NPP, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=NPP, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
@@ -243,14 +242,14 @@ dev.off()
 # Plotting AGB by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "AGB_Annual_AllSites_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=AGB, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "AGB_Annual_PHA_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=AGB, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
@@ -258,24 +257,24 @@ dev.off()
 
 pdf(file.path(fig.dir, "AGB_Annual_Century_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001",], aes(x=Year, y=AGB, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100",], aes(x=Year, y=AGB, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=AGB, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100",], aes(x=Year, y=AGB, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "AGB_Annual_Century_PHA_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model), size=1, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model), size=2) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 
 ggplot(data=ecosys[ecosys$Site=="PHA",]) + #facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color= Model.Order), size=2) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color=Model.Order), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=AGB, color= Model.Order), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw() +
 	theme(plot.title=element_text(face="bold", size=rel(3))) + theme(legend.position=c(0.6,0.9), legend.text=element_text(size=rel(1.5)), legend.title=element_text(size=rel(2))) + labs(color="Model", y=expression(bold(paste("Aboveground Biomass (Mg C ha"^"-1",")"))), title="Comparison of Model Aboveground Biomass") +
@@ -289,14 +288,14 @@ ggplot(data=ecosys[ecosys$Site=="PHA",]) + #facet_wrap(~Site) +
 # Plotting Fraction Evergreen by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "Evergreen_Annual_AllSites_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=Evergreen, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "Evergreen_Annual_PHA_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=Evergreen, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
@@ -304,24 +303,24 @@ dev.off()
 
 pdf(file.path(fig.dir, "Evergreen_Annual_Century_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001",], aes(x=Year, y=Evergreen, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100",], aes(x=Year, y=Evergreen, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=Evergreen, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100",], aes(x=Year, y=Evergreen, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "Evergreen_Annual_Century_PHA_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=Evergreen, color=Model), size=1, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=Evergreen, color=Model), size=2) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=Evergreen, color=Model), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=Evergreen, color=Model), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 # ggplot(data=ecosys[ecosys$Site=="PHA",]) + #facet_wrap(~Site) +
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001",], aes(x=Year, y=Evergreen, color=Model.Order), size=1, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.050",], aes(x=Year, y=Evergreen, color= Model.Order), size=2) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=Evergreen, color=Model.Order), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.050",], aes(x=Year, y=Evergreen, color= Model.Order), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw() +
 	theme(plot.title=element_text(face="bold", size=rel(3))) + theme(legend.position="bottom", legend.text=element_text(size=rel(1.5)), legend.title=element_text(size=rel(2))) + labs(color="Model", y="Fraction Evergreen") +
@@ -334,14 +333,14 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 # Plotting Fraction Deciduous by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "Deciduous_Annual_AllSites_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=Deciduous, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "Deciduous_Annual_PHA_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=Deciduous, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
@@ -349,23 +348,23 @@ dev.off()
 
 pdf(file.path(fig.dir, "Deciduous_Annual_Century_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001",], aes(x=Year, y=Deciduous, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100",], aes(x=Year, y=Deciduous, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=Deciduous, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100",], aes(x=Year, y=Deciduous, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "Deciduous_Annual_Century_PHA_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=Deciduous, color=Model), size=1, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=Deciduous, color=Model), size=2) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=Deciduous, color=Model), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=Deciduous, color=Model), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001",], aes(x=Year, y=Deciduous, color=Model.Order), size=1, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.050",], aes(x=Year, y=Deciduous, color= Model.Order), size=2) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=Deciduous, color=Model.Order), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.050",], aes(x=Year, y=Deciduous, color= Model.Order), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw() +
 	theme(plot.title=element_text(face="bold", size=rel(3))) + theme(legend.position="bottom", legend.text=element_text(size=rel(1.5)), legend.title=element_text(size=rel(2))) + labs(color="Model", y="Fraction Deciduous") +
@@ -377,14 +376,14 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 # Plotting Fraction Grass by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "Grass_Annual_AllSites_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=Grass, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "Grass_Annual_PHA_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=Grass, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
@@ -392,23 +391,23 @@ dev.off()
 
 pdf(file.path(fig.dir, "Grass_Annual_Century_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001",], aes(x=Year, y=Grass, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100",], aes(x=Year, y=Grass, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=Grass, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100",], aes(x=Year, y=Grass, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "Grass_Annual_Century_PHA_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=Grass, color=Model), size=1, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=Grass, color=Model), size=2) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=Grass, color=Model), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=Grass, color=Model), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001",], aes(x=Year, y=Grass, color=Model.Order), size=1, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.050",], aes(x=Year, y=Grass, color= Model.Order), size=2) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=Grass, color=Model.Order), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.050",], aes(x=Year, y=Grass, color= Model.Order), size=2) +
 	scale_color_manual(values=col.model) +
 	theme_bw() +
 	theme(plot.title=element_text(face="bold", size=rel(3))) + theme(legend.position="bottom", legend.text=element_text(size=rel(1.5)), legend.title=element_text(size=rel(2))) + labs(color="Model", y="Fraction Grass") +
@@ -420,14 +419,14 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 # Plotting tair by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "tair_Annual_AllSites_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=tair, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "tair_Annual_PHA_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=tair, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
@@ -435,16 +434,16 @@ dev.off()
 
 pdf(file.path(fig.dir, "tair_Annual_Century_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Model=="jules.stat",], aes(x=Year, y=tair, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Model=="jules.stat",], aes(x=Year, y=tair, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",], aes(x=Year, y=tair, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Model=="jules.stat",], aes(x=Year, y=tair, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "tair_Annual_PHA_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=tair, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=tair, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=tair, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=tair, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
@@ -454,14 +453,14 @@ dev.off()
 # Plotting precipf by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "precipf_Annual_AllSites_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=precipf, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "precipf_Annual_PHA_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=precipf, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
@@ -469,16 +468,16 @@ dev.off()
 
 pdf(file.path(fig.dir, "precipf_Annual_Century_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Model=="jules.stat",], aes(x=Year, y=precipf, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Model=="jules.stat",], aes(x=Year, y=precipf, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",], aes(x=Year, y=precipf, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Model=="jules.stat",], aes(x=Year, y=precipf, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "precipf_Annual_PHA_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=precipf, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=precipf, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=precipf, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=precipf, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
@@ -488,14 +487,14 @@ dev.off()
 # Plotting CO2 by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "CO2_Annual_AllSites_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=CO2, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "CO2_Annual_PHA_AllModels.pdf"))
-ggplot(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
 	geom_line(aes(x=Year, y=CO2, color=Model)) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
@@ -503,16 +502,16 @@ dev.off()
 
 pdf(file.path(fig.dir, "CO2_Annual_Century_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Model=="jules.stat",], aes(x=Year, y=CO2, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Model=="jules.stat",], aes(x=Year, y=CO2, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",], aes(x=Year, y=CO2, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Model=="jules.stat",], aes(x=Year, y=CO2, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
 
 pdf(file.path(fig.dir, "CO2_Annual_PHA_AllModels.pdf"))
 ggplot(data=ecosys[,]) + facet_wrap(~Site) +
-	geom_line(data=ecosys[ecosys$Scale=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=CO2, color=Model), size=0.25, alpha=0.3) +
-	geom_line(data=ecosys[ecosys$Scale=="t.100" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=CO2, color=Model), size=1.5) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=CO2, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA" & ecosys$Model=="jules.stat",], aes(x=Year, y=CO2, color=Model), size=1.5) +
 	scale_color_manual(values=col.model) +
 	theme_bw()
 dev.off()
