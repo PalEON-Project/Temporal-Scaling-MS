@@ -103,7 +103,7 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# ----------------------------------------
 	# Run all of the post-processing (calculate CIs, etc)
 	# ----------------------------------------
-	mod.out <- process.gamm(gamm.model=gam1, data=data, model.name=model.name, extent=extent, resolution=resolution, response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
+	mod.out <- process.gamm(gamm.model=gam1, data=data, model.name=model.name, extent=extent, resolution=resolution, response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T, PFT=T)
 	# ----------------------------------------
 	
 	return(mod.out)

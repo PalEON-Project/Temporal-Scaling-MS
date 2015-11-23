@@ -19,6 +19,7 @@ library(ncdf4)
 library(dplR)
 library(ggplot2); library(grid)
 library(car)
+library(zoo)
 # ----------------------------------------
 
 # ----------------------------------------
@@ -406,6 +407,31 @@ summary(tree.rings2)
 
 ring.data <- merge(tree.rings2, plots.clim, all.x=T, all.y=F)
 summary(ring.data)
+# -----------------
+
+# -----------------
+# Doing some temporal smoothing to look at temporal resolution and sensitivity
+# -----------------
+# A lazy way of adding a Scale factor (this probably could be done more simply with a merge, but this works too)
+ring.data.010 <- ring.data
+ring.data$Resolution     <- as.factor("t.001")
+ring.data.010$Resolution <- as.factor("t.010")
+ring.data <- rbind(ring.data, ring.data.010)
+summary(ring.data)
+
+vars.all <- c("RW", "RWI", "ppt.ann", "tmean.ann", "CO2")
+# Doing the scale by model & site
+for(s in unique(ring.data$CoreID)){
+	for(v in vars.all){
+		temp <- ring.data[ring.data$CoreID==s & ring.data$Resolution=="t.001", v]
+
+		ring.data[ring.data$CoreID==s & ring.data$Resolution=="t.010", v] <- rollapply(temp, FUN=mean, width=10, align="center", fill=NA)
+	}
+}
+summary(ring.data)
+# -----------------
+
+
 
 write.csv(ring.data, file.path(dat.base, "TreeRing_RingWidths.csv"), row.names=F)
 # -----------------

@@ -1,4 +1,4 @@
-post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, lwr=0.025, upr=0.975){
+post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, PFT=F, lwr=0.025, upr=0.975){
 	# Note: this function can be used to generate a 95% CI on the full model.gam OR terms
 
 	# -----------
@@ -35,11 +35,18 @@ post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, lwr=0.
 			sim.tmp <- data.frame(Xp[,cols.list[[v]]] %*% t(Rbeta[,cols.list[[v]]]) )
 
 			# Saving the quantiles into a data frame
+			if(PFT==F){
 			df.tmp <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Effect=v, x=newdata[,v],
 							   mean=apply(sim.tmp, 1, mean), 
 							   lwr=apply(sim.tmp, 1, quantile, lwr, na.rm=T), 
 							   upr=apply(sim.tmp, 1, quantile, upr, na.rm=T))
-
+							   
+			} else {
+			df.tmp <- data.frame(Model=model.name, Site=newdata$Site, PFT=newdata$PFT, Extent=newdata$Extent, Resolution=newdata$Resolution, Effect=v, x=newdata[,v],
+							   mean=apply(sim.tmp, 1, mean), 
+							   lwr=apply(sim.tmp, 1, quantile, lwr, na.rm=T), 
+							   upr=apply(sim.tmp, 1, quantile, upr, na.rm=T))
+			}
 			if(v == vars[1]) df.out <- df.tmp else df.out <- rbind(df.out, df.tmp)
 
   			# Creating a data frame storing all the simulations for more robust analyses

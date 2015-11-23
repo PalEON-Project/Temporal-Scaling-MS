@@ -66,7 +66,7 @@ paleon.gams.models <- function(data, response, k, predictors.all, comp.effects){
 	# ----------------------------------------
 	if(comp.effects==T){
 		predictors <- c("tair", "precipf", "CO2", "TreeID", "Year", "Evergreen", "Grass")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, bs="cr") + s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + (Evergreen + Grass) * (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, bs="cr") + s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + PFT * (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
 
 	# ----------------------------------------
 	} else {

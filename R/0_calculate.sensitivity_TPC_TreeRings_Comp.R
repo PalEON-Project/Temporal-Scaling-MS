@@ -65,25 +65,13 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
 	if(site.effects==T){
-	if(substr(model.name,1,3)=="lin") {
-		predictors <- c("tair", "precipf")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, by=Species, k=k) + s(precipf, by=Species, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
-	} else {
-		predictors <- c("tair", "precipf", "CO2")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, by=Species, k=k) + s(precipf, by=Species, k=k) + s(CO2, by=Species, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
-	}
-
+		predictors <- c("tair", "precipf", "CO2", "TreeID", "Year")
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, bs="cr") + s(tair, by=PFT, k=k) + s(precipf, by= PFT, k=k) + s(CO2, by= PFT, k=k) + Site -1, data=data)
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
-	if(substr(model.name,1,3)=="lin") {
-		predictors <- c("tair", "precipf")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, by=Species, k=k) + s(precipf, by=Species, k=k), data=data, correlation=corARMA(form=~Year, p=1))
-	} else {
-		predictors <- c("tair", "precipf", "CO2")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, by=Species, k=k) + s(precipf, by=Species, k=k) + s(CO2, by=Species, k=k) , data=data, correlation=corARMA(form=~Year, p=1))
-	}
-
+		predictors <- c("tair", "precipf", "CO2", "TreeID", "Year")
+		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, bs="cr") + s(tair, by=PFT, k=k) + s(precipf, by= PFT, k=k) + s(CO2, by= PFT, k=k) , data=data, correlation=corARMA(form=~Year, p=1))
 	}
 	# ----------------------------------------
 
@@ -103,7 +91,7 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# ----------------------------------------
 	# Run all of the post-processing (calculate CIs, etc)
 	# ----------------------------------------
-	mod.out <- process.gamm(gamm.model=gam1, data=data, model.name=model.name, extent=extent, resolution=resolution, response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
+	mod.out <- process.gamm(gamm.model=gam1, data=data, model.name=model.name, extent=extent, resolution=resolution, response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T, PFT=T)
 	# ----------------------------------------
 	
 	return(mod.out)

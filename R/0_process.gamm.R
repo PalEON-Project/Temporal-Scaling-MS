@@ -1,5 +1,5 @@
 process.gamm <- function(gamm.model, data, model.name, response, vars, resolution="t.001", extent=c(850,2010), 
-						  	fweights=T, sites=T, ci.model=T, ci.terms=T, n=250,
+						  	fweights=T, sites=T, ci.model=T, ci.terms=T, PFT=F, n=250,
 						  	write.out=T, outdir, control=list()){
 	# data     = data frame with data in it
 	# model.name    = which model.name to subset
@@ -46,11 +46,20 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, resolutio
 				site.vec <- c(site.vec, paste(rep(sites.dat[i], n.out)))
 			}
 		}
-	
-		new.dat <- data.frame(	Site=site.vec,
+		if(PFT==F){	
+		  new.dat <- data.frame(	Site=site.vec,
 								Extent=as.factor(paste(extent[1], extent[2], sep="-")), 
 								Resolution=rep(resolution, n.out*ns))
-
+		} else {
+		  pfts <- unique(data$PFT)
+		  new.dat <- data.frame(Site       = rep(site.vec, length(pfts)),
+								Extent     = as.factor(paste(extent[1], extent[2], sep="-")), 
+								Resolution = rep(rep(resolution, n.out*ns), length(pfts))
+							    )
+		  for(i in 1:length(pfts)){
+		  	new.dat[(i*n.out*ns - n.out*ns + 1):(i*n.out*ns),"PFT"] <- pfts[i]
+		  }
+		}
 		for(v in vars){
 			if(is.factor(data[,v])){
 				new.dat[,v] <- as.factor(unique(data[,v])[1])
@@ -59,7 +68,7 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, resolutio
 			}
 		}								
 								
-		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T)
+		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T, PFT=PFT)
 
 		out[["ci.terms"]] <- ci.terms.pred$ci 
 		out[["sim.terms"]] <- ci.terms.pred$sims 
