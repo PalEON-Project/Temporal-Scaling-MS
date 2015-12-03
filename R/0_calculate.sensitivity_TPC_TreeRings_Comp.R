@@ -65,13 +65,13 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
 	if(site.effects==T){
-		predictors <- c("tair", "precipf", "CO2", "TreeID", "Year")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, bs="cr") + s(tair, by=PFT, k=k) + s(precipf, by= PFT, k=k) + s(CO2, by= PFT, k=k) + Site -1, data=data)
+		predictors <- c("tair", "precipf", "CO2", "Spp.Site", "Age")
+		gam1 <- gam(Y ~ s(Age, by=Spp.Site) + s(tair, by=PFT, k=k) + s(precipf, by= PFT, k=k) + s(CO2, by= PFT, k=k) + Site -1, data=data)
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
-		predictors <- c("tair", "precipf", "CO2", "TreeID", "Year")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, bs="cr") + s(tair, by=PFT, k=k) + s(precipf, by= PFT, k=k) + s(CO2, by= PFT, k=k) , data=data, correlation=corARMA(form=~Year, p=1))
+		predictors <- c("tair", "precipf", "CO2", "Spp.Site", "Age")
+		gam1 <- gam(Y ~ s(Age, by=Spp.Site) + s(tair, by=PFT, k=k) + s(precipf, by= PFT, k=k) + s(CO2, by= PFT, k=k) , data=data, correlation=corARMA(form=~Year, p=1))
 	}
 	# ----------------------------------------
 

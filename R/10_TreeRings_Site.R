@@ -29,8 +29,7 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-# setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -59,6 +58,7 @@ model.colors
 
 tree.rings <- read.csv("Data/TreeRing_RingWidths.csv")
 tree.rings <- tree.rings[complete.cases(tree.rings[,c("tmean.ann", "ppt.ann", "CO2")]),]
+tree.rings$Spp.Site <- as.factor(paste(tree.rings$Species, tree.rings$Site, sep=".")) # May want to add back in site 2 and use that instead
 summary(tree.rings)
 
 # source('R/0_calculate.sensitivity_TPC_Site.R', chdir = TRUE)
@@ -88,7 +88,6 @@ summary(ecosys2)
 # Setting up a loop for 1 m.name, 1 temporal scale
 resolutions <- c("t.001") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(1895), End=c(2010)) 
-response <- c("RW")
 predictors.all <- c("tair", "precipf", "CO2")
 predictor.suffix <- c(".gs")
 k=4
@@ -101,30 +100,35 @@ e=1
 # --------------------------------------------------------------------------
 # Format & Process gamms -- 
 # --------------------------------------------------------------------------
+response <- c("RW")
 tree.rings$tair       <- tree.rings$tmean.ann
 tree.rings$precipf    <- tree.rings$ppt.ann
-tree.rings$Y          <- tree.rings$RW
+tree.rings$Y          <- tree.rings[,response]
 tree.rings$Model      <- as.factor("TreeRings")
 tree.rings$Extent     <- as.factor("1895-2010")
-tree.rings$Resolution <- as.factor("t.001")
+# tree.rings$Resolution <- as.factor("t.001")
 summary(tree.rings)
 
-tree.rings2 <- tree.rings[tree.rings$PlotID=="MN008" | tree.rings$PlotID=="ME029", ]
+# tree.rings2 <- tree.rings[tree.rings$Resolution=="t.001" & (tree.rings$PlotID=="MN008" | tree.rings$PlotID=="ME029"), ]
+tree.rings2 <- tree.rings[tree.rings$Resolution=="t.001" & complete.cases(tree.rings$Y), ]
 summary(tree.rings2)
 # summary(tree.rings2[tree.rings2$Site=="PHO",])
 
-detrend.only <- 	gam(Y ~ s(Year, by=TreeID, k=3, bs="cr"), data= tree.rings2)
+detrend.only <- 	gam(Y ~ s(Age, by=Spp.Site), data= tree.rings2)
 summary(detrend.only)
+plot(detrend.only, ylim=c(-10,10))
 # save(detrend.only, "gamm_TreeRings_DetrendOnly.Rdata")
 
 source('R/0_calculate.sensitivity_TPC_TreeRings_Site.R', chdir = TRUE)
 
-mod.tr <- paleon.gams.models(data=tree.rings2, response="RW", k=k, predictors.all=predictors.all, comp.effects=F)
+mod.tr <- paleon.gams.models(data=tree.rings2, response=response, k=k, predictors.all=predictors.all, comp.effects=F)
 
-# mod.tr$ci.terms <- mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]
+# Adding Tree ID to help index the response prediction
+mod.tr$ci.response$TreeID <- tree.rings2$TreeID
+
 mod.tr$ci.terms$x <- as.numeric(mod.tr$ci.terms$x)
 summary(mod.tr$ci.terms)
-# save(mod.tr, file=file.path(dat.dir, "gamm_TreeRings_RW_SiteCurves.Rdata"))
+save(mod.tr, file=file.path(dat.dir, "gamm_TreeRings_RW_SiteCurves.Rdata"))
 # -------------------------------------------------
 
 # -------------------------------------------------
@@ -135,33 +139,33 @@ summary(mod.tr$ci.terms)
 m.order <- "Tree Rings"
 col.model="darkgreen"
 
-# pdf(file.path(fig.dir, "GAMM_TreeRingFit_RW_SiteCurves.pdf"))
+pdf(file.path(fig.dir, "GAMM_TreeRingFit_RW_SiteCurves.pdf"))
 print(
 ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~., scales="free") + theme_bw() +
- 	geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
-	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
-	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
+ 	geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), color="gray", alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill= TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color= TreeID), size=0.35) +
 	# scale_x_continuous(limits=c(850,2010)) +
 	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
 	# scale_fill_manual(values=paste(col.model)) +
 	# scale_color_manual(values=paste(col.model)) +		
 	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
 )
-# print(	
-# ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
- 	# geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
-	# geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
-	# geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
-	# scale_x_continuous(limits=c(1925,1975)) +
-	# # scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-	# # scale_fill_manual(values=paste(col.model)) +
-	# # scale_color_manual(values=paste(col.model)) +		
-	# labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
-# )
-# dev.off()
+print(	
+ggplot(data=mod.tr$ci.response[substr(mod.tr$ci.response$TreeID,1,3)=="125",]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[substr(mod.tr$data$TreeID,1,3)=="125",], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
+	scale_x_continuous(limits=c(1925,1975)) +
+	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+)
+dev.off()
 
 
-# pdf(file.path(fig.dir, "GAMM_TreeRing_DriverSensitivity_RW_SiteCurves.pdf"))
+pdf(file.path(fig.dir, "GAMM_TreeRing_DriverSensitivity_RW_SiteCurves.pdf"))
 # for(e in unique(mod.tr$ci.terms$Effect)[1:3]){
 print(
 # ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +	
@@ -174,23 +178,101 @@ ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO
 	labs(title=paste0(e, " Sensitivity (Non-Relativized)"), y=paste0("RW Contribution")) # +
 )
 # }
-# dev.off()
+dev.off()
 # -------------------------------------------------
+
+# -------------------------------------------------
+# -------------------------------------------------
+# Composition Intercepts
+# -------------------------------------------------
+
+source('R/0_calculate.sensitivity_TPC_TreeRings_Site.R', chdir = TRUE)
+
+mod.tr <- paleon.gams.models(data=tree.rings2, response=response, k=k, predictors.all=predictors.all, comp.effects=T)
+
+# Adding Tree ID to help index the response prediction
+mod.tr$ci.response$TreeID <- tree.rings2$TreeID
+
+mod.tr$ci.terms$x <- as.numeric(mod.tr$ci.terms$x)
+summary(mod.tr$ci.terms)
+save(mod.tr, file=file.path(dat.dir, "gamm_TreeRings_RW_SiteCurves_Comp.Rdata"))
+# -------------------------------------------------
+
+# -------------------------------------------------
+# Diagnostic Graphs
+# -------------------------------------------------
+# m.order <- unique(mod.out$data$Model.Order)
+# col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
+m.order <- "Tree Rings"
+col.model="darkgreen"
+
+pdf(file.path(fig.dir, "GAMM_TreeRingFit_RW_SiteCurves_Comp.pdf"))
+print(
+ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~., scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), color="gray", alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill= TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color= TreeID), size=0.35) +
+	# scale_x_continuous(limits=c(850,2010)) +
+	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+)
+print(	
+ggplot(data=mod.tr$ci.response[substr(mod.tr$ci.response$TreeID,1,3)=="125",]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[substr(mod.tr$data$TreeID,1,3)=="125",], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
+	scale_x_continuous(limits=c(1925,1975)) +
+	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+)
+dev.off()
+
+
+pdf(file.path(fig.dir, "GAMM_TreeRing_DriverSensitivity_RW_SiteCurves_Comp.pdf"))
+# for(e in unique(mod.tr$ci.terms$Effect)[1:3]){
+print(
+# ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +	
+ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_wrap( ~ Effect, scales="free_x") + theme_bw() +	
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Site), size=1) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0(e, " Sensitivity (Non-Relativized)"), y=paste0("RW Contribution")) # +
+)
+# }
+dev.off()
+# -------------------------------------------------
+
 
 # -------------------------------------------------
 # -------------------------------------------------
 
 source('R/0_calculate.sensitivity_TPC_TreeRings_Comp.R', chdir = TRUE)
 
-mod.tr <- paleon.gams.models(data=tree.rings2, response="RW", k=k, predictors.all=predictors.all, site.effects=T)
+summary(tree.rings2)
 
-# mod.tr$ci.terms <- mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]
+# modifying the PFT parameter
+# tree.rings2$PFT1 <- as.factor(tree.rings2$PFT)
+# tree.rings2$PFT  <- as.factor(paste(tree.rings2$PFT, tree.rings2$Site, sep="."))
+summary(tree.rings2)
+
+mod.tr <- paleon.gams.models(data=tree.rings2, response=response, k=k, predictors.all=predictors.all, site.effects=T)
+
+# Adding Tree ID to help index the response prediction
+mod.tr$ci.response$TreeID <- tree.rings2$TreeID
+
+# making x numeric again
 mod.tr$ci.terms$x <- as.numeric(mod.tr$ci.terms$x)
 summary(mod.tr$ci.terms)
-# save(mod.tr, file=file.path(dat.dir, "gamm_TreeRings_RW_Comp.Rdata"))
+save(mod.tr, file=file.path(dat.dir, "gamm_TreeRings_RW_CompCurves.Rdata"))
 
 
-pdf(file.path(fig.dir, "GAMM_TreeRingFit_RW_Comp.pdf"))
+pdf(file.path(fig.dir, "GAMM_TreeRingFit_RW_CompCurves.pdf"))
 print(
 ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~., scales="free") + theme_bw() +
  	geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
@@ -203,8 +285,8 @@ ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~., scales="free") + theme_b
 	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
 )
 print(	
-ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
- 	geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
+ggplot(data=mod.tr$ci.response[substr(mod.tr$ci.response$TreeID,1,3)=="125",]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[substr(mod.tr$data$TreeID,1,3)=="125",], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
 	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
 	scale_x_continuous(limits=c(1925,1975)) +
@@ -216,7 +298,74 @@ ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~ Model, scales="free") + th
 dev.off()
 
 
-pdf(file.path(fig.dir, "GAMM_TreeRing_DriverSensitivity_RW_Comp.pdf"))
+pdf(file.path(fig.dir, "GAMM_TreeRing_DriverSensitivity_RW_CompCurves.pdf"))
+# for(e in unique(mod.tr$ci.terms$Effect)[1:3]){
+print(
+# ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +	
+ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_wrap( ~ Effect, scales="free_x") + theme_bw() +	
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=PFT), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=PFT), size=1) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0(e, " Sensitivity (Non-Relativized)"), y=paste0("RW Contribution")) # +
+)
+# }
+dev.off()
+
+# -------------------------------------------------
+
+# -------------------------------------------------
+# Species instead of true PFT
+# -------------------------------------------------
+
+source('R/0_calculate.sensitivity_TPC_TreeRings_Comp.R', chdir = TRUE)
+
+summary(tree.rings2)
+
+# modifying the PFT parameter
+tree.rings2$PFT1 <- as.factor(tree.rings2$PFT)
+tree.rings2$PFT  <- tree.rings2$Species
+summary(tree.rings2)
+
+mod.tr <- paleon.gams.models(data=tree.rings2, response=response, k=k, predictors.all=predictors.all, site.effects=T)
+
+# Adding Tree ID to help index the response prediction
+mod.tr$ci.response$TreeID <- tree.rings2$TreeID
+
+# making x numeric again
+mod.tr$ci.terms$x <- as.numeric(mod.tr$ci.terms$x)
+summary(mod.tr$ci.terms)
+save(mod.tr, file=file.path(dat.dir, "gamm_TreeRings_RW_CompCurves_Species.Rdata"))
+
+
+pdf(file.path(fig.dir, "GAMM_TreeRingFit_RW_CompCurves_Species.pdf"))
+print(
+ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~., scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
+	# scale_x_continuous(limits=c(850,2010)) +
+	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+)
+print(	
+ggplot(data=mod.tr$ci.response[substr(mod.tr$ci.response$TreeID,1,3)=="125",]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[substr(mod.tr$data$TreeID,1,3)=="125",], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
+	scale_x_continuous(limits=c(1925,1975)) +
+	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+)
+dev.off()
+
+
+pdf(file.path(fig.dir, "GAMM_TreeRing_DriverSensitivity_RW_CompCurves_Species.pdf"))
 # for(e in unique(mod.tr$ci.terms$Effect)[1:3]){
 print(
 # ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +	
@@ -246,7 +395,8 @@ dev.off()
 # -------------------------------------------------
 source('R/0_calculate.sensitivity_TPC_Site.R', chdir = TRUE)
 
-ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all]),]
+response="NPP"
+ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all)]),]
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
@@ -325,7 +475,7 @@ for(i in 1:length(models.base)){
 	}
 }
 
-save(mod.out, file=file.path(dat.dir, "gamm_models_RW_Site.Rdata"))
+save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site.Rdata"))
 # -------------------------------------------------
 
 
@@ -335,7 +485,7 @@ save(mod.out, file=file.path(dat.dir, "gamm_models_RW_Site.Rdata"))
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, "GAMM_ModelFit_RW_Site.pdf"))
+pdf(file.path(fig.dir, "GAMM_Models_ModelFit_NPP_Site.pdf"))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
@@ -361,7 +511,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + t
 dev.off()
 
 
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_RW_Site.pdf"))
+pdf(file.path(fig.dir, "GAMM_Models_DriverSensitivity_NPP_Site.pdf"))
 for(e in unique(mod.out$ci.terms$Effect)[1:3]){
 print(
 ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +		

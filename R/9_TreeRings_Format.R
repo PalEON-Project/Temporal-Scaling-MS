@@ -31,15 +31,14 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-# setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/"
 fig.base="Figures/"
 
 # Directory for PRISM meterorology
 # NOTE NOTE NOTE: Currently it's annul means; need to change it to growing season
-met.dir = "~/Desktop/Research/PalEON_CR/PRISM_PalEON/annual"
-co2.dir = "~/Desktop/Research/PalEON_CR/phase1a_env_drivers/phase1a_env_drivers_v5/paleon_co2"
+met.dir = "~/Dropbox/PalEON_CR/PRISM_PalEON/annual"
+co2.dir = "~/Dropbox/PalEON_CR/phase1a_env_drivers/phase1a_env_drivers_v5/paleon_co2"
 
 # Tree Ring Directories:
 in.base = "raw_inputs"
@@ -141,6 +140,7 @@ trees.lyford$Tree        <- as.factor(ifelse(nchar(trees.lyford$Tree)==1, paste0
 trees.lyford$TreeID      <- as.factor(paste0(trees.lyford$PlotID, trees.lyford$Tree))
 trees.lyford$Canopy      <- recode(trees.lyford$Canopy, "'codominant'='C'; 'dominant'='D'; 'intermediate'='I'; 'supressed'='S'; 'suppressed'='S'")
 trees.lyford$Status       <- recode(trees.lyford$Status, "'alive'='Li'; 'dead'='Sn'")
+trees.lyford$Decay        <- as.factor(trees.lyford $Decay)
 summary(trees.lyford)
 
 # ------------
@@ -168,7 +168,7 @@ summary(trees.harvard)
 # ------------
 # A.3) Howland
 # ------------
-trees.howland <- read.csv(file.path(dir.howland, "HOWall_FieldData.csv"), col.names=c("PlotID", "Tree", "Species", "DBH", "Distance", "Azimuth", "Canopy", "Status", "Decay.Class", "Lat", "Lon"), na.strings="")
+trees.howland <- read.csv(file.path(dir.howland, "HOWall_FieldData.csv"), col.names=c("PlotID", "Tree", "Species", "DBH", "Distance", "Azimuth", "Canopy", "Status", "Decay", "Lat", "Lon"), na.strings="")
 summary(trees.howland)
 
 # Doing some recoding to make things consistent across data sets
@@ -180,7 +180,7 @@ trees.howland$Tree        <-  as.factor(ifelse(nchar(paste(trees.howland$Tree))=
 trees.howland$TreeID      <- as.factor(paste0(trees.howland$PlotID, trees.howland$Tree))
 trees.howland$Canopy      <- recode(trees.howland$Canopy, "'S-I'='I'")
 trees.howland$Species     <- recode(trees.howland$Species, "'PCRU'='PIRU'; 'PCRu'='PIRU'")
-trees.howland$Decay.Class <- as.factor(trees.howland$Decay.Class)
+trees.howland$Decay       <- as.factor(trees.howland$Decay)
 summary(trees.howland)
 # ------------
 
@@ -200,6 +200,7 @@ summary(tree.data)
 
 # -------------------------------------------------
 # Reading in and formatting the ring widths
+# See Peters et al 2015 for Detrending Info
 # -------------------------------------------------
 # ------------------
 # Plot-Level Tree Rings
@@ -234,7 +235,7 @@ wi002 <- read.rwl(file.path(dir.itrdb, "PUN", "wi002.rwl.txt"))
 # ------------------
 
 # ------------------
-# Detrending
+# Detrending -- Spline (Conservative)
 # ------------------
 # Plot-Level Data
 harvard.detrend <- detrend(rings.harvard, method="Spline")
@@ -255,8 +256,8 @@ me029.detrend   <- detrend(me029, method="Spline")
 # PUN
 mi006.detrend   <- detrend(mi006, method="Spline")
 wi002.detrend   <- detrend(wi002, method="Spline")
-
 # ------------------
+
 # -------------------------------------------------
 
 # -------------------------------------------------
@@ -383,31 +384,153 @@ pun.rwl <- rbind(mi006.stack, wi002.stack)
 # Putting all the plot-level ring widths together
 tree.rings <- rbind(pdl.rwl, pha.rwl, pho.rwl, pun.rwl)
 summary(tree.rings)
+
+# Convert CoreID field to all uppercase
+tree.rings$CoreID <- as.factor(toupper(tree.rings$CoreID))
+summary(tree.rings)
 # -----------------
 
+# -----------------
+# Finding the best-guess age for each core
+# For ITRDB samples, making the (probably bad) assumption that all cores go to pith
+# -----------------
+
+# Fusing a few cores that look like they got split apart
+# Note: this was done based on crashes in the DBH Reconstruction
+dim(tree.rings)
+tree.rings <- tree.rings[!tree.rings$CoreID=="HOW3014I" | (tree.rings$CoreID=="HOW3014I" & !is.na(tree.rings$RW)),]
+tree.rings[tree.rings$CoreID=="HOW3014I", "CoreID"] <- "HOW3014E"
+dim(tree.rings)
+
+
+# Adding in some core metadata
+harvard.meta <- read.csv(file.path(dir.harvard, "TowerAllPlotsLogsheet.csv"), na.strings="")
+lyford.meta <- read.csv(file.path(dir.lyford, "LyfordPlots_LogsheetAll_FINAL.csv"), na.strings="")
+names(harvard.meta)[13] <- c("False")
+summary(harvard.meta)
+summary(lyford.meta)
+
+# Merging core metadata into 1 object
+core.meta <- rbind(harvard.meta, lyford.meta)
+names(core.meta)[1:4] <- c("PlotID", "Tree", "Core", "Species")
+core.meta$Tree    <- as.factor(core.meta$Tree)
+core.meta$Tree    <- as.factor(ifelse(nchar(paste(core.meta$Tree))==1, paste0("00", core.meta$Tree), ifelse(nchar(paste(core.meta$Tree))==2, paste0("0", core.meta$Tree), core.meta$Tree)))
+core.meta$TreeID  <- as.factor(paste0(core.meta$PlotID, core.meta$Tree))
+core.meta$CoreID  <- as.factor(paste0(core.meta$TreeID, core.meta$Core))
+core.meta$Pith.Yr <- core.meta$INNER_YEAR - core.meta$PITH
+summary(core.meta)
+
+# Finding the age for each tree 
+summary(tree.rings)
+length(unique(tree.rings$CoreID))
+
+for(i in unique(tree.rings$CoreID)){
+	if(i %in% core.meta$CoreID){
+		pith <- core.meta[core.meta$CoreID==i, "Pith.Yr"]
+	} else {
+		pith <- min(tree.rings[tree.rings$CoreID==i & !is.na(tree.rings$RW), "Year"])
+	}
+	tree.rings[tree.rings$CoreID==i & !is.na(tree.rings$RW), "Age"] <-  tree.rings[tree.rings$CoreID==i & !is.na(tree.rings$RW), "Year"] - pith
+}
+summary(tree.rings)
+# -----------------
+
+# -----------------
+# Coming up with a best-guess DBH for ITRDB trees: mean of sum of all rings widths
+# -----------------
+summary(tree.rings)
+summary(tree.data); 
+dim(tree.data)
+
+
+for(t in unique(tree.rings$TreeID)[!(unique(tree.rings$TreeID) %in% tree.data$TreeID)]){
+	# Making a dummy dataframe to insert info into 
+	df.temp <- tree.data[1,]; df.temp[,] <- NA
+	df.temp$TreeID <- t
+
+	# Getting DBH estimates from all cores
+	dbh <- vector()
+	for(c in unique(tree.rings[tree.rings$TreeID==t, "CoreID"])){
+		dbh <- c(dbh, sum(tree.rings[tree.rings$CoreID==c, "RW"], na.rm=T)*0.1*2)
+	}
+	# Taking the mean of DBH estimates
+	df.temp$DBH <- mean(dbh, na.rm=T)
+
+	# adding our dummy dataframe to the real data
+	tree.data <- rbind(tree.data, df.temp)
+}
+summary(tree.data); 
+dim(tree.data)
+# -----------------
+
+
+# -----------------
+# Aggregating to the tree level
+# -----------------
+# Finding the mean RW and RWI
+tree.rings2 <- aggregate(tree.rings[,c("RWI", "RW", "Age")], by=list(tree.rings$Site, tree.rings$PlotID, tree.rings$TreeID, tree.rings$Year), FUN=mean, na.rm=F)
+names(tree.rings2)[1:4] <- c("Site", "PlotID", "TreeID", "Year")
+
+# Using the Age off of the oldest core
+tree.rings2$Age <- aggregate(tree.rings[,"Age"], by=list(tree.rings$Site, tree.rings$PlotID, tree.rings$TreeID, tree.rings$Year), FUN=max, na.rm=F)[,"x"]
+# tree.rings2[tree.rings2$Age==-Inf, "Age"] <- NA
+summary(tree.rings2)
+# -----------------
+
+# -----------------
+# Reconstructing DBH, BA, and BAI
+# -----------------
+for(t in unique(tree.rings2$TreeID)){
+	yr.start <- min(tree.rings2[tree.rings2$TreeID==t & !is.na(tree.rings2$RW), "Year"])
+	yr.end   <- max(tree.rings2[tree.rings2$TreeID==t & !is.na(tree.rings2$RW), "Year"])
+	dbh      <- tree.data[tree.data$TreeID==t, "DBH"]
+	tree.rings2[tree.rings2$TreeID==t & tree.rings2$Year==yr.end, "DBH"] <- dbh
+	for(y in (yr.end-1):yr.start){
+		dbh  <- tree.rings2[tree.rings2$TreeID==t & tree.rings2$Year==(y+1), "DBH"]
+		rw   <- tree.rings2[tree.rings2$TreeID==t & tree.rings2$Year==(y+1), "RW" ]
+		dbh2 <- dbh - rw*2*.1
+		bai  <- pi*((dbh/2)^2) - pi*((dbh2/2)^2)
+		
+		tree.rings2[tree.rings2$TreeID==t & tree.rings2$Year==(y+1), "BAI"] <- bai
+		tree.rings2[tree.rings2$TreeID==t & tree.rings2$Year==(y)  , "DBH"] <- dbh2
+	}
+}
+
+# Get rid of negative DBH and BAI reconstructions
+tree.rings2$DBH <- ifelse(tree.rings2$DBH<0, NA, tree.rings2$DBH)
+tree.rings2$BAI <- ifelse(tree.rings2$BAI<0, NA, tree.rings2$BAI)
+summary(tree.rings2)
+# -----------------
 
 # -----------------
 # merging in the met
 # -----------------
 summary(tree.data)
-summary(tree.rings)
+summary(tree.rings2)
 summary(plots.clim)
 
-tree.rings2 <- merge(tree.rings, tree.data[,c("PlotID", "TreeID", "Species", "Canopy", "Status", "DBH")], all.x=T, all.y=F)
-summary(tree.rings2)
+tree.rings3 <- merge(tree.rings2, tree.data[,c("PlotID", "TreeID", "Species", "Canopy", "Status")], all.x=T, all.y=F)
+summary(tree.rings3)
 
 # Adding in Species/PFT
 evergreen <- c("PIRE", "PIST", "PIAB", "PIRU", "THOC", "ABBA", "TSCA")
-tree.rings2$Species <- as.factor(ifelse(tree.rings2$Site=="PDL","PIRE", paste(tree.rings2$Species)))
-tree.rings2$Species <- as.factor(ifelse(tree.rings2$PlotID=="WI002","PIRE", paste(tree.rings2$Species)))
-tree.rings2$Species <- as.factor(ifelse(tree.rings2$PlotID=="MI006","TSCA", paste(tree.rings2$Species)))
-tree.rings2$Species <- as.factor(ifelse(tree.rings2$PlotID=="ME029","FRNI", paste(tree.rings2$Species)))
-tree.rings2$PFT     <- as.factor(ifelse(tree.rings2$Species %in% evergreen, "Evergreen", "Deciduous"))
-summary(tree.rings2)
+tree.rings3$Species <- as.factor(ifelse(tree.rings3$Site=="PDL","PIRE", paste(tree.rings3$Species)))
+tree.rings3$Species <- as.factor(ifelse(tree.rings3$PlotID=="WI002","PIRE", paste(tree.rings3$Species)))
+tree.rings3$Species <- as.factor(ifelse(tree.rings3$PlotID=="MI006","TSCA", paste(tree.rings3$Species)))
+tree.rings3$Species <- as.factor(ifelse(tree.rings3$PlotID=="ME029","FRNI", paste(tree.rings3$Species)))
+tree.rings3$PFT     <- as.factor(ifelse(tree.rings3$Species %in% evergreen, "Evergreen", "Deciduous"))
+summary(tree.rings3)
 
-ring.data <- merge(tree.rings2, plots.clim, all.x=T, all.y=F)
+ring.data <- merge(tree.rings3, plots.clim, all.x=T, all.y=F)
 summary(ring.data)
 # -----------------
+
+# -----------------
+# Calculating DBH, BA, & BAI through time
+# For ITRDB, make (bad) assumption that DBH is equal to sum of all ring widths
+# -----------------
+# -----------------
+
 
 # -----------------
 # Doing some temporal smoothing to look at temporal resolution and sensitivity
@@ -419,13 +542,13 @@ ring.data.010$Resolution <- as.factor("t.010")
 ring.data <- rbind(ring.data, ring.data.010)
 summary(ring.data)
 
-vars.all <- c("RW", "RWI", "ppt.ann", "tmean.ann", "CO2")
+vars.all <- c("RW", "RWI", "BAI", "Age", "ppt.ann", "tmean.ann", "CO2")
 # Doing the scale by model & site
-for(s in unique(ring.data$CoreID)){
+for(t in unique(ring.data$TreeID)){
 	for(v in vars.all){
-		temp <- ring.data[ring.data$CoreID==s & ring.data$Resolution=="t.001", v]
+		temp <- ring.data[ring.data$TreeID==t & ring.data$Resolution=="t.001", v]
 
-		ring.data[ring.data$CoreID==s & ring.data$Resolution=="t.010", v] <- rollapply(temp, FUN=mean, width=10, align="center", fill=NA)
+		ring.data[ring.data$TreeID==t & ring.data$Resolution=="t.010", v] <- rollapply(temp, FUN=mean, width=10, align="center", fill=NA)
 	}
 }
 summary(ring.data)

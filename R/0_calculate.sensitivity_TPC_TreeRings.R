@@ -65,25 +65,13 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
 	if(site.effects==T){
-	if(substr(model.name,1,3)=="lin") {
-		predictors <- c("tair", "precipf")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, k=k) + s(precipf, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
-	} else {
-		predictors <- c("tair", "precipf", "CO2")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
-	}
-
+		predictors <- c("tair", "precipf", "CO2", "Age", "Spp.Site")
+		gam1 <- gam(Y ~ s(Age, by=Spp.Site) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
-	if(substr(model.name,1,3)=="lin") {
-		predictors <- c("tair", "precipf")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, k=k) + s(precipf, k=k), data=data, correlation=corARMA(form=~Year, p=1))
-	} else {
-		predictors <- c("tair", "precipf", "CO2")
-		gam1 <- gam(Y ~ s(Year, by=TreeID, k=3, type="bs") + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) , data=data, correlation=corARMA(form=~Year, p=1))
-	}
-
+		predictors <- c("tair", "precipf", "CO2", "Age", "Spp.Site")
+		gam1 <- gam(Y ~ s(Age, by=Spp.Site) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) , data=data, correlation=corARMA(form=~Year, p=1))
 	}
 	# ----------------------------------------
 
