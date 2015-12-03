@@ -29,7 +29,7 @@ library(car)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms/"
@@ -88,7 +88,7 @@ for(m in unique(summary.stats$Model)){
 summary.stats$dSite <- summary.stats$R2.site - summary.stats$R2.baseline
 summary.stats$dComp <- summary.stats$R2.comp - summary.stats$R2.baseline
 summary.stats$dSite.Comp  <- summary.stats$R2.site - summary.stats$R2.comp
-summary.stats$dSite.Comp2 <- summary.stats$R2.site - summary.stats$R2.comp
+summary.stats$dSite.Comp2 <- summary.stats$R2.comp.site - summary.stats$R2.site
 summary.stats
 
 write.csv(summary.stats, file.path(out.dir, "GAMM_ModelFits_Composition_Intercepts.csv"), row.names=F)
@@ -98,11 +98,12 @@ write.csv(summary.stats, file.path(out.dir, "GAMM_ModelFits_Composition_Intercep
 # **************************************************************************
 # ==========================================================================
 # Results!
-#    Adding Comp doesn't always make the fit better
-#     --> Composition shifts across space & time can MUDDY the signal rather
-#         than improve it
-#    Biggest gains from site interceipt found in static veg models
-#     --> Static veg models = greater site to site (spatial) variability?
+#    Adding Comp doesn't always make the fit better by much
+#     --> Least difference between site & comp for dynamic veg models (for 
+#         static veg models, site-intercept R2 is considerably higher)
+#    R2 improvements from adding composition on top of site intercept are
+#    small
+#
 # ==========================================================================
 # **************************************************************************
 # ==========================================================================

@@ -29,7 +29,7 @@ library(car)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms/"
@@ -84,11 +84,12 @@ write.csv(summary.stats, file.path(out.dir, "GAMM_ModelFits_Site_Curves.csv"), r
 # **************************************************************************
 # ==========================================================================
 # Results!
-#    Model with overal sensitivity & site intercepts still has highest R2, 
-#    although most differences were modest.
-#      --> ED has the smallest change in R2, but also the lowest model fits
+#    Site curves had highest R2, although differences were modest
+#    --> Slightly higher change in R2 with site curves in dynamic veg models
 #
 #    In general, static veg models had the highest R2 values
+#    --> makes sense because there are no veg shifts muddying the picture over
+#        long time periods (hypothesis to test)
 # ==========================================================================
 # **************************************************************************
 # ==========================================================================
@@ -482,6 +483,7 @@ print(
 ggplot(data=dif.terms2) + facet_grid(Site~Effect) +
 	geom_point(aes(x=Model, y=mean, color=Model), size=5) +
 	geom_errorbar(aes(x=Model, ymin=lwr, ymax=upr, color=Model), size=1.5, width=0) +
+	geom_hline(aes(yinterceipt=0), linetype="dashed") +
 	# geom_errorbar(aes(x=Model, ymin=mean-stdev, ymax=mean+stdev, color=Model), size=1.5, width=0) +
  	scale_color_manual(values=colors.use) +
 	theme_bw()
@@ -490,6 +492,7 @@ print(
 ggplot(data=dif.terms.mod) + facet_grid(.~Effect) +
 	geom_point(aes(x=Model, y=mean, color=Model), size=5) +
 	geom_errorbar(aes(x=Model, ymin=lwr, ymax=upr, color=Model), size=1.5, width=0) +
+	geom_hline(aes(yinterceipt=0), linetype="dashed") +
 	# geom_errorbar(aes(x=Model, ymin=mean-stdev, ymax=mean+stdev, color=Model), size=1.5, width=0) +
  	scale_color_manual(values=colors.use) +
 	theme_bw()
@@ -498,6 +501,7 @@ print(
 ggplot(data=dif.terms.site) + facet_grid(.~Effect) +
 	geom_point(aes(x=Site, y=mean, color=Site), size=5) +
 	geom_errorbar(aes(x=Site, ymin=lwr, ymax=upr, color=Site), size=1.5, width=0) +
+	geom_hline(aes(yinterceipt=0), linetype="dashed") +
 	# geom_errorbar(aes(x=Model, ymin=mean-stdev, ymax=mean+stdev, color=Model), size=1.5, width=0) +
  	# scale_color_manual(values=colors.use) +
 	theme_bw()
