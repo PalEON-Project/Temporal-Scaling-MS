@@ -103,10 +103,9 @@ e=1
 # Format & Process gamms -- 
 # --------------------------------------------------------------------------
 source('R/0_calculate.sensitivity_TPC_TreeRings.R', chdir = TRUE)
-response              <- "RW"
-tree.rings$tair       <- tree.rings$tmean.ann
-tree.rings$precipf    <- tree.rings$ppt.ann
-tree.rings$Y          <- tree.rings[,response]
+response <- c("RW")
+tree.rings$Y                <- tree.rings[,response]
+tree.rings[,predictors.all] <- tree.rings[,paste0(predictors.all, predictor.suffix)]
 tree.rings$Model      <- as.factor("TreeRings")
 tree.rings$Extent     <- as.factor("1901-2010")
 # tree.rings$Resolution <- as.factor("t.001")
@@ -114,7 +113,7 @@ summary(tree.rings)
 
 tree.rings2 <- list()
 for(r in 1:length(resolutions)){
-	tree.rings2[[paste(resolutions[r])]] <- tree.rings[tree.rings$Resolution==resolutions[r] & tree.rings$Year>=1901 & complete.cases(tree.rings$Y), ]
+	tree.rings2[[paste(resolutions[r])]] <- tree.rings[tree.rings$Resolution==resolutions[r] & tree.rings$Year>=1901 & complete.cases(tree.rings[,c(predictors.all, response)]), ]
 }
 
 cores.use <- min(12, length(tree.rings2))

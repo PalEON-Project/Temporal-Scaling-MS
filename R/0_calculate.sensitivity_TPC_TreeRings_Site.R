@@ -65,12 +65,13 @@ paleon.gams.models <- function(data, response, k, predictors.all, comp.effects){
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
 	if(comp.effects==T){
-		predictors <- c("tair", "precipf", "CO2", "Spp.Site", "Age", "Evergreen", "Grass")
+		PFT=T
+		predictors <- c("tair", "precipf", "CO2", "Spp.Site", "Age")
 		gam1 <- gam(Y ~ s(Age, by=Spp.Site) + s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + PFT * (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
-
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
+		PFT=F
 		predictors <- c("tair", "precipf", "CO2", "Spp.Site", "Age")
 		gam1 <- gam(Y ~ s(Age, by=Spp.Site) + s(tair, by=Site, k=k) + s(precipf, by=Site, k=k) + s(CO2, by=Site, k=k) + (Site -1), data=data, correlation=corARMA(form=~Year|Site, p=1))
 	}
@@ -92,7 +93,7 @@ paleon.gams.models <- function(data, response, k, predictors.all, comp.effects){
 	# ----------------------------------------
 	# Run all of the post-processing (calculate CIs, etc)
 	# ----------------------------------------
-	mod.out <- process.gamm(gamm.model=gam1, data=data, model.name=model.name, extent=extent, resolution=resolution, response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
+	mod.out <- process.gamm(gamm.model=gam1, data=data, model.name=model.name, extent=extent, resolution=resolution, response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T, PFT=PFT)
 	# ----------------------------------------
 	
 	return(mod.out)

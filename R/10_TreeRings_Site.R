@@ -228,7 +228,7 @@ ggplot(data=mod.tr$ci.response[substr(mod.tr$ci.response$TreeID,1,3)=="125",]) +
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	# scale_fill_manual(values=paste(col.model)) +
 	# scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("Site Curves", response, sep=" - "), x="Year", y=response)
 )
 dev.off()
 
@@ -243,7 +243,7 @@ ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO
 	geom_hline(yintercept=0, linetype="dashed") +
 	# scale_fill_manual(values=paste(col.model)) +
 	# scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0(e, " Sensitivity (Non-Relativized)"), y=paste0("RW Contribution")) # +
+	labs(title=paste0("Driver Sensitivity (Non-Relativized)"), y=paste0("RW Contribution")) # +
 )
 # }
 dev.off()
@@ -465,7 +465,7 @@ dev.off()
 source('R/0_calculate.sensitivity_TPC_Site.R', chdir = TRUE)
 
 response="NPP"
-ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all)]),]
+ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all)]) & ecosys$Year %in% tree.rings2$Year,]
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
@@ -566,17 +566,17 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + th
 	scale_color_manual(values=paste(col.model)) +		
 	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
 )
-print(	
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
-	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
-	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
-	scale_x_continuous(limits=c(1850,2010)) +
-	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-	scale_fill_manual(values=paste(col.model)) +
-	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
-)
+# print(	
+# ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
+ 	# geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
+	# geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	# geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
+	# scale_x_continuous(limits=c(1850,2010)) +
+	# # scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	# labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+# )
 dev.off()
 
 
