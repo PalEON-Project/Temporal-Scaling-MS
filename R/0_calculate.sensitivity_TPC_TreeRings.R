@@ -78,7 +78,7 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# ----------------------------------------
 	print("-------------------------------------")
 	print("-------------------------------------")
-	print(paste0("------ Processing Model: ", m.order, " ------"))
+	print(paste0("------ Processing Model: ", model.name, " ------"))
 	print(summary(gam1))	
 
 	# get rid of values for predictors not used in the models for clarity later on

@@ -29,8 +29,7 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-# setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -59,6 +58,8 @@ model.colors
 
 tree.rings <- read.csv("Data/TreeRing_RingWidths.csv")
 tree.rings <- tree.rings[complete.cases(tree.rings[,c("tmean.ann", "ppt.ann", "CO2")]),]
+tree.rings$Spp.Site <- as.factor(paste(tree.rings$Species, tree.rings$Site, sep=".")) # May want to add 
+tree.rings$tmean.ann = 
 summary(tree.rings)
 
 # source('R/0_calculate.sensitivity_TPC_Site.R', chdir = TRUE)
@@ -102,32 +103,52 @@ e=1
 # Format & Process gamms -- 
 # --------------------------------------------------------------------------
 source('R/0_calculate.sensitivity_TPC_TreeRings.R', chdir = TRUE)
-
+response              <- "RW"
 tree.rings$tair       <- tree.rings$tmean.ann
 tree.rings$precipf    <- tree.rings$ppt.ann
-tree.rings$Y          <- tree.rings$RW
+tree.rings$Y          <- tree.rings[,response]
 tree.rings$Model      <- as.factor("TreeRings")
-tree.rings$Extent     <- as.factor("1895-2010")
+tree.rings$Extent     <- as.factor("1901-2010")
 # tree.rings$Resolution <- as.factor("t.001")
 summary(tree.rings)
 
+tree.rings2 <- list()
 for(r in 1:length(resolutions)){
+	tree.rings2[[paste(resolutions[r])]] <- tree.rings[tree.rings$Resolution==resolutions[r] & tree.rings$Year>=1901 & complete.cases(tree.rings$Y), ]
+}
 
-tree.rings2 <- tree.rings[tree.rings$Resolution==resolutions[r] & (tree.rings$PlotID=="MN008" | tree.rings$PlotID=="ME029"), ]
-# summary(tree.rings2)
-# summary(tree.rings2[tree.rings2$Site=="PHO",])
+cores.use <- min(12, length(tree.rings2))
+# cores.use <- length(paleon.models)
 
+models.base <- mclapply(tree.rings2, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all), site.effects=T)
 
-# detrend.only <- 	gam(Y ~ s(Year, by=TreeID, k=3, bs="cr"), data= tree.rings2)
-# summary(detrend.only)
-# save(detrend.only, "gamm_TreeRings_DetrendOnly.Rdata")
+for(i in 1:length(models.base)){
+	if(i==1) {
+		mod.tr <- list()
+		mod.tr$data         <- models.base[[i]]$data
+		mod.tr$weights      <- models.base[[i]]$weights
+		mod.tr$ci.response  <- models.base[[i]]$ci.response
+		mod.tr$sim.response <- models.base[[i]]$sim.response
+		mod.tr$ci.terms     <- models.base[[i]]$ci.terms
+		mod.tr$sim.terms    <- models.base[[i]]$sim.terms
+		mod.tr[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
+	} else {
+		mod.tr$data         <- rbind(mod.tr$data,         models.base[[i]]$data)
+		mod.tr$weights      <- rbind(mod.tr$weights,      models.base[[i]]$weights)
+		mod.tr$ci.response  <- rbind(mod.tr$ci.response,  models.base[[i]]$ci.response)
+		mod.tr$sim.response <- rbind(mod.tr$sim.response, models.base[[i]]$sim.response)
+		mod.tr$ci.terms     <- rbind(mod.tr$ci.terms,     models.base[[i]]$ci.terms)
+		mod.tr$sim.terms    <- rbind(mod.tr$sim.terms,    models.base[[i]]$sim.terms)
+		mod.tr[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
+	}
+}
 
-mod.tr <- paleon.gams.models(data=tree.rings2, response="RW", k=k, predictors.all=predictors.all, site.effects=T)
+# Adding Tree ID to help index the response prediction
+mod.tr$ci.response$TreeID <- mod.tr$data$TreeID
 
-# mod.tr$ci.terms <- mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]
 mod.tr$ci.terms$x <- as.numeric(mod.tr$ci.terms$x)
 summary(mod.tr$ci.terms)
-# save(mod.tr, file=file.path(dat.dir, "gamm_TreeRings_RW_SiteCurves.Rdata"))
+save(mod.tr, file=file.path(dat.dir, paste0("gamm_TreeRings_RW_Resolutions.Rdata")))
 # -------------------------------------------------
 
 # -------------------------------------------------
@@ -138,39 +159,39 @@ summary(mod.tr$ci.terms)
 m.order <- "Tree Rings"
 col.model="darkgreen"
 
-pdf(file.path(fig.dir, paste0("GAMM_TreeRingFit_RW_TempRes_", resolutions[r], ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_TreeRingFit_RW_TempResolution.pdf")))
 print(
-ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~., scales="free") + theme_bw() +
+ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~Resolution, scales="free") + theme_bw() +
  	geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
-	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
-	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill= TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color= TreeID), size=0.35) +
 	# scale_x_continuous(limits=c(850,2010)) +
 	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
 	# scale_fill_manual(values=paste(col.model)) +
 	# scale_color_manual(values=paste(col.model)) +		
 	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
 )
-# print(	
-# ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
- 	# geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
-	# geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
-	# geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
-	# scale_x_continuous(limits=c(1925,1975)) +
-	# # scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-	# # scale_fill_manual(values=paste(col.model)) +
-	# # scale_color_manual(values=paste(col.model)) +		
-	# labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
-# )
+print(	
+ggplot(data=mod.tr$ci.response[substr(mod.tr$ci.response$TreeID,1,3)=="125",]) + facet_grid(Site~ Resolution, scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[substr(mod.tr$data$TreeID,1,3)=="125",], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
+	scale_x_continuous(limits=c(1925,1975)) +
+	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+)
 dev.off()
 
 
-pdf(file.path(fig.dir, paste0("GAMM_TreeRing_DriverSensitivity_RW_", resolutions[r], ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_TreeRing_DriverSensitivity_RW_TempResolution.pdf")))
 # for(e in unique(mod.tr$ci.terms$Effect)[1:3]){
 print(
 # ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +	
 ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_wrap( ~ Effect, scales="free_x") + theme_bw() +	
-	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Site), alpha=0.5) +
-	geom_line(aes(x=x, y=mean, color=Site), size=1) +
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Resolution), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Resolution), size=1) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	# scale_fill_manual(values=paste(col.model)) +
 	# scale_color_manual(values=paste(col.model)) +		
@@ -179,9 +200,8 @@ ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO
 # }
 dev.off()
 
-rm(mod.tr)
+rm(mod.tr, models.base)
 
-}
 # -------------------------------------------------
 # ------------------------------------------------------------------------------------
 
@@ -197,13 +217,14 @@ rm(mod.tr)
 # -------------------------------------------------
 source('R/0_calculate.sensitivity_TPC.R', chdir = TRUE)
 response="NPP"
+
+paleon.models <- list()
 for(r in 1:length(resolutions)){
-ecosys2 <- ecosys[complete.cases(ecosys[,c(response, predictors.all)]) & ecosys$Resolution==resolutions[r],]
+ecosys2 <- ecosys[complete.cases(ecosys[,c(response, predictors.all)]) & ecosys$Resolution==resolutions[r] & ecosys$Year>=1901,]
 sites       <- unique(ecosys2$Site)
 model.name  <- unique(ecosys2$Model)
 model.order <- unique(ecosys2$Model.Order)
 
-paleon.models <- list()
 for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
 	m.order <- model.order[m]
@@ -238,9 +259,10 @@ for(m in 1:length(model.name)){
 
 	data.temp$Y <- data.temp[,response]
 
-	paleon.models[[paste(m.name)]] <- data.temp
+	paleon.models[[paste(m.name, resolutions[r], sep="_")]] <- data.temp
 
 } # End Model Loop
+} # End Resolutions Loop
 # --------------------------------
 
 
@@ -250,7 +272,7 @@ for(m in 1:length(model.name)){
 cores.use <- min(12, length(paleon.models))
 # cores.use <- length(paleon.models)
 
-models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), site.effects=T)
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all), site.effects=T)
 # -------------------------------------------------
 
 # -------------------------------------------------
@@ -276,7 +298,7 @@ for(i in 1:length(models.base)){
 		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
 	}
 }
-save(mod.out, file=file.path(dat.dir, paste0("gamm_models_RW_Res_", resolutions[r], ".Rdata")))
+save(mod.out, file=file.path(dat.dir, paste0("gamm_Models_NPP_Resolutions.Rdata")))
 # -------------------------------------------------
 
 
@@ -286,50 +308,36 @@ save(mod.out, file=file.path(dat.dir, paste0("gamm_models_RW_Res_", resolutions[
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, paste0("GAMM_ModelFit_RW_Res_", resolutions[r], ".pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ModelFit_NPP_TempResolution.pdf")))
+for(r in resolutions){
 print(
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
+ggplot(data=mod.out$ci.response[mod.out$ci.response$Resolution==r,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
+ 	geom_line(data= mod.out$data[mod.out$data$Resolution==r,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
 	# scale_x_continuous(limits=c(850,2010)) +
 	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("Site Intercept", response, r, sep=" - "), x="Year", y=response)
 )
-print(	
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
-	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
-	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
-	scale_x_continuous(limits=c(1850,2010)) +
-	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-	scale_fill_manual(values=paste(col.model)) +
-	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
-)
+}
 dev.off()
 
 
-pdf(file.path(fig.dir, paste0("GAMM_DriverSensitivity_RW_Res_", resolutions[r], ".pdf")))
-# for(e in unique(mod.out$ci.terms$Effect)[1:3]){
+pdf(file.path(fig.dir, paste0("GAMM_ModelSensitivity_NPP_TempResolution.pdf")))
 print(
-ggplot(data=mod.out$ci.terms[,]) + facet_wrap( ~ Effect, scales="fixed") + theme_bw() +		
-	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+ggplot(data=mod.out$ci.terms[,]) + facet_grid(Resolution ~ Effect, scales="free_x") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0(e, " Sensitivity (Non-Relativized)"), y=paste0("RW Contribution")) # +
+	labs(title=paste0("Driver Sensitivity (Non-Relativized)"), y=paste0("NPP Contribution")) # +
 )
-}
 dev.off()
 # -------------------------------------------------
 # --------------------------------------------------------------------------
 
 # Clear the memory!
 rm(mod.out, models.base)
-
-}
 # ------------------------------------------------------------------------------------

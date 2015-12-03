@@ -52,7 +52,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 # Ecosys file = organized, post-processed m.name outputs
 #	generated with 1_generate_ecosys.R
-load(file.path("Data", "EcosysData_Raw.Rdata"))
+load(file.path("Data", "EcosysData.Rdata"))
 summary(ecosys)
 model.colors
 
@@ -114,11 +114,80 @@ tree.rings2 <- tree.rings[tree.rings$Resolution=="t.001" & complete.cases(tree.r
 summary(tree.rings2)
 # summary(tree.rings2[tree.rings2$Site=="PHO",])
 
-detrend.only <- 	gam(Y ~ s(Age, by=Spp.Site), data= tree.rings2)
-summary(detrend.only)
-plot(detrend.only, ylim=c(-10,10))
+# detrend.only <- 	gam(Y ~ s(Age, by=Spp.Site), data= tree.rings2)
+# summary(detrend.only)
+# plot(detrend.only, ylim=c(-10,10))
 # save(detrend.only, "gamm_TreeRings_DetrendOnly.Rdata")
 
+# ----------------------------------------------------------------------------
+# Site Intercepts (Baseline Model)
+# ----------------------------------------------------------------------------
+
+source('R/0_calculate.sensitivity_TPC_TreeRings.R', chdir = TRUE)
+
+mod.tr <- paleon.gams.models(data=tree.rings2, response=response, k=k, predictors.all=predictors.all, site.effects=T)
+
+# Adding Tree ID to help index the response prediction
+mod.tr$ci.response$TreeID <- tree.rings2$TreeID
+
+mod.tr$ci.terms$x <- as.numeric(mod.tr$ci.terms$x)
+summary(mod.tr$ci.terms)
+save(mod.tr, file=file.path(dat.dir, "gamm_TreeRings_RW_SiteIntercept.Rdata"))
+# -------------------------------------------------
+
+# -------------------------------------------------
+# Diagnostic Graphs
+# -------------------------------------------------
+# m.order <- unique(mod.out$data$Model.Order)
+# col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
+m.order <- "Tree Rings"
+col.model="darkgreen"
+
+pdf(file.path(fig.dir, "GAMM_TreeRingFit_RW_SiteIntercept.pdf"))
+print(
+ggplot(data=mod.tr$ci.response[,]) + facet_grid(Site~., scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[,], aes(x=Year, y=Y, color=TreeID), color="gray", alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill= TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color= TreeID), size=0.35) +
+	# scale_x_continuous(limits=c(850,2010)) +
+	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+)
+print(	
+ggplot(data=mod.tr$ci.response[substr(mod.tr$ci.response$TreeID,1,3)=="125",]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
+ 	geom_line(data= mod.tr$data[substr(mod.tr$data$TreeID,1,3)=="125",], aes(x=Year, y=Y, color=TreeID), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=TreeID), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=TreeID), size=0.35) +
+	scale_x_continuous(limits=c(1925,1975)) +
+	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+)
+dev.off()
+
+
+pdf(file.path(fig.dir, "GAMM_TreeRing_DriverSensitivity_RW_SiteIntercept.pdf"))
+# for(e in unique(mod.tr$ci.terms$Effect)[1:3]){
+print(
+# ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +	
+ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_wrap( ~ Effect, scales="free_x") + theme_bw() +	
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Model), size=1) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0(e, " Sensitivity (Non-Relativized)"), y=paste0("RW Contribution")) # +
+)
+# }
+dev.off()
+# -------------------------------------------------
+
+# ----------------------------------------------------------------------------
+# Site Curves
+# ----------------------------------------------------------------------------
 source('R/0_calculate.sensitivity_TPC_TreeRings_Site.R', chdir = TRUE)
 
 mod.tr <- paleon.gams.models(data=tree.rings2, response=response, k=k, predictors.all=predictors.all, comp.effects=F)
@@ -180,11 +249,11 @@ ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO
 # }
 dev.off()
 # -------------------------------------------------
+# ----------------------------------------------------------------------------
 
-# -------------------------------------------------
-# -------------------------------------------------
-# Composition Intercepts
-# -------------------------------------------------
+# ----------------------------------------------------------------------------
+# Site Curves + Composition Intercepts
+# ----------------------------------------------------------------------------
 
 source('R/0_calculate.sensitivity_TPC_TreeRings_Site.R', chdir = TRUE)
 
@@ -246,11 +315,12 @@ ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO
 )
 # }
 dev.off()
-# -------------------------------------------------
+# ----------------------------------------------------------------------------
 
 
-# -------------------------------------------------
-# -------------------------------------------------
+# ----------------------------------------------------------------------------
+# Composition Curves + Site Intercepts
+# ----------------------------------------------------------------------------
 
 source('R/0_calculate.sensitivity_TPC_TreeRings_Comp.R', chdir = TRUE)
 
@@ -313,11 +383,11 @@ ggplot(data=mod.tr$ci.terms[mod.tr$ci.terms$Effect %in% c("tair", "precipf", "CO
 # }
 dev.off()
 
-# -------------------------------------------------
+# ----------------------------------------------------------------------------
 
-# -------------------------------------------------
-# Species instead of true PFT
-# -------------------------------------------------
+# ----------------------------------------------------------------------------
+# Species Curves (instead of PFT)
+# ----------------------------------------------------------------------------
 
 source('R/0_calculate.sensitivity_TPC_TreeRings_Comp.R', chdir = TRUE)
 
