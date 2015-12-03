@@ -101,16 +101,15 @@ e=1
 # Format & Process gamms -- 
 # --------------------------------------------------------------------------
 response <- c("RW")
-tree.rings$tair       <- tree.rings$tmean.ann
-tree.rings$precipf    <- tree.rings$ppt.ann
-tree.rings$Y          <- tree.rings[,response]
-tree.rings$Model      <- as.factor("TreeRings")
-tree.rings$Extent     <- as.factor("1895-2010")
+tree.rings$Y                <- tree.rings[,response]
+tree.rings[,predictors.all] <- tree.rings[,paste0(predictors.all, predictor.suffix)]
+tree.rings$Model            <- as.factor("TreeRings")
+tree.rings$Extent           <- as.factor("1895-2010")
 # tree.rings$Resolution <- as.factor("t.001")
 summary(tree.rings)
 
 # tree.rings2 <- tree.rings[tree.rings$Resolution=="t.001" & (tree.rings$PlotID=="MN008" | tree.rings$PlotID=="ME029"), ]
-tree.rings2 <- tree.rings[tree.rings$Resolution=="t.001" & complete.cases(tree.rings$Y), ]
+tree.rings2 <- tree.rings[tree.rings$Resolution=="t.001" & complete.cases(tree.rings[,c(predictors.all, response)]), ]
 summary(tree.rings2)
 # summary(tree.rings2[tree.rings2$Site=="PHO",])
 

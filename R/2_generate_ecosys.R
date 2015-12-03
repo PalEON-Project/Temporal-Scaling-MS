@@ -71,6 +71,9 @@ sec2yr <- 1*60*60*24*365.25 # 1 sec * 60 sec/min * 60 min/hr * 24 hr/day * 365.2
 vars.flux <- c("precipf", "precipf.yr", "precipf.gs", "GPP", "NPP", "NEE", "AutoResp", "HeteroResp", "Evap")
 ecosys[,vars.flux] <- ecosys[,vars.flux]*sec2yr
 
+# Growing Season Precipitation should be in total precip for those months (may - sept = 5 months)
+ecosys$precipf.gs = ecosys$precipf.gs/12*5
+
 # Carbon: change kgC/m2 to MgC/ha
 kgm2_2_Mgha <- 1*0.001*10000 # 1 kg * 0.001 kg/Mg * 10000 m2/ha
 vars.carbon <- c("GPP", "NPP", "NEE", "AutoResp", "HeteroResp", "AGB", "SoilCarb")
