@@ -86,7 +86,7 @@ dim(ecosys2)
 summary(ecosys2)
 
 # Setting up a loop for 1 m.name, 1 temporal scale
-resolutions <- c("t.001") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
+resolutions <- c("t.010") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(1895), End=c(2010)) 
 predictors.all <- c("tair", "precipf", "CO2")
 predictor.suffix <- c(".gs")

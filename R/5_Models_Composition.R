@@ -75,7 +75,7 @@ model.colors
 ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 # Setting up a loop for 1 m.name, 1 temporal scale
-resolutions <- c("t.001") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
+resolutions <- c("t.010") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(850), End=c(2010)) 
 response <- c("NPP")
 predictors.all <- c("tair", "precipf", "CO2")

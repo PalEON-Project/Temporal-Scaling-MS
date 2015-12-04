@@ -30,7 +30,7 @@ sec2yr <- 1*60*60*24*365
 # Set Directories
 # ----------------------------------------
 # setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -78,7 +78,7 @@ ecosys <- ecosys[!ecosys$Model=="linkages",]
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
-resolutions <- c("t.001") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
+resolutions <- c("t.010") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(850), End=c(2010)) 
 response <- c("NPP")
 predictors.all <- c("tair", "precipf", "CO2")
