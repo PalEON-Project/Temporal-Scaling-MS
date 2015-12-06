@@ -29,8 +29,7 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-# setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -56,7 +55,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 # Ecosys file = organized, post-processed m.name outputs
 #	generated with 1_generate_ecosys.R
-load(file.path("Data", "EcosysData_Raw.Rdata"))
+load(file.path("Data", "EcosysData.Rdata"))
 summary(ecosys)
 model.colors
 
@@ -88,7 +87,7 @@ e=1
 # -------------------------------------------------
 # Setting up the data and putting it in a list to run the gamms in parallel
 # -------------------------------------------------
-ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all]),]
+ecosys <- ecosys[ecosys$Resolution==resolutions & complete.cases(ecosys[,c(response, predictors.all)]),]
 sites       <- unique(ecosys$Site)
 model.name  <- unique(ecosys$Model)
 model.order <- unique(ecosys$Model.Order)
@@ -119,7 +118,7 @@ for(m in 1:length(model.name)){
 	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all, "Evergreen", "Grass")]
 
 	# Making a note of the extent & resolution
-	ext <- as.factor(paste(1850, 2010, sep="-"))
+	ext <- as.factor(paste(850, 2010, sep="-"))
 	data.temp$Extent <- as.factor(ext)
 	data.temp$Resolution <- as.factor(resolutions)
 
@@ -167,7 +166,7 @@ for(i in 1:length(models.base)){
 	}
 }
 
-save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site.Rdata"))
+save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_SiteCurves.Rdata"))
 # -------------------------------------------------
 
 
@@ -177,7 +176,7 @@ save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site.Rdata"))
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_Site.pdf"))
+pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_SiteCurves.pdf"))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
@@ -203,7 +202,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + t
 dev.off()
 
 
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_Site.pdf"))
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_SiteCurves.pdf"))
 for(e in unique(mod.out$ci.terms$Effect)[1:3]){
 print(
 ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +		
@@ -261,7 +260,7 @@ for(i in 1:length(models.base)){
 	}
 }
 
-save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site_Comp.Rdata"))
+save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_SiteCurves_Comp.Rdata"))
 # -------------------------------------------------
 
 
@@ -271,7 +270,7 @@ save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Site_Comp.Rdata"))
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_Site_Comp.pdf"))
+pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_SiteCurves_Comp.pdf"))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
@@ -297,7 +296,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + t
 dev.off()
 
 
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_Site_Comp.pdf"))
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_SiteCurves_Comp.pdf"))
 for(e in unique(mod.out$ci.terms$Effect)[1:3]){
 print(
 ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect==e,]) + facet_wrap( ~ Site, scales="fixed") + theme_bw() +		

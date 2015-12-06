@@ -208,7 +208,7 @@ rm(mod.tr, models.base)
 
 # ------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------
-# MODELS
+# MODELS -- Tree Ring Extent
 # ------------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------------
 # -------------------------------------------------
@@ -297,7 +297,7 @@ for(i in 1:length(models.base)){
 		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
 	}
 }
-save(mod.out, file=file.path(dat.dir, paste0("gamm_Models_NPP_Resolutions.Rdata")))
+save(mod.out, file=file.path(dat.dir, paste0("gamm_Models_NPP_Resolutions_Extent1901.Rdata")))
 # -------------------------------------------------
 
 
@@ -307,7 +307,7 @@ save(mod.out, file=file.path(dat.dir, paste0("gamm_Models_NPP_Resolutions.Rdata"
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, paste0("GAMM_ModelFit_NPP_TempResolution.pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ModelFit_NPP_TempResolution_Extent1901.pdf")))
 for(r in resolutions){
 print(
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Resolution==r,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
@@ -324,7 +324,154 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Resolution==r,]) + facet_gri
 dev.off()
 
 
-pdf(file.path(fig.dir, paste0("GAMM_ModelSensitivity_NPP_TempResolution.pdf")))
+pdf(file.path(fig.dir, paste0("GAMM_ModelSensitivity_NPP_TempResolution_Extent1901.pdf")))
+print(
+ggplot(data=mod.out$ci.terms[,]) + facet_grid(Resolution ~ Effect, scales="free_x") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Model), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (Non-Relativized)"), y=paste0("NPP Contribution")) # +
+)
+dev.off()
+# -------------------------------------------------
+# --------------------------------------------------------------------------
+
+# Clear the memory!
+rm(mod.out, models.base)
+# ------------------------------------------------------------------------------------
+
+
+
+# ------------------------------------------------------------------------------------
+# MODELS -- Full Extent
+# ------------------------------------------------------------------------------------
+
+# -------------------------------------------------
+# Setting up the data and putting it in a list to run the gamms in parallel
+# -------------------------------------------------
+source('R/0_calculate.sensitivity_TPC.R', chdir = TRUE)
+response="NPP"
+
+paleon.models <- list()
+for(r in 1:length(resolutions)){
+ecosys2 <- ecosys[complete.cases(ecosys[,c(response, predictors.all)]) & ecosys$Resolution==resolutions[r],]
+sites       <- unique(ecosys2$Site)
+model.name  <- unique(ecosys2$Model)
+model.order <- unique(ecosys2$Model.Order)
+
+for(m in 1:length(model.name)){
+	m.name  <- model.name[m]
+	m.order <- model.order[m]
+
+	print("-------------------------------------")
+	print(paste0("------ Processing Model: ", m.order, " ------"))
+
+	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
+	dat.mod <- ecosys2[ecosys2$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix), "Evergreen", "Grass")]
+	names(dat.mod)[7:(7+length(predictors.all)-1)] <- predictors.all
+	
+	if(!max(dat.mod[,response], na.rm=T)>0) next # If a variable is missing, just skip over this model for now
+
+# for(r in 1:length(resolutions)){ # Resolution loop
+
+	# Figure out which years to take: 
+	# Note: working backwards to help make sure we get modern end of the CO2.gs & temperature distributions
+	run.end <- ifelse(substr(m.name,1,3)=="jul", 2009, 2010) # Note: Jules missing 2010, so 
+	run.start <- 850
+	inc <- 1 # making sure we're always dealign with whole numbers
+	yrs <- seq(from=run.end, to=run.start, by=-1)
+
+	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all, "Evergreen", "Grass")]
+
+	# Making a note of the extent & resolution
+	ext <- as.factor(paste(1850, 2010, sep="-"))
+	data.temp$Extent <- as.factor(ext)
+	data.temp$Resolution <- as.factor(resolutions[r])
+
+	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
+	data.temp <- data.temp[complete.cases(data.temp[,c(response)]),]
+
+	data.temp$Y <- data.temp[,response]
+
+	paleon.models[[paste(m.name, resolutions[r], sep="_")]] <- data.temp
+
+} # End Model Loop
+} # End Resolutions Loop
+# --------------------------------
+
+
+# --------------------------------------------------------------------------
+# Run & Process gamms -- No Composition Effect
+# --------------------------------------------------------------------------
+cores.use <- min(12, length(paleon.models))
+# cores.use <- length(paleon.models)
+
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all), site.effects=T)
+# -------------------------------------------------
+
+# -------------------------------------------------
+# Bind Models together to put them in a single object to make them easier to work with
+# -------------------------------------------------
+for(i in 1:length(models.base)){
+	if(i==1) {
+		mod.out <- list()
+		mod.out$data         <- models.base[[i]]$data
+		mod.out$weights      <- models.base[[i]]$weights
+		mod.out$ci.response  <- models.base[[i]]$ci.response
+		mod.out$sim.response <- models.base[[i]]$sim.response
+		mod.out$ci.terms     <- models.base[[i]]$ci.terms
+		mod.out$sim.terms    <- models.base[[i]]$sim.terms
+		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
+	} else {
+		mod.out$data         <- rbind(mod.out$data,         models.base[[i]]$data)
+		mod.out$weights      <- rbind(mod.out$weights,      models.base[[i]]$weights)
+		mod.out$ci.response  <- rbind(mod.out$ci.response,  models.base[[i]]$ci.response)
+		mod.out$sim.response <- rbind(mod.out$sim.response, models.base[[i]]$sim.response)
+		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     models.base[[i]]$ci.terms)
+		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    models.base[[i]]$sim.terms)
+		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
+	}
+}
+save(mod.out, file=file.path(dat.dir, paste0("gamm_Models_NPP_Resolutions_ExtentFull.Rdata")))
+# -------------------------------------------------
+
+
+# -------------------------------------------------
+# Diagnostic Graphs
+# -------------------------------------------------
+m.order <- unique(mod.out$data$Model.Order)
+col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
+
+pdf(file.path(fig.dir, paste0("GAMM_ModelFit_NPP_TempResolution_ExtentFull.pdf")))
+for(r in resolutions){
+print(
+ggplot(data=mod.out$ci.response[mod.out$ci.response$Resolution==r,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
+ 	geom_line(data= mod.out$data[mod.out$data$Resolution==r,], aes(x=Year, y=Y), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
+	# scale_x_continuous(limits=c(850,2010)) +
+	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Site Intercept", response, r, sep=" - "), x="Year", y=response)
+)
+print(
+ggplot(data=mod.out$ci.response[mod.out$ci.response$Resolution==r,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
+ 	geom_line(data= mod.out$data[mod.out$data$Resolution==r,], aes(x=Year, y=Y), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
+	scale_x_continuous(limits=c(1850,2010)) +
+	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("Site Intercept", response, r, sep=" - "), x="Year", y=response)
+)
+}
+dev.off()
+
+
+pdf(file.path(fig.dir, paste0("GAMM_ModelSensitivity_NPP_TempResolution_ExtentFull.pdf")))
 print(
 ggplot(data=mod.out$ci.terms[,]) + facet_grid(Resolution ~ Effect, scales="free_x") + theme_bw() +		geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +

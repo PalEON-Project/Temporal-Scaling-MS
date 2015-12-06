@@ -29,7 +29,7 @@ library(car)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms/"
@@ -52,10 +52,9 @@ mod.baseline <- mod.out; rm(mod.out)
 # names(mod.baseline)[7:length(mod.baseline)] <- paste("gamm", c("clm.bgc", "clm.cn", "ed2", "ed2.lu", "jules.stat", "jules.triffid", "lpj.guess", "lpj.wsl", "sibcasa"), sep=".")
 summary(mod.baseline)
 
-load(file.path(in.base, "Sensitivity_Models_Site/gamm_models_NPP_Site.Rdata"))
+load(file.path(in.base, "Sensitivity_Models_Site/gamm_models_NPP_SiteCurves.Rdata"))
 mod.site <- mod.out; rm(mod.out)
 summary(mod.site)
-
 # ----------------------------------------
 
 
@@ -72,10 +71,14 @@ summary.stats
 for(m in unique(summary.stats$Model)){
 	summary.stats[summary.stats$Model==m, "R2.baseline" ] <- summary(mod.baseline [[paste0("gamm.", m, ".baseline")]])$r.sq
 	summary.stats[summary.stats$Model==m, "R2.site"     ] <- summary(mod.site     [[paste0("gamm.", m)]])$r.sq
+	summary.stats[summary.stats$Model==m, "Dev.baseline" ] <- summary(mod.baseline [[paste0("gamm.", m, ".baseline")]])$dev.expl
+	summary.stats[summary.stats$Model==m, "Dev.site"     ] <- summary(mod.site     [[paste0("gamm.", m)]])$dev.expl
+
 }
-summary.stats$dSite <- summary.stats$R2.site - summary.stats$R2.baseline
+summary.stats$dR2  <- summary.stats$R2.site  - summary.stats$R2.baseline
+summary.stats$dDev <- summary.stats$Dev.site - summary.stats$Dev.baseline
 summary.stats
-mean(summary.stats$dSite); sd(summary.stats$dSite)
+# mean(summary.stats$dSite); sd(summary.stats$dSite)
 
 write.csv(summary.stats, file.path(out.dir, "GAMM_ModelFits_Site_Curves.csv"), row.names=F)
 # ----------------------------------------
@@ -84,8 +87,8 @@ write.csv(summary.stats, file.path(out.dir, "GAMM_ModelFits_Site_Curves.csv"), r
 # **************************************************************************
 # ==========================================================================
 # Results!
-#    Site curves had highest R2, although differences were modest
-#    --> Slightly higher change in R2 with site curves in dynamic veg models
+#    Site curves had highest R2-adj and explained deviance, although most 
+#    differences were modest
 #
 #    In general, static veg models had the highest R2 values
 #    --> makes sense because there are no veg shifts muddying the picture over
@@ -105,6 +108,26 @@ write.csv(summary.stats, file.path(out.dir, "GAMM_ModelFits_Site_Curves.csv"), r
 dat.ecosys <- cbind(mod.baseline$data, mod.baseline$ci.response[,c("mean", "lwr", "upr")], GAM="Baseline")
 dat.ecosys <- rbind(dat.ecosys, cbind(mod.site$data[, !(names(mod.site$data) %in% c("Evergreen", "Grass"))], mod.site$ci.response[,c("mean", "lwr", "upr")], GAM="Site"))
 summary(dat.ecosys)
+
+models.use <- unique(dat.ecosys[dat.ecosys$Model %in% ci.terms$Model,"Model.Order"])
+colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"])
+
+pdf(file.path(fig.dir, "NPP_ModelFits_Scatter.pdf"))
+print(
+ggplot(data=dat.ecosys) + facet_grid(GAM~Site) +
+	geom_point(aes(x=NPP, y=fit.gam, color=Model), alpha=0.5) +
+	scale_color_manual(values=paste(colors.use)) +
+	geom_abline(intercept=0, slope=1, linetype="dashed") +
+	theme_bw()
+)
+print(
+ggplot(data=dat.ecosys) + facet_grid(GAM~Model, scales="free") +
+	geom_point(aes(x=NPP, y=fit.gam, color=Site), alpha=0.5) +
+	# scale_color_manual(values=paste(colors.use)) +
+	geom_abline(intercept=0, slope=1, linetype="dashed") +
+	theme_bw()
+)
+dev.off()
 
 # Binding the term sensitivity together;
 # NOTE: Only using PHA because the sensitivity is the same across sites (there's only a site intercept)
