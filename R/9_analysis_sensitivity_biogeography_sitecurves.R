@@ -29,7 +29,7 @@ library(car)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms/"
@@ -55,6 +55,29 @@ summary(mod.baseline)
 load(file.path(in.base, "Sensitivity_Models_Site/gamm_models_NPP_SiteCurves.Rdata"))
 mod.site <- mod.out; rm(mod.out)
 summary(mod.site)
+
+
+
+# Binding the input data together
+dat.ecosys <- cbind(mod.baseline$data, mod.baseline$ci.response[,c("mean", "lwr", "upr")], GAM="Baseline")
+dat.ecosys <- rbind(dat.ecosys, cbind(mod.site$data[, !(names(mod.site$data) %in% c("Evergreen", "Grass"))], mod.site$ci.response[,c("mean", "lwr", "upr")], GAM="Site"))
+summary(dat.ecosys)
+
+
+# Binding the term sensitivity together;
+ci.terms <- rbind(cbind(GAM="Baseline", mod.baseline$ci.terms[, ]), cbind(GAM="Site", mod.site$ci.terms[,]))
+wt.terms   <- rbind(cbind(GAM="Baseline", mod.baseline$weights), cbind(GAM="Site", mod.baseline$weights))
+sim.terms <- rbind(cbind(GAM="Baseline", mod.baseline$sim.terms[, ]), cbind(GAM="Site", mod.site$sim.terms[, ]))
+sim.terms$Effect <- as.factor(sim.terms$Effect)
+
+summary(ci.terms)
+summary(wt.terms)
+summary(sim.terms[,1:10])
+
+
+models.use <- unique(dat.ecosys[dat.ecosys$Model %in% ci.terms$Model,"Model.Order"])
+colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"])
+
 # ----------------------------------------
 
 
@@ -104,13 +127,6 @@ write.csv(summary.stats, file.path(out.dir, "GAMM_ModelFits_Site_Curves.csv"), r
 #       because this is where we saw the greatest change
 # ----------------------------------------
 
-# Binding the input data together
-dat.ecosys <- cbind(mod.baseline$data, mod.baseline$ci.response[,c("mean", "lwr", "upr")], GAM="Baseline")
-dat.ecosys <- rbind(dat.ecosys, cbind(mod.site$data[, !(names(mod.site$data) %in% c("Evergreen", "Grass"))], mod.site$ci.response[,c("mean", "lwr", "upr")], GAM="Site"))
-summary(dat.ecosys)
-
-models.use <- unique(dat.ecosys[dat.ecosys$Model %in% ci.terms$Model,"Model.Order"])
-colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"])
 
 pdf(file.path(fig.dir, "NPP_ModelFits_Scatter.pdf"))
 print(
@@ -128,15 +144,6 @@ ggplot(data=dat.ecosys) + facet_grid(GAM~Model, scales="free") +
 	theme_bw()
 )
 dev.off()
-
-# Binding the term sensitivity together;
-# NOTE: Only using PHA because the sensitivity is the same across sites (there's only a site intercept)
-ci.terms <- rbind(cbind(GAM="Baseline", mod.baseline$ci.terms[, ]), cbind(GAM="Site", mod.site$ci.terms[,]))
-sim.terms <- rbind(cbind(GAM="Baseline", mod.baseline$sim.terms[, ]), cbind(GAM="Site", mod.site$sim.terms[, ]))
-sim.terms$Effect <- as.factor(sim.terms$Effect)
-
-summary(ci.terms)
-summary(sim.terms[,1:10])
 
 # ----------------------------------------
 # Compare driver responses across models by standardizing driver responses to the mean model NPP
@@ -247,6 +254,26 @@ pdf(file.path(fig.dir, "NPP_Sensitivity_Models_Comparison_SiteCurves_byEffect.pd
 for(e in unique(ci.terms.graph$Effect)){
 print(
 ggplot(data=ci.terms.graph[ci.terms.graph$Effect==e,]) + facet_grid(GAM~Site) +
+	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean.rel*100, color=Model)) +
+	geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
+	geom_vline(aes(xintercept=line.min), linetype="dashed") +
+	geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
+	geom_vline(aes(xintercept=line.max), linetype="dashed") +
+	ggtitle(e) +
+	scale_x_continuous(expand=c(0,0)) +
+	scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+	scale_fill_manual(values=colors.use) +
+	scale_color_manual(values=colors.use) +
+	theme_bw()
+)
+}
+dev.off()
+
+pdf(file.path(fig.dir, "NPP_Sensitivity_Models_Comparison_SiteCurves_byEffect_SiteOnly.pdf"), height=8.5, width=11)
+for(e in unique(ci.terms.graph$Effect)){
+print(
+ggplot(data=ci.terms.graph[ci.terms.graph$Effect==e & ci.terms.graph$GAM=="Site",]) + facet_wrap(~Site) +
 	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean.rel*100, color=Model)) +
 	geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
