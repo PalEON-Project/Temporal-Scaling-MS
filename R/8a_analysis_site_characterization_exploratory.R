@@ -38,6 +38,11 @@ fig.dir <- "Figures/analyses/analysis_site_characteristics"
 
 if(!dir.exists(out.dir)) dir.create(out.dir)
 if(!dir.exists(fig.dir)) dir.create(fig.dir)
+
+if(!dir.exists(out.dir)) dir.create(out.dir)
+if(!dir.exists(file.path(fig.dir, "t.001"))) dir.create(file.path(fig.dir, "t.001"))
+if(!dir.exists(file.path(fig.dir, "t.010"))) dir.create(file.path(fig.dir, "t.010"))
+
 # ----------------------------------------
 
 # ----------------------------------------
@@ -47,18 +52,45 @@ load(file.path(path.data, "EcosysData.Rdata"))
 ecosys <- ecosys[!ecosys$Model=="linkages",]
 summary(ecosys)
 
-load(file.path(in.base, "Sensitivity_Models_Baseline/gamm_models_baseline_NPP_Site.Rdata"))
+load(file.path(in.base, "Sensitivity_All_TempRes/gamm_Models_NPP_Resolutions_ExtentFull.Rdata"))
 summary(mod.out)
 
-ci.terms   <- mod.out$ci.terms
-dat.ecosys <- cbind(mod.out$data, mod.out$ci.response[,c("mean", "lwr", "upr")])
-wt.terms   <- mod.out$weights
-sim.terms  <- mod.out$sim.terms
+ci.terms   <- mod.out$ci.terms[, ]
+dat.ecosys <- cbind(mod.out$data[, ], mod.out$ci.response[,c("mean", "lwr", "upr")])
+wt.terms   <- mod.out$weights[, ]
+sim.terms  <- mod.out$sim.terms[, ]
 
 sim.terms$Effect  <- as.factor(sim.terms$Effect)
 ci.terms$Extent   <- as.factor(ifelse(ci.terms$Extent=="850-2010", "0850-2010", paste(ci.terms$Extent)))
 dat.ecosys$Extent <- as.factor(ifelse(dat.ecosys$Extent=="850-2010", "0850-2010", paste(dat.ecosys$Extent)))
 wt.terms$Extent   <- as.factor(ifelse(wt.terms$Extent=="850-2010", "0850-2010", paste(wt.terms$Extent)))
+
+ecosys$Site <- recode(ecosys$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(ecosys$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+ecosys$Site2 <- ecosys$Site
+levels(ecosys$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+dat.ecosys$Site <- recode(dat.ecosys$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(dat.ecosys$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+dat.ecosys$Site2 <- dat.ecosys$Site
+levels(dat.ecosys$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+ci.terms$Site <- recode(ci.terms$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(ci.terms$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+ci.terms$Site2 <- ci.terms$Site
+levels(ci.terms$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+wt.terms$Site <- recode(wt.terms$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(wt.terms$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+wt.terms$Site2 <- wt.terms$Site
+levels(wt.terms$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+sim.terms$Site <- recode(sim.terms$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(sim.terms$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+sim.terms$Site2 <- sim.terms$Site
+levels(sim.terms$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+
 
 summary(ci.terms)
 summary(dat.ecosys)
@@ -129,7 +161,7 @@ summary(sim.terms[,1:10])
 # ----------------------------------------
 # Binning Factors to plot by model and site
 # ----------------------------------------
-resolutions     <- c("t.010") 
+resolutions     <- c("t.001") 
 extents         <- data.frame(Start=c(850), End=c(2010)) 
 response        <- c("NPP", "SoilMoist")
 predictors      <- c("tair.gs", "precipf.gs", "CO2.gs", "Deciduous", "Evergreen", "Grass")
@@ -140,7 +172,7 @@ dat.ecosys2 <- merge(dat.ecosys, ecosys[,c("Model", "Site", "Year", "Resolution"
 dat.ecosys2$tair.round   <- round(dat.ecosys2$tair   , 1)
 dat.ecosys2$precip.round <- round(dat.ecosys2$precipf*1.5, -1)/1.5
 summary(dat.ecosys2)
-length(unique(dat.ecosys3$tair.round)); length(unique(dat.ecosys3$precip.round))
+length(unique(dat.ecosys2$tair.round)); length(unique(dat.ecosys2$precip.round))
 
 m.order <- unique(dat.ecosys2$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
@@ -150,152 +182,179 @@ col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 # ----------------------------------------
 # Plotting Climate Space of Sites
 # ----------------------------------------
-ecosys.climate <- aggregate(dat.ecosys2[dat.ecosys2$Model=="ed2", "NPP"], by=list(dat.ecosys2[dat.ecosys2$Model=="ed2", "Site"], dat.ecosys2[dat.ecosys2$Model=="ed2", "tair.round"], dat.ecosys2[dat.ecosys2$Model=="ed2", "precip.round"]), FUN=length)
-names(ecosys.climate) <- c("Site", "tair", "precip", "frequency")
+ecosys.climate <- aggregate(dat.ecosys2[dat.ecosys2$Model=="ed2", "NPP"], by=list(dat.ecosys2[dat.ecosys2$Model=="ed2", "Site"], dat.ecosys2[dat.ecosys2$Model=="ed2", "Resolution"], dat.ecosys2[dat.ecosys2$Model=="ed2", "tair.round"], dat.ecosys2[dat.ecosys2$Model=="ed2", "precip.round"]), FUN=length)
+names(ecosys.climate) <- c("Site", "Resolution", "tair", "precip", "frequency")
 ecosys.climate$tair   <- ecosys.climate$tair-273.15
 summary(ecosys.climate)
 
 
-pdf(file.path(fig.dir, "ClimateSpace_Sites.pdf"))
-ggplot(data=ecosys.climate) + theme_bw() + 
+for(r in unique(ecosys.climate$Resolution)){
+pdf(file.path(fig.dir,r, "ClimateSpace_Sites.pdf"))
+print(
+ggplot(data=ecosys.climate[ecosys.climate$Resolution==r,]) + theme_bw() + 
 	geom_tile(aes(x=precip, y=tair, fill=Site, alpha=frequency), size=5) +
-	scale_x_continuous(name="Mean Annual Precip (mm)") +
-	scale_y_continuous(name="Mean Annual Temperature (C)") +
+	ggtitle(r) +
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0)) +
 	scale_alpha_continuous(range=c(0.5,1)) +
 	guides(alpha=F)
+)
 dev.off()
+}
 # ----------------------------------------
 
 # ----------------------------------------
 # Plotting Climate Space & NPP of Sites
 # ----------------------------------------
 
-ecosys.npp <- aggregate(dat.ecosys2[, c("NPP", "NPP.rel", "Evergreen", "Deciduous", "Grass", "SoilMoist")], by=list(dat.ecosys2$Model, dat.ecosys2$Model.Order, dat.ecosys2$Site, dat.ecosys2$tair.round, dat.ecosys2$precip.round), FUN=mean)
-names(ecosys.npp)[1:5] <- c("Model", "Model.Order", "Site", "tair", "precip")
+ecosys.npp <- aggregate(dat.ecosys2[, c("NPP", "NPP.rel", "Evergreen", "Deciduous", "Grass", "SoilMoist")], by=list(dat.ecosys2$Model, dat.ecosys2$Model.Order, dat.ecosys2$Site, dat.ecosys2$Resolution, dat.ecosys2$tair.round, dat.ecosys2$precip.round), FUN=mean)
+names(ecosys.npp)[1:6] <- c("Model", "Model.Order", "Site", "Resolution", "tair", "precip")
 ecosys.npp$tair   <- ecosys.npp$tair-273.15
 summary(ecosys.npp)
 
+ecosys.npp2 <- aggregate(dat.ecosys2[, c("NPP", "NPP.rel", "Evergreen", "Deciduous", "Grass", "SoilMoist")], by=list(dat.ecosys2$Model, dat.ecosys2$Model.Order, dat.ecosys2$Resolution, dat.ecosys2$tair.round, dat.ecosys2$precip.round), FUN=mean)
+names(ecosys.npp2)[1:5] <- c("Model", "Model.Order", "Resolution", "tair", "precip")
+ecosys.npp2$tair   <- ecosys.npp2$tair-273.15
+summary(ecosys.npp2)
 
-pdf(file.path(fig.dir, "ClimateSpace_NPP.pdf"))
+
+for(r in unique(ecosys.npp$Resolution)){
+pdf(file.path(fig.dir,r, paste0("ClimateSpace_NPP.pdf")))
 print(
-ggplot(data=ecosys.npp[,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp2[ecosys.npp2$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=NPP), size=5) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 print(
-ggplot(data=ecosys.npp[,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp2[ecosys.npp2$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=NPP.rel), size=5) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 for(m in unique(ecosys.npp$Model)){
 print(
-ggplot(data=ecosys.npp[ecosys.npp$Model==m,]) + theme_bw() + facet_wrap(~Model) +
+ggplot(data=ecosys.npp2[ecosys.npp2$Model==m & ecosys.npp2$Resolution==r,]) + theme_bw() + facet_wrap(~Model) +
 	geom_tile(aes(x=precip, y=tair, fill=NPP), size=5) +
-	scale_x_continuous(name="Mean Annual Precip (mm)") +
-	scale_y_continuous(name="Mean Annual Temperature (C)")
+	scale_x_continuous(name="Precipitation (May - Sep, mm)") +
+	scale_y_continuous(name="Temperature (May - Sep, C)")
 )
 }
 dev.off()
+}
 
-pdf(file.path(fig.dir, "ClimateSpace_SoilMoist.pdf"))
+for(r in unique(ecosys.npp$Resolution)){
+pdf(file.path(fig.dir, r, paste0("ClimateSpace_SoilMoist.pdf")))
+# print(
+# ggplot(data=dat.ecosys2[dat.ecosys2$Resolution==r,]) + facet_wrap(~Site) +
+	# geom_line(aes(x=Year, y=SoilMoist, color=Model.Order)) +
+	# scale_color_manual(values=paste(col.model)) + 
+	# theme_bw()
+# )
 print(
-ggplot(data=dat.ecosys2) + facet_wrap(~Site) +
-	geom_line(aes(x=Year, y=SoilMoist, color=Model.Order)) +
-	scale_color_manual(values=paste(col.model)) + 
-	theme_bw()
-)
-print(
-ggplot(data=ecosys.npp[,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp2[ecosys.npp2$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=SoilMoist), size=5) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 for(s in unique(ecosys.npp$Site)){
 print(
-ggplot(data=ecosys.npp[ecosys.npp$Site==s,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp[ecosys.npp$Site==s & ecosys.npp$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=SoilMoist), size=5) +
 	ggtitle(s) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 }
 dev.off()
+}
+
 # ---------------------
-pdf(file.path(fig.dir, "ClimateSpace_Fcomp.pdf"))
+r="t.001"
+r="t.010"
+for(r in unique(ecosys.npp$Resolution)){
+pdf(file.path(fig.dir, r, "ClimateSpace_Fcomp.pdf"))
 print(
-ggplot(data=ecosys.npp[,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp2[ecosys.npp2$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=Evergreen), size=5) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 print(
-ggplot(data=ecosys.npp[,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp2[ecosys.npp2$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=Deciduous), size=5) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 print(
-ggplot(data=ecosys.npp[,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp2[ecosys.npp2$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=Grass), size=5) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 dev.off()
+}
 
-pdf(file.path(fig.dir, "ClimateSpace_Evergreen_bySite.pdf"))
+for(r in unique(ecosys.npp$Resolution)){
+pdf(file.path(fig.dir,r, "ClimateSpace_Evergreen_bySite.pdf"))
 for(s in unique(ecosys.npp$Site)){
 print(
-ggplot(data=ecosys.npp[ecosys.npp$Site==s,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp[ecosys.npp$Site==s & ecosys.npp$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=Evergreen), size=5) +
 	ggtitle(s) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 }
 dev.off()
+}
 
-pdf(file.path(fig.dir, "ClimateSpace_Deciduous_bySite.pdf"))
+for(r in unique(ecosys.npp$Resolution)){
+pdf(file.path(fig.dir,r, "ClimateSpace_Deciduous_bySite.pdf"))
 for(s in unique(ecosys.npp$Site)){
 print(
-ggplot(data=ecosys.npp[ecosys.npp$Site==s,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp[ecosys.npp$Site==s & ecosys.npp$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=Deciduous), size=5) +
 	ggtitle(s) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 }
 dev.off()
+}
 
-pdf(file.path(fig.dir, "ClimateSpace_Grass_bySite.pdf"))
+for(r in unique(ecosys.npp$Resolution)){
+pdf(file.path(fig.dir,r, "ClimateSpace_Grass_bySite.pdf"))
 for(s in unique(ecosys.npp$Site)){
 print(
-ggplot(data=ecosys.npp[ecosys.npp$Site==s,]) + theme_bw() + facet_wrap(~Model, scales="free") +
+ggplot(data=ecosys.npp[ecosys.npp$Site==s & ecosys.npp$Resolution==r,]) + theme_bw() + facet_wrap(~Model, scales="free") +
 	geom_tile(aes(x=precip, y=tair, fill=Grass), size=5) +
 	ggtitle(s) +
-	scale_x_continuous(name="Mean Annual Precip (mm)", expand=c(0,0)) +
-	scale_y_continuous(name="Mean Annual Temperature (C)", expand=c(0,0))
+	scale_x_continuous(name="Precipitation (May - Sep, mm)", expand=c(0,0)) +
+	scale_y_continuous(name="Temperature (May - Sep, C)", expand=c(0,0))
 )
 }
 dev.off()
+}
 # ----------------------------------------
 
 
-# ----------------------------------------
-# Comparing Model composition of sites
-# ----------------------------------------
-ecosys.comp <- aggregate(dat.ecosys2$decid.round, by=list(dat.ecosys2$Model, dat.ecosys2$Model.Order, dat.ecosys2$Site, dat.ecosys2$decid.round, dat.ecosys2$evg.round), FUN=length)
-names(ecosys.comp) <- c("Model", "Model.Order", "Site", "Deciduous", "Evergreen", "frequency")
-summary(ecosys.comp)
+# # ----------------------------------------
+# # Comparing Model composition of sites
+# # ----------------------------------------
+# ecosys.comp <- aggregate(dat.ecosys2$decid.round, by=list(dat.ecosys2$Model, dat.ecosys2$Model.Order, dat.ecosys2$Site, dat.ecosys2$Resolution, dat.ecosys2$decid.round, dat.ecosys2$evg.round), FUN=length)
+# names(ecosys.comp) <- c("Model", "Model.Order", "Site", "Resolution", "Deciduous", "Evergreen", "frequency")
+# summary(ecosys.comp)
 
-pdf(file.path(fig.dir, "PFTSpace_Sites.pdf"))
-ggplot(data=ecosys.comp) + facet_wrap(~Site) + theme_bw() + 
-	geom_tile(aes(x=Deciduous, y=Evergreen, fill=Model.Order, alpha=frequency), size=5) +
-	scale_x_continuous(name="Fraction Deciduous") +
-	scale_y_continuous(name="Fraction Evergreen") +
-	scale_fill_manual(values=paste(col.model)) +
-	scale_alpha_continuous(range=c(0.5,1)) +
-	guides(alpha=F)
-dev.off()
-# ----------------------------------------
+# for(r in unique(ecosys.npp$Resolution)){
+# pdf(file.path(fig.dir,r, "PFTSpace_Sites.pdf"))
+# ggplot(data=ecosys.comp) + facet_wrap(~Site) + theme_bw() + 
+	# geom_tile(aes(x=Deciduous, y=Evergreen, fill=Model.Order, alpha=frequency), size=5) +
+	# scale_x_continuous(name="Fraction Deciduous") +
+	# scale_y_continuous(name="Fraction Evergreen") +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_alpha_continuous(range=c(0.5,1)) +
+	# guides(alpha=F)
+# dev.off()
+# }
+# # ----------------------------------------

@@ -29,8 +29,7 @@ library(car)
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-# setwd("..")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 path.data <- "Data"
 in.base <- "Data/gamms/"
 out.dir <- "Data/analyses/analysis_biogeography"
@@ -47,29 +46,59 @@ load(file.path(path.data, "EcosysData.Rdata"))
 ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 
-load(file.path(in.base, "Sensitivity_Models_Baseline/gamm_models_baseline_NPP_Site.Rdata"))
+load(file.path(in.base, "Sensitivity_All_TempRes/gamm_Models_NPP_Resolutions_ExtentFull.Rdata"))
 mod.baseline <- mod.out; rm(mod.out)
 # names(mod.baseline)[7:length(mod.baseline)] <- paste("gamm", c("clm.bgc", "clm.cn", "ed2", "ed2.lu", "jules.stat", "jules.triffid", "lpj.guess", "lpj.wsl", "sibcasa"), sep=".")
 summary(mod.baseline)
 
-load(file.path(in.base, "Sensitivity_Models_Site/gamm_models_NPP_SiteCurves.Rdata"))
+load(file.path(in.base, "Sensitivity_Models_Site/t.001/gamm_models_NPP_SiteCurves.Rdata"))
 mod.site <- mod.out; rm(mod.out)
 summary(mod.site)
 
 
 
 # Binding the input data together
-dat.ecosys <- cbind(mod.baseline$data, mod.baseline$ci.response[,c("mean", "lwr", "upr")], GAM="Baseline")
+dat.ecosys <- cbind(mod.baseline$data[,!(names(mod.site$data) %in% c("Evergreen", "Grass"))], mod.baseline$ci.response[,c("mean", "lwr", "upr")], GAM="Baseline")
 dat.ecosys <- rbind(dat.ecosys, cbind(mod.site$data[, !(names(mod.site$data) %in% c("Evergreen", "Grass"))], mod.site$ci.response[,c("mean", "lwr", "upr")], GAM="Site"))
 summary(dat.ecosys)
 
-
 # Binding the term sensitivity together;
 ci.terms <- rbind(cbind(GAM="Baseline", mod.baseline$ci.terms[, ]), cbind(GAM="Site", mod.site$ci.terms[,]))
-wt.terms   <- rbind(cbind(GAM="Baseline", mod.baseline$weights), cbind(GAM="Site", mod.baseline$weights))
+wt.terms   <- rbind(cbind(GAM="Baseline", mod.baseline$weights[,]), cbind(GAM="Site", mod.baseline$weights))
 sim.terms <- rbind(cbind(GAM="Baseline", mod.baseline$sim.terms[, ]), cbind(GAM="Site", mod.site$sim.terms[, ]))
 sim.terms$Effect <- as.factor(sim.terms$Effect)
 
+summary(dat.ecosys)
+summary(ci.terms)
+summary(wt.terms)
+summary(sim.terms[,1:10])
+
+dat.ecosys$Site <- recode(dat.ecosys$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(dat.ecosys$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+dat.ecosys$Site2 <- dat.ecosys$Site
+levels(dat.ecosys$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+ci.terms$Site <- recode(ci.terms$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(ci.terms$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+ci.terms$Site2 <- ci.terms$Site
+levels(ci.terms$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+wt.terms$Site <- recode(wt.terms$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(wt.terms$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+wt.terms$Site2 <- wt.terms$Site
+levels(wt.terms$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+sim.terms$Site <- recode(sim.terms$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(sim.terms$Site) <- c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+sim.terms$Site2 <- sim.terms$Site
+levels(sim.terms$Site2) <- c("Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
+dat.ecosys <- dat.ecosys[dat.ecosys$Resolution=="t.001", ]
+ci.terms   <- ci.terms  [ci.terms  $Resolution=="t.001", ]
+wt.terms   <- wt.terms  [wt.terms  $Resolution=="t.001", ]
+sim.terms  <- sim.terms [sim.terms $Resolution=="t.001", ]
+
+summary(dat.ecosys)
 summary(ci.terms)
 summary(wt.terms)
 summary(sim.terms[,1:10])
@@ -92,9 +121,9 @@ summary.stats
 # summary(mod.comp)
 
 for(m in unique(summary.stats$Model)){
-	summary.stats[summary.stats$Model==m, "R2.baseline" ] <- summary(mod.baseline [[paste0("gamm.", m, ".baseline")]])$r.sq
+	summary.stats[summary.stats$Model==m, "R2.baseline" ] <- summary(mod.baseline [[paste0("gamm.", m, "_t.001")]])$r.sq
 	summary.stats[summary.stats$Model==m, "R2.site"     ] <- summary(mod.site     [[paste0("gamm.", m)]])$r.sq
-	summary.stats[summary.stats$Model==m, "Dev.baseline" ] <- summary(mod.baseline [[paste0("gamm.", m, ".baseline")]])$dev.expl
+	summary.stats[summary.stats$Model==m, "Dev.baseline" ] <- summary(mod.baseline [[paste0("gamm.", m, "_t.001")]])$dev.expl
 	summary.stats[summary.stats$Model==m, "Dev.site"     ] <- summary(mod.site     [[paste0("gamm.", m)]])$dev.expl
 
 }
@@ -131,14 +160,14 @@ write.csv(summary.stats, file.path(out.dir, "GAMM_ModelFits_Site_Curves.csv"), r
 pdf(file.path(fig.dir, "NPP_ModelFits_Scatter.pdf"))
 print(
 ggplot(data=dat.ecosys) + facet_grid(GAM~Site) +
-	geom_point(aes(x=NPP, y=fit.gam, color=Model), alpha=0.5) +
+	geom_point(aes(x=NPP, y=fit.gam, color=Model), alpha=0.5, size=0.5) +
 	scale_color_manual(values=paste(colors.use)) +
 	geom_abline(intercept=0, slope=1, linetype="dashed") +
 	theme_bw()
 )
 print(
 ggplot(data=dat.ecosys) + facet_grid(GAM~Model, scales="free") +
-	geom_point(aes(x=NPP, y=fit.gam, color=Site), alpha=0.5) +
+	geom_point(aes(x=NPP, y=fit.gam, color=Site), alpha=0.5, size=0.5) +
 	# scale_color_manual(values=paste(colors.use)) +
 	geom_abline(intercept=0, slope=1, linetype="dashed") +
 	theme_bw()
@@ -290,10 +319,59 @@ ggplot(data=ci.terms.graph[ci.terms.graph$Effect==e & ci.terms.graph$GAM=="Site"
 }
 dev.off()
 
-pdf(file.path(fig.dir, "NPP_Sensitivity_Models_Comparison_SiteCurves_bySite.pdf"), height=8.5, width=11)
-for(s in unique(ci.terms.graph$Site)){
+ci.terms.graph$Model.Name <- ci.terms.graph$Model
+levels(ci.terms.graph$Model.Name) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
+summary(ci.terms.graph)
+
+pdf(file.path(fig.dir, "NPP_Sensitivity_Models_Comparison_SiteCurves_byEffect_PDL_PUN_PHA.pdf"), height=9, width=16)
+for(e in unique(ci.terms.graph$Effect)){
+# Creating the appropriate y axis settings for each effect 
+
+if(e=="tair") x.axis <- scale_x_continuous(name=expression(bold(paste("Temp (May-Sep, "^"o","C)"))), breaks=seq(9,19, by=3), expand=c(0,0))
+if(e=="precipf") x.axis <- scale_x_continuous(name="Precip (May-Sep, mm)", breaks=seq(250, 800, by=250), expand=c(0,0))
+if(e=="CO2") x.axis <- scale_x_continuous(name=expression(bold(paste("CO"["2"]," (ppm)"))), expand=c(0,0))
+
 print(
-ggplot(data=ci.terms.graph[ci.terms.graph$Site==s,]) + facet_grid(GAM~Effect, scales="free_x") +
+ggplot(data=ci.terms.graph[ci.terms.graph$Effect==e & ci.terms.graph$GAM=="Site" & ci.terms.graph$Site %in% c("PHA", "PUN", "PDL"),]) + facet_grid(.~Site2) +
+	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Name), alpha=0.5) +
+	geom_line(aes(x=x, y=mean.rel*100, color= Model.Name)) +
+	geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
+	geom_vline(aes(xintercept=line.min), linetype="dashed") +
+	geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
+	geom_vline(aes(xintercept=line.max), linetype="dashed") +
+	labs(fill="Model", color="Model") +
+	x.axis +
+	scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+	scale_fill_manual(values=colors.use) +
+	scale_color_manual(values=colors.use) +
+	theme(legend.title=element_text(size=rel(2), face="bold"),
+	      legend.text=element_text(size=rel(1.5)),
+	      # legend.position=c(0.2, 0.18),
+	      legend.key=element_blank(),
+	      legend.key.size=unit(1.5, "lines")) +
+	theme(strip.text=element_text(size=rel(2.5), face="bold")) + 
+	theme(axis.line=element_line(color="black", size=0.5), 
+	      panel.grid.major=element_blank(), 
+	      panel.grid.minor=element_blank(), 
+	      panel.border=element_rect(fill=NA, color="black", size=0.5), 
+	      panel.background=element_blank(),
+	      panel.margin.x=unit(0, "lines"))  +
+	theme(axis.text.x=element_text(color="black", size=rel(3)),
+		  axis.text.y=element_text(color="black", size=rel(3)), 
+		  axis.title.x=element_text(size=rel(2.5), face="bold", vjust=-0.4),  
+		  axis.title.y=element_text(size=rel(2.5), face="bold"),
+		  axis.ticks.length=unit(-0.5, "lines"),
+	      axis.ticks.margin=unit(1.0, "lines")) +
+	      theme(plot.margin=unit(c(1.5,1,1.15,1), "lines"))
+)
+}
+dev.off()
+
+
+pdf(file.path(fig.dir, "NPP_Sensitivity_Models_Comparison_SiteCurves_bySite.pdf"), height=8.5, width=11)
+for(s in unique(ci.terms.graph$Site2)){
+print(
+ggplot(data=ci.terms.graph[ci.terms.graph$Site2==s,]) + facet_grid(GAM~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean.rel*100, color=Model)) +
 	geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
@@ -315,16 +393,21 @@ ci.terms.graph3 <- ci.terms.graph
 ci.terms.graph3[,"Site"] <- as.factor(ifelse(ci.terms.graph3$GAM=="Baseline", "Baseline", paste(ci.terms.graph3$Site)))
 summary(ci.terms.graph3)
 
+ci.terms.graph3 $Site <- recode(ci.terms.graph3$Site, "'Baseline'='0'; 'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(ci.terms.graph3$Site) <- c("All Sites", "PDL", "PBL", "PUN", "PMB", "PHA", "PHO")
+ci.terms.graph3$Site2 <- ci.terms.graph3$Site
+levels(ci.terms.graph3$Site2) <- c("All Sites", "Demming (MN)", "Billy's (MN)", "UNDERC (WI)", "Minden (MI)", "Harvard (MA)", "Howland (ME)")
+
 pdf(file.path(fig.dir, "NPP_Sensitivity_Models_Comparison_SiteCurves_byModel.pdf"), height=8.5, width=11)
 for(m in unique(ci.terms.graph2$Model)){
 print(
 ggplot(data=ci.terms.graph3[ci.terms.graph3$Model==m,]) + facet_wrap(~Effect, scales="free_x") +
-	geom_ribbon(data=ci.terms.graph3[ci.terms.graph3$Model==m & ci.terms.graph3$Site=="Baseline",], 
+	geom_ribbon(data=ci.terms.graph3[ci.terms.graph3$Model==m & ci.terms.graph3$Site=="All Sites",], 
 	            aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100), alpha=0.5, fill="black") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Site), alpha=0.5) +
 	geom_line(aes(x=x, y=mean.rel*100, color=Site), size=2) +
-	geom_line(data=ci.terms.graph3[ci.terms.graph3$Model==m & ci.terms.graph3$Site=="Baseline",], 
-	          aes(x=x, y=mean.rel*100), size=4, color="black") +
+	geom_line(data=ci.terms.graph3[ci.terms.graph3$Model==m & ci.terms.graph3$Site=="All Sites",], 
+	          aes(x=x, y=mean.rel*100), size=3, color="black", alpha=0.8) +
 	# geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
 	# geom_vline(aes(xintercept=line.min), linetype="dashed") +
 	# geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
@@ -332,8 +415,8 @@ ggplot(data=ci.terms.graph3[ci.terms.graph3$Model==m,]) + facet_wrap(~Effect, sc
 	ggtitle(m) +
 	scale_x_continuous(expand=c(0,0)) +
 	scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
-	scale_fill_manual(values=c("black", "red", "chocolate1", "darkgoldenrod1", "green3", "blue", "darkorchid")) +
-	scale_color_manual(values=c("black", "red", "chocolate1", "darkgoldenrod1", "green3", "blue", "darkorchid")) +
+	# scale_fill_manual(values=c("black", "red", "chocolate1", "darkgoldenrod1", "green3", "blue", "darkorchid")) +
+	# scale_color_manual(values=c("black", "red", "chocolate1", "darkgoldenrod1", "green3", "blue", "darkorchid")) +
 	theme_bw()
 )
 }

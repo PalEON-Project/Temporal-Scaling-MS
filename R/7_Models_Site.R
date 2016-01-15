@@ -74,7 +74,7 @@ model.colors
 ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 # Setting up a loop for 1 m.name, 1 temporal scale
-resolutions <- c("t.010") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
+resolutions <- c("t.001", "t.010") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(850), End=c(2010)) 
 response <- c("NPP")
 predictors.all <- c("tair", "precipf", "CO2")
@@ -87,10 +87,18 @@ e=1
 # -------------------------------------------------
 # Setting up the data and putting it in a list to run the gamms in parallel
 # -------------------------------------------------
-ecosys <- ecosys[ecosys$Resolution==resolutions & complete.cases(ecosys[,c(response, predictors.all)]),]
-sites       <- unique(ecosys$Site)
-model.name  <- unique(ecosys$Model)
-model.order <- unique(ecosys$Model.Order)
+for(r in 1:length(resolutions)){
+
+ecosys2 <- ecosys[ecosys$Resolution==resolutions[r] & complete.cases(ecosys[,c(response, predictors.all)]),]
+sites       <- unique(ecosys2$Site)
+model.name  <- unique(ecosys2$Model)
+model.order <- unique(ecosys2$Model.Order)
+
+fig.dir <- file.path(fig.base, "Sensitivity_Models_Site", resolutions[r])
+dat.dir <- file.path(dat.base, "Sensitivity_Models_Site", resolutions[r])
+# Make sure the appropriate file paths are in place
+if(!dir.exists(dat.dir)) dir.create(dat.dir)
+if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
 paleon.models <- list()
 for(m in 1:length(model.name)){
@@ -101,12 +109,12 @@ for(m in 1:length(model.name)){
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
 	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
-	dat.mod <- ecosys[ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix), "Evergreen", "Grass")]
+	dat.mod <- ecosys2[ecosys2$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix), "Evergreen", "Grass")]
 	names(dat.mod)[7:(7+length(predictors.all)-1)] <- predictors.all
 	
 	if(!max(dat.mod[,response], na.rm=T)>0) next # If a variable is missing, just skip over this model for now
 
-# for(r in 1:length(resolutions)){ # Resolution loop
+# for(r in 1:length(resolutions[r])){ # Resolution loop
 
 	# Figure out which years to take: 
 	# Note: working backwards to help make sure we get modern end of the CO2.gs & temperature distributions
@@ -120,7 +128,7 @@ for(m in 1:length(model.name)){
 	# Making a note of the extent & resolution
 	ext <- as.factor(paste(850, 2010, sep="-"))
 	data.temp$Extent <- as.factor(ext)
-	data.temp$Resolution <- as.factor(resolutions)
+	data.temp$Resolution <- as.factor(resolutions[r])
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
 	data.temp <- data.temp[complete.cases(data.temp[,c(response)]),]
@@ -313,4 +321,5 @@ dev.off()
 # --------------------------------------------------------------------------
 
 # Clear the memory!
-rm(mod.out, models.base)
+rm(mod.out, models.base, paleon.models)
+}
