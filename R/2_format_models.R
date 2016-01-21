@@ -1,9 +1,30 @@
 # ----------------------------------------
-# Generate the model output table ("ecosys") that is be basis of most analyses
+# Objective: Generate the model output table ("ecosys") that is be basis of most analyses
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 7 May 2015
-# Last Modified: 2 June 2015 
 # ----------------------------------------
+#
+# -------------------------
+# Workflow
+# -------------------------
+# 1. Load data sets (coming from wherever the post-processed MIP data is)
+# 2. Unit conversion -- put fluxes in per year, densities in per hectare
+#     -- save EcosysData_Raw.Rdata
+# 3. Data Standardization & Relativization
+#    -- save EcosysData.Rdata
+# 4. Temporal Smoothing on Data
+# 5. Making Some general Figures that are handy
+#    a. Plotting NPP by model & site
+#    b. Plotting AGB by model & site
+#    c. Plotting Fraction Evergreen by model & site
+#    d. Plotting Fraction Deciduous by model & site
+#    e. Plotting Fraction Grass by model & site
+#    f. Plotting tair by model & site
+#    g. Plotting precipf by model & site
+#    h. Plotting CO2 by model & site
+# -------------------------
+# ----------------------------------------
+
 
 # ----------------------------------------
 # Load Libaries
@@ -11,7 +32,6 @@
 library(ggplot2); library(grid)
 library(car)
 library(zoo)
-
 # ----------------------------------------
 
 # ----------------------------------------
@@ -34,7 +54,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # Note: Commented out because saved as EcosysData.RData 1 June 2015
 #       (with an increasing number of models, running this every time became cumbersome)
 # ----------------------------------------
-# Load Data Sets
+# 1. Load Data Sets
 # ----------------------------------------
 # Ecosystem Model Outputs
 ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
@@ -64,7 +84,7 @@ model.colors
 
 
 # ----------------------------------------
-# Convert variables to more user-friendly units
+# 2. Convert variables to more user-friendly units
 # ----------------------------------------
 # Fluxes: change s-1 to yr-1
 sec2yr <- 1*60*60*24*365.25 # 1 sec * 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/yr
@@ -101,7 +121,7 @@ save(ecosys, model.colors, file=file.path(path.data, "EcosysData_Raw.Rdata"))
 	# theme_bw()
 
 # ----------------------------------------
-# Standardizations:
+# 3. Data Standardization & Relitivizaiton
 # Calculate Deviations from desired reference point
 # Reference Point: 0850-0869 (spinup climate)
 # ----------------------------------------
@@ -151,7 +171,7 @@ summary(ecosys)
 
 
 # ----------------------------------------
-# Perform Temporal Smoothing on Data
+# 4. Perform Temporal Smoothing on Data
 # Note: Smoothing is performed over the PREVIOUS X years becuase ecosystems 
 #       cannot respond to what they have not yet experienced
 # ----------------------------------------
@@ -189,7 +209,7 @@ save(ecosys, model.colors, file=file.path(path.data, "EcosysData.Rdata"))
 
 
 # ----------------------------------------
-# Making Some general Figures that are handy
+# 5. Making Some general Figures that are handy
 # ----------------------------------------
 load(file.path(path.data, "EcosysData.Rdata"))
 
@@ -199,7 +219,7 @@ col.model <- paste(model.colors[model.colors$Model.Order %in% unique(ecosys$Mode
 # col.model <- paste(model.colors[,"color"])
 
 # ---------------------------
-# Plotting NPP by model & site
+# 5.a. Plotting NPP by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "NPP_Annual_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
@@ -242,7 +262,7 @@ dev.off()
 # ---------------------------
 
 # ---------------------------
-# Plotting AGB by model & site
+# 5.b. Plotting AGB by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "AGB_Annual_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
@@ -288,7 +308,7 @@ ggplot(data=ecosys[ecosys$Site=="PHA",]) + #facet_wrap(~Site) +
 
 
 # ---------------------------
-# Plotting Fraction Evergreen by model & site
+# 5.c. Plotting Fraction Evergreen by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "Evergreen_Annual_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
@@ -333,7 +353,7 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 # ---------------------------
 
 # ---------------------------
-# Plotting Fraction Deciduous by model & site
+# 5.d. Plotting Fraction Deciduous by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "Deciduous_Annual_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
@@ -376,7 +396,7 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 # ---------------------------
 
 # ---------------------------
-# Plotting Fraction Grass by model & site
+# 5.e. Plotting Fraction Grass by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "Grass_Annual_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
@@ -419,7 +439,7 @@ ggplot(data=ecosys[,]) + facet_wrap(~Site) +
 # ---------------------------
 
 # ---------------------------
-# Plotting tair by model & site
+# 5.f. Plotting tair by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "tair_Annual_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
@@ -453,7 +473,7 @@ dev.off()
 # ---------------------------
 
 # ---------------------------
-# Plotting precipf by model & site
+# 5.g. Plotting precipf by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "precipf_Annual_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +
@@ -487,7 +507,7 @@ dev.off()
 # ---------------------------
 
 # ---------------------------
-# Plotting CO2 by model & site
+# 5.h. Plotting CO2 by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "CO2_Annual_AllSites_AllModels.pdf"))
 ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Model=="jules.stat",]) + facet_wrap(~Site) +

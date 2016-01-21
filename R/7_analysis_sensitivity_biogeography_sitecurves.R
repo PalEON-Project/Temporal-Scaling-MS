@@ -1,21 +1,22 @@
 # ----------------------------------------
-# Sensitivity & Scaling Analyses
+# Objective: Compare model/tree ring sensitivites by forest type/PFT
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 16 November 2015
 # ----------------------------------------
-# -------------------------
-# Objectives & Overview
-# -------------------------
-# -------------------------
 #
 # -------------------------
-# Input Data/Results:
+# Workflow
 # -------------------------
-# -------------------------
-#
-# -------------------------
-# Interpretation Analyses:
-# -------------------------
+# 1. Set Directories
+# 2. Load data files & function scripts
+# 3. Extract gam fit information & some summary stats
+# 4. Standardize driver responses to the mean model NPP to aid comparison (loop)
+#    a. Find the NPP to relativize each set off of
+#    b. Relativizing everything in dat.ecosys to make it comparable to tree rings
+#    c. Finding the percent change in NPP relative to the mean for that particular scale
+# 5. Graphing & Analyzing Sensitivity
+#    a. Graphing
+#    b. Quantitative Analysis
 # -------------------------
 # ----------------------------------------
 
@@ -27,7 +28,7 @@ library(car)
 # ----------------------------------------
 
 # ----------------------------------------
-# Set Directories
+# 1. Set Directories
 # ----------------------------------------
 setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
@@ -41,7 +42,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 
 # ----------------------------------------
-# Load data files & function scripts
+# 2. Load data files & function scripts
 # ----------------------------------------
 load(file.path(path.data, "EcosysData.Rdata"))
 ecosys <- ecosys[!ecosys$Model=="linkages",]
@@ -60,7 +61,7 @@ summary(mod.site)
 
 
 # ----------------------------------------
-# Extract gam fit information
+# 3. Extract gam fit information & some summary stats
 # ----------------------------------------
 summary.stats <- data.frame(Model=unique(ecosys$Model))
 summary.stats
@@ -116,14 +117,14 @@ summary(ci.terms)
 summary(sim.terms[,1:10])
 
 # ----------------------------------------
-# Compare driver responses across models by standardizing driver responses to the mean model NPP
+# 4. Compare driver responses across models by standardizing driver responses to the mean model NPP
 # ----------------------------------------
 # Standardize responses to mean model NPP
 for(m in unique(ci.terms$Model)){
 	for(r in unique(ci.terms[ci.terms$Model==m, "Resolution"])){
 
 			# -----------------------
-			# Find the NPP to relativize each set off of
+			# 4.a Find the NPP to relativize each set off of
 			# Using mean model NPP across sites since the GAMM response curves are for 
 			#    the whole model & not site-specific are parameterized
 			# -----------------------
@@ -134,7 +135,7 @@ for(m in unique(ci.terms$Model)){
 			# -----------------------
 			
 			# -----------------------
-			# Relativizing everything in dat.ecosys to make it comparable to tree rings
+			# 4.b. Relativizing everything in dat.ecosys to make it comparable to tree rings
 			# -----------------------
 			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"NPP.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"NPP"])/npp
 			dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"fit.gam.rel"] <- (dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Resolution==r,"mean"])/npp
@@ -145,7 +146,7 @@ for(m in unique(ci.terms$Model)){
 
 			
 			# -----------------------
-			# Finding the percent change in NPP relative to the mean for that particular scale
+			# 4.c. Finding the percent change in NPP relative to the mean for that particular scale
 			# -----------------------
 			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"mean.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"mean"])/npp
 			ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"lwr.rel"] <- (ci.terms[ci.terms$Model==m & ci.terms$Resolution==r,"lwr"])/npp
@@ -160,7 +161,15 @@ for(m in unique(ci.terms$Model)){
 }
 summary(dat.ecosys)
 summary(ci.terms)
+# ----------------------------------------
 
+# ----------------------------------------
+# 5. Graphing & Analyzing Sensitivity
+# ----------------------------------------
+
+# -----------------------
+# 5.a. Graphing
+# -----------------------
 # Trying out the basic plot to compare model responses to drivers
 models.use <- unique(dat.ecosys[dat.ecosys$Model %in% ci.terms$Model,"Model.Order"])
 colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"])
@@ -288,12 +297,13 @@ ggplot(data=ci.terms.graph3[ci.terms.graph3$Model==m,]) + facet_wrap(~Effect, sc
 )
 }
 dev.off()
-# ----------------------------------------
+# -----------------------
 
-# ----------------------------------------
-# Looking at the change in Effect Sensitivity from added site effect
+# -----------------------
+# 5.b. Analysis: Looking at the change in Effect Sensitivity from added site effect
 # Note: Looking at absolute value of the effect to really be able to get at if we're getting MORE (negative) or LESS (positive) sensitive
-# ----------------------------------------
+# -----------------------
+# -----------------------
 dif.terms <- cbind(sim.terms[sim.terms$GAM=="Baseline",2:7], 
                    mean.rel = apply(abs(sim.terms[sim.terms$GAM=="Site", which(substr(names(sim.terms),1,1)=="X")]) - 
                                     abs(sim.terms[sim.terms$GAM=="Baseline"    , which(substr(names(sim.terms),1,1)=="X")]),

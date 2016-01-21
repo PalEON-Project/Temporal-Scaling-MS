@@ -1,27 +1,17 @@
 # ----------------------------------------
-# Temporal Scaling Analyses
-# Looking at changes in PalEON driver correllation & distribution with temporal scales
+# Objective: Pull & format the raw met drivers for use in downstream analyses
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 15 July 2015
 # ----------------------------------------
 # -------------------------
-# Objectives & Overview
+# Workflow
 # -------------------------
-# Question: Does annual climate correlate closely with the growing season?
-#            i.e. do we need to re-run the model analyses trying for only growing season temps
-# -------------------------
-#
-# -------------------------
-# Input Data/Results:
-# -------------------------
-# 1) Raw Met drivers at MONTHLY scale -- extract from CLM-BGC & ED (lwdown)
+# 1) Extract raw met drivers at MONTHLY scale -- extract from ED & SiBCASA
+# 2) Reorganize it a bit
+# 3) Aggregate it into annual & growing season means
+# 4) Some simple stats comparing annual vs. growing season met
 # -------------------------
 #
-# -------------------------
-# Interpretation Analyses:
-# -------------------------
-# A) correlations
-# -------------------------
 # ----------------------------------------
 
 # ----------------------------------------
@@ -159,7 +149,7 @@ write.csv(met.yr, file.path(dat.dir, "Drivers_Year_GrowingSeason.csv"), row.name
 # ----------------------------------------
 
 # ----------------------------------------
-# Compare growing season & yearly met
+# 4. Compare growing season & yearly met
 # ----------------------------------------
 # Graphically Showing Correlation
 pdf(file.path(fig.dir, "Driver_Correlations_Year_GrowingSeason_t001.pdf"))

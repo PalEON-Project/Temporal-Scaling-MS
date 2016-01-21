@@ -1,15 +1,40 @@
 # ----------------------------------------
-# Climate Sensitivity & Scale Paper
-# Non-linear driver effects through time
+# Objective: Compare climate sensitivities of different forest types
+#            &/or PFTs 
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 28 July 2015
 # ----------------------------------------
+#
 # -------------------------
-# Objectives & Overview
+# Workflow
 # -------------------------
-# Script Objective: Create baseline model sensitivity to temperature, 
-#    precipitation and CO2.  This becomes the basis
+# 1. Models
+#    a. Set Directories
+#    b. Load model data files & function scripts
+#    c. Settings for the rest of this section
+#    d. Setting up to run gamms in parallel
+#    e. Run the gamms (with site intercept)
+#    f. Bind Models into single list
+#    g. Diagnostic Graphs
+# 2. Tree Rings NPP
+#    a. Set Directories
+#    b. Load model data files & function scripts
+#    c. Settings for the rest of this section
+#    d. Setting up to run gamms in parallel
+#    e. Run the gamms (with site intercept)
+#    f. Bind Models into single list
+#    g. Diagnostic Graphs
+# 3. Tree Rings RWI
+#    a. Set Directories
+#    b. Load model data files & function scripts
+#    c. Settings for the rest of this section
+#    d. Setting up to run gamms in parallel
+#    e. Run the gamms (with site intercept)
+#    f. Bind Models into single list
+#    g. Diagnostic Graphs
 # -------------------------
+# ----------------------------------------
+
 
 # ----------------------------------------
 # Load Libaries
@@ -26,8 +51,11 @@ library(car)
 sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 
+# -------------------------------------------------------------------------------
+# 1. Models
+# -------------------------------------------------------------------------------
 # ----------------------------------------
-# Set Directories
+# 1.a. Set Directories
 # ----------------------------------------
 setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
@@ -49,10 +77,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
 
 # ----------------------------------------
-# Load data files & function scripts
-# ----------------------------------------
-# ----------------------------------------
-# Load data files & function scripts
+# 1.b. Load data files & function scripts
 # ----------------------------------------
 # Ecosys file = organized, post-processed m.name outputs
 #	generated with 1_generate_ecosys.R
@@ -69,7 +94,7 @@ model.colors
 
 
 # -------------------------------------------------
-# Settings for the rest of this script
+# 1.c. Settings for the rest of this script
 # -------------------------------------------------
 # Get rid of CLM-BGC because its actual drivers are messed up
 ecosys <- ecosys[!ecosys$Model=="linkages",]
@@ -86,7 +111,7 @@ e=1
 
 
 # -------------------------------------------------
-# Setting up the data and putting it in a list to run the gamms in parallel
+# 1.d. Setting up the data and putting it in a list to run the gamms in parallel
 # -------------------------------------------------
 ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all, "Evergreen", "Grass")]),]
 sites       <- unique(ecosys$Site)
@@ -135,16 +160,16 @@ for(m in 1:length(model.name)){
 
 
 # --------------------------------------------------------------------------
-# Run & Process gamms -- No Site Effect
+# 1.e. Run & Process gamms -- with Site Effect
 # --------------------------------------------------------------------------
 cores.use <- min(12, length(paleon.models))
 # cores.use <- length(paleon.models)
 
-models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), site.effects=F)
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), site.effects=T)
 # -------------------------------------------------
 
 # -------------------------------------------------
-# Bind Models together to put them in a single object to make them easier to work with
+# 1.f. Bind Models together to put them in a single object to make them easier to work with
 # -------------------------------------------------
 for(i in 1:length(models.base)){
 	if(i==1) {
@@ -172,7 +197,7 @@ save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Comp.Rdata"))
 
 
 # -------------------------------------------------
-# Diagnostic Graphs
+# 1.g. Diagnostic Graphs
 # -------------------------------------------------
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
@@ -215,96 +240,85 @@ ggplot(data=mod.out$ci.terms[!(mod.out$ci.terms$Effect %in% c("Grass", "Evergree
 )
 dev.off()
 # -------------------------------------------------
-# --------------------------------------------------------------------------
 
 # Clear the memory!
 rm(mod.out, models.base)
+# -------------------------------------------------------------------------------
 
-
-
-
-# --------------------------------------------------------------------------
-# Run & Process gamms -- WITH Site Effects
-# --------------------------------------------------------------------------
-cores.use <- min(12, length(paleon.models))
-# cores.use <- length(paleon.models)
-
-models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), site.effects=T)
+# -------------------------------------------------------------------------------
+# 2. Tree Rings NPP
+# -------------------------------------------------------------------------------
+# -------------------------------------------------
+# 1.a. Set Directories
+# -------------------------------------------------
 # -------------------------------------------------
 
 # -------------------------------------------------
-# Bind Models together to put them in a single object to make them easier to work with
+# 1.b. Load model data files & function scripts
 # -------------------------------------------------
-for(i in 1:length(models.base)){
-	if(i==1) {
-		mod.out <- list()
-		mod.out$data         <- models.base[[i]]$data
-		mod.out$weights      <- models.base[[i]]$weights
-		mod.out$ci.response  <- models.base[[i]]$ci.response
-		mod.out$sim.response <- models.base[[i]]$sim.response
-		mod.out$ci.terms     <- models.base[[i]]$ci.terms
-		mod.out$sim.terms    <- models.base[[i]]$sim.terms
-		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
-	} else {
-		mod.out$data         <- rbind(mod.out$data,         models.base[[i]]$data)
-		mod.out$weights      <- rbind(mod.out$weights,      models.base[[i]]$weights)
-		mod.out$ci.response  <- rbind(mod.out$ci.response,  models.base[[i]]$ci.response)
-		mod.out$sim.response <- rbind(mod.out$sim.response, models.base[[i]]$sim.response)
-		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     models.base[[i]]$ci.terms)
-		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    models.base[[i]]$sim.terms)
-		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
-	}
-}
-
-save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Comp_Site.Rdata"))
 # -------------------------------------------------
 
+# -------------------------------------------------
+# 1.c. Settings for the rest of this section
+# -------------------------------------------------
+# -------------------------------------------------
 
 # -------------------------------------------------
-# Diagnostic Graphs
+# 1.d. Setting up the data and putting it in a list to run the gamms in parallel
 # -------------------------------------------------
-m.order <- unique(mod.out$data$Model.Order)
-col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
-
-pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_Comp_Site.pdf"))
-print(
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
-	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
-	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
-	# scale_x_continuous(limits=c(850,2010)) +
-	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
-	scale_fill_manual(values=paste(col.model)) +
-	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
-)
-print(	
-ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
- 	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
-	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
-	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
-	scale_x_continuous(limits=c(1850,2010)) +
-	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
-	scale_fill_manual(values=paste(col.model)) +
-	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
-)
-dev.off()
-
-
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_Comp_Site.pdf"))
-print(
-ggplot(data=mod.out$ci.terms[!(mod.out$ci.terms$Effect %in% c("Grass", "Evergreen")),]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
-	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
-	geom_line(aes(x=x, y=mean, color=Model), size=2) +
-	geom_hline(yintercept=0, linetype="dashed") +
-	scale_fill_manual(values=paste(col.model)) +
-	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0("Driver Sensitivity (Non-Relativized)"), y=paste0("NPP Contribution")) # +
-)
-dev.off()
 # -------------------------------------------------
-# --------------------------------------------------------------------------
 
-# Clear the memory!
-rm(mod.out, models.base)
+# -------------------------------------------------
+# 1.e Run the gamms -- WITH site intercept
+# -------------------------------------------------
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 1.f. Bind Models together to put them in a single object to make them easier to work with
+# -------------------------------------------------
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 1.g. Diagnostic Graphs
+# -------------------------------------------------
+# -------------------------------------------------
+# -------------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------------
+# 3. Tree Rings RWI
+# -------------------------------------------------------------------------------
+# -------------------------------------------------
+# 1.a. Set Directories
+# -------------------------------------------------
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 1.b. Load model data files & function scripts
+# -------------------------------------------------
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 1.c. Settings for the rest of this section
+# -------------------------------------------------
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 1.d. Setting up the data and putting it in a list to run the gamms in parallel
+# -------------------------------------------------
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 1.e Run the gamms -- WITH site intercept
+# -------------------------------------------------
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 1.f. Bind Models together to put them in a single object to make them easier to work with
+# -------------------------------------------------
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 1.g. Diagnostic Graphs
+# -------------------------------------------------
+# -------------------------------------------------
+# -------------------------------------------------------------------------------

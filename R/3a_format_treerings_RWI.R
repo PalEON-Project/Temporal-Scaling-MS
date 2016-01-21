@@ -1,15 +1,38 @@
 # ----------------------------------------
-# Climate Sensitivity & Scale Paper
-# Non-linear driver effects through time
+# Objective: Format tree ring data so that it can be compared to models
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 28 July 2015
 # ----------------------------------------
+#
 # -------------------------
-# Objectives & Overview
+# Workflow
 # -------------------------
-# Script Objective: Create baseline model sensitivity to temperature, 
-#    precipitation and CO2.  This becomes the basis
+# 1. Extract Met data for the plot locations (saved as .csv so this can usually be skipped)
+#    a. Extract CO2
+#    b. Load PRISM Data
+# 	 c. Load plot locations and extract info
+#    d. Aggregate up to the Year
+# 2. Formatting the tree data for the plot-based sampling
+#    a. Lyford Plot
+#    b. Havard (Tower Plot)
+#    c. Howland
+#    d. Merging Datasets together
+# 3. Reading in and formatting the ring widths
+#    a. Read in Tree Rings
+#       1. Plot Level
+#       2. ITRDB Tree Rings
+#    b. Detrending -- Spline (Conservative)
+#    c. Binding the tree rings together
+# 4. Adding some met & meta-data for sites/cores
+#    a. Finding the best-guess age for each core
+#    b. Coming up with a best-guess DBH for ITRDB trees: mean of sum of all rings widths
+#    c. Aggregating to the tree level
+#    d. Reconstructing DBH, BA, and BAI
+#    e. merging in the met
+#    f. Doing some temporal smoothing to look at temporal resolution and sensitivity
+#       -- Save TreeRing_RingWidths.csv	
 # -------------------------
+# ----------------------------------------
 
 # ----------------------------------------
 # Load Libaries
@@ -65,10 +88,10 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
 # # Below commented out because saved as .csv file so we don't have to redo it every time
 # # ----------------------------------------
-# # Extract Met data for the plot locations
+# # 1. Extract Met data for the plot locations
 # # ----------------------------------------
 # # ---------------
-# # Extract CO2
+# # 1.a. Extract CO2
 # # ---------------
 # file.co2 <- nc_open(file.path(co2.dir, "paleon_annual_co2.nc"))
 # co2 <- data.frame(Year=850:2010, CO2=ncvar_get(file.co2, "co2"))
@@ -78,7 +101,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # # ---------------
 
 # # ---------------
-# # Load PRISM Data
+# # 1.b. Load PRISM Data
 # # ---------------
 # # Precipitation
 # ppt.files <- dir(file.path(met.dir, "ppt"))
@@ -100,7 +123,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # # ---------------
 
 # # ---------------
-# # Load plot locations and extract info
+# # 1.c. Load plot locations and extract info
 # # ---------------
 # plots <- read.csv(file.path(in.base, "TreeRing_Locations.csv"))
 # coordinates(plots) <- c("Lon..W.", "Lat..N.")
@@ -120,7 +143,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # # ---------------
 
 # # ---------------
-# # Aggregate up to the Year
+# # 1.d. Aggregate up to the Year
 # # ---------------
 # plots.clim <- aggregate(plots.clim.mo[,c("tmean", "ppt", "CO2")], by=list(plots.clim.mo$PlotID, plots.clim.mo$Year), FUN=mean)
 # names(plots.clim) <- c("PlotID", "Year", "tair.yr", "precipf.yr", "CO2.yr")
@@ -139,16 +162,13 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 
 
 # -------------------------------------------------
-# Formatting the tree data for the plot-based sampling
-# -------------------------------------------------
-# ----------------------------
-# A) Tree Data
+# 2. Formatting the tree data for the plot-based sampling
 #  Note: lack of consistency among sites mean we have to do this piece-meal rather than smoothly all together;
 #        this includes just going ahead and manually naming columns in the read.csv stage to make life a lot easier
-# ----------------------------
+# -------------------------------------------------
 
 # ------------
-# A.1) Lyford Plot
+# 2.c Lyford Plot
 # ------------
 trees.lyford <- read.csv(file.path(dir.lyford, "LyfordAllPlots.csv"), skip=3, col.names=c("PlotID", "Tree", "Species", "Canopy", "Status", "DBH", "Distance", "Azimuth", "Tag.Harvard", "TopDist", "TopAz", "Decay"))
 summary(trees.lyford)
@@ -166,7 +186,7 @@ summary(trees.lyford)
 # ------------
 
 # ------------
-# A.2) Havard (Tower Plot)
+# 2.b Havard (Tower Plot)
 # ------------
 trees.harvard <- read.csv(file.path(dir.harvard, "TowerAllPlots.csv"), skip=3, col.names=c("PlotID", "Tree", "Species", "Canopy", "Status", "DBH", "Distance", "Azimuth", "Tag.Harvard", "Distance.Top", "Azimuth.Top", "Decay"))
 summary(trees.harvard)
@@ -186,7 +206,7 @@ summary(trees.harvard)
 
 
 # ------------
-# A.3) Howland
+# 2.c Howland
 # ------------
 trees.howland <- read.csv(file.path(dir.howland, "HOWall_FieldData.csv"), col.names=c("PlotID", "Tree", "Species", "DBH", "Distance", "Azimuth", "Canopy", "Status", "Decay", "Lat", "Lon"), na.strings="")
 summary(trees.howland)
@@ -205,7 +225,7 @@ summary(trees.howland)
 # ------------
 
 # ------------
-# Merging Datasets together
+# 2.d Merging Datasets together
 # ------------
 tree.data <- merge(trees.lyford, trees.harvard, all.x=T, all.y=T)
 tree.data <- merge(tree.data, trees.howland, all.x=T, all.y=T)
@@ -219,23 +239,22 @@ summary(tree.data)
 # -------------------------------------------------
 
 # -------------------------------------------------
-# Reading in and formatting the ring widths
+# 3. Reading in and formatting the ring widths
 # See Peters et al 2015 for Detrending Info
 # -------------------------------------------------
 # ------------------
-# Plot-Level Tree Rings
+# 3.a Read in Tree Rings
 # ------------------
-# PHA
+# 3.a.1 Plot Level
+#  PHA
 rings.harvard <- read.rwl(file.path(dir.harvard, "RW", "TP_All.rwl"))
 rings.lyford <- read.rwl(file.path(dir.lyford, "RW", "combined", "LF_All.rwl"))
 
 # PHO
 rings.howland <- read.rwl(file.path(dir.howland, "RawRW_Data_by_sp", "Howland_All.rwl"))
-# ------------------
 
 # ------------------
-# ITRDB Tree Rings
-# ------------------
+# 3.a.2 ITRDB Tree Rings
 # PDL
 dir(file.path(dir.itrdb, "PDL"), ".rwl")
 mn008 <- read.rwl(file.path(dir.itrdb, "PDL", "mn008.rwl.txt"))
@@ -255,7 +274,7 @@ wi002 <- read.rwl(file.path(dir.itrdb, "PUN", "wi002.rwl.txt"))
 # ------------------
 
 # ------------------
-# Detrending -- Spline (Conservative)
+# 3.b Detrending -- Spline (Conservative)
 # ------------------
 # Plot-Level Data
 harvard.detrend <- detrend(rings.harvard, method="Spline")
@@ -281,11 +300,8 @@ wi002.detrend   <- detrend(wi002, method="Spline")
 # -------------------------------------------------
 
 # -------------------------------------------------
-# Putting tree rings & met data together
+# 3.c. Binding the tree rings together
 # -------------------------------------------------
-# -----------------
-# Binding the tree rings together
-# -----------------
 # PBL
 
 # PDL
@@ -409,9 +425,13 @@ summary(tree.rings)
 tree.rings$CoreID <- as.factor(toupper(tree.rings$CoreID))
 summary(tree.rings)
 # -----------------
+# -------------------------------------------------
 
+# -------------------------------------------------
+# 4. Adding some metadata for sites/cores
+# -------------------------------------------------
 # -----------------
-# Finding the best-guess age for each core
+# 4.a. Finding the best-guess age for each core
 # For ITRDB samples, making the (probably bad) assumption that all cores go to pith
 # -----------------
 
@@ -456,7 +476,7 @@ summary(tree.rings)
 # -----------------
 
 # -----------------
-# Coming up with a best-guess DBH for ITRDB trees: mean of sum of all rings widths
+# 4.b Coming up with a best-guess DBH for ITRDB trees: mean of sum of all rings widths
 # -----------------
 summary(tree.rings)
 summary(tree.data); 
@@ -485,7 +505,7 @@ dim(tree.data)
 
 
 # -----------------
-# Aggregating to the tree level
+# 4.c Aggregating to the tree level
 # -----------------
 # Finding the mean RW and RWI
 tree.rings2 <- aggregate(tree.rings[,c("RWI", "RW", "Age")], by=list(tree.rings$Site, tree.rings$PlotID, tree.rings$TreeID, tree.rings$Year), FUN=mean, na.rm=F)
@@ -498,7 +518,7 @@ summary(tree.rings2)
 # -----------------
 
 # -----------------
-# Reconstructing DBH, BA, and BAI
+# 4.d Reconstructing DBH, BA, and BAI
 # -----------------
 for(t in unique(tree.rings2$TreeID)){
 	yr.start <- min(tree.rings2[tree.rings2$TreeID==t & !is.na(tree.rings2$RW), "Year"])
@@ -523,7 +543,7 @@ summary(tree.rings2)
 # -----------------
 
 # -----------------
-# merging in the met
+# 4.e. merging in the met
 # -----------------
 summary(tree.data)
 summary(tree.rings2)
@@ -557,7 +577,7 @@ summary(ring.data)
 
 
 # -----------------
-# Doing some temporal smoothing to look at temporal resolution and sensitivity
+# 4.f. Doing some temporal smoothing to look at temporal resolution and sensitivity
 # -----------------
 # A lazy way of adding a Scale factor (this probably could be done more simply with a merge, but this works too)
 ring.data.010 <- ring.data
