@@ -198,8 +198,10 @@ summary(spp.npp)
 # 2.c. Calculating Fcomp (by biomass) for each species
 # -------------------------
 for(i in unique(spp.npp$PlotID)){
-	bm.tot <- sum(spp.npp[spp.npp$PlotID==i, "AB.area"])
-	spp.npp[spp.npp$PlotID==i,"Fcomp"] <- spp.npp[spp.npp$PlotID==i, "AB.area"]/bm.tot
+	for(y in unique(spp.npp[spp.npp$PlotID==i, "Year"])){
+		bm.tot <- sum(spp.npp[spp.npp$PlotID==i & spp.npp$Year==y, "AB.area"], na.rm=T)
+		spp.npp[spp.npp$PlotID==i & spp.npp$Year==y,"Fcomp"] <- spp.npp[spp.npp$PlotID==i & spp.npp$Year==y, "AB.area"]/bm.tot
+	}
 }
 summary(spp.npp)
 # -------------------------
