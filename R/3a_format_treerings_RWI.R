@@ -553,7 +553,7 @@ tree.rings3 <- merge(tree.rings2, tree.data[,c("PlotID", "TreeID", "Species", "C
 summary(tree.rings3)
 
 # Adding in Species/PFT
-evergreen <- c("PIRE", "PIST", "PIAB", "PIRU", "THOC", "ABBA", "TSCA")
+evergreen <- c("PIRE", "PIST", "PIAB", "PIRU", "THOC", "ABBA", "TSCA", "PCRU")
 tree.rings3$Species <- as.factor(ifelse(tree.rings3$Site=="PDL","PIRE", paste(tree.rings3$Species)))
 tree.rings3$Species <- as.factor(ifelse(tree.rings3$PlotID=="WI002","PIRE", paste(tree.rings3$Species)))
 tree.rings3$Species <- as.factor(ifelse(tree.rings3$PlotID=="MI006","TSCA", paste(tree.rings3$Species)))

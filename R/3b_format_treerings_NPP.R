@@ -12,8 +12,7 @@
 #    b. Convert tree biomass to per area
 #    c. Aggregate to species-plot (MgC/Ha)
 # 2. Load plot metadata & merge with NPP
-# 3. Do some additional variable calculations (biome type, etc)
-#    -- Save: 
+#    -- Save: TreeRing_NPP_PlotSpecies.csv
 # -------------------------
 # ----------------------------------------
 
@@ -85,10 +84,8 @@ summary(tree.npp)
 
 # Adding some indexing that makes more sense to me
 # What they call "Site" is really a plot nested within sites; 
-# it's also helpful if sites have a consistent number of letters
-tree.npp$Site   <- as.factor(ifelse(nchar(paste(tree.npp$Site))<4, paste0("H", tree.npp$Site), paste(tree.npp$Site))) 
 tree.npp$PlotID <- tree.npp$Site 
-tree.npp$Site   <- as.factor(substr(tree.npp$PlotID, 1, 3))
+tree.npp$Site   <- as.factor(ifelse(nchar(paste(tree.npp$Site))>=4, substr(tree.npp$PlotID, 1, 3), substr(tree.npp$PlotID, 1, 2)))
 summary(tree.npp)
 
 # ####################
@@ -115,6 +112,7 @@ tree.npp$tree.HA <- ifelse(tree.npp$DBH<20, 1/(pi*(13^2)), 1/(pi*(20^2)))*1e5 # 
 # Convert tree biomass to per area basis
 # biomass/tree * trees/HA * MgC/MgBiomass
 tree.npp$ABI.area <- tree.npp$annAB * tree.npp$tree.HA * 0.5
+tree.npp$AB.area <- tree.npp$AB * tree.npp$tree.HA * 0.5
 
 summary(tree.npp)
 
@@ -131,9 +129,9 @@ hist(tree.npp[tree.npp$Year>=1990,"ABI.area"])
 # -------------------------
 # 1.c. Aggregate to species biomass per plot (MgC/HA)
 # -------------------------
-spp.npp <- aggregate(tree.npp[,c("BAI", "tree.HA", "AB", "ABI.area")], 
+spp.npp <- aggregate(tree.npp[,c("BAI", "tree.HA", "AB.area", "ABI.area")], 
                      by=tree.npp[,c("Site", "PlotID", "Species", "Year")], 
-                     FUN=sum)
+                     FUN=sum, na.rm=T)
 summary(spp.npp)
 
 # Note: We have some VERY high biomass increments, so lets just check them out real quick
@@ -146,6 +144,28 @@ summary(spp.npp[spp.npp$ABI.area>20,])
 hist(spp.npp$ABI.area)
 hist(spp.npp[spp.npp$Year>=1990,"ABI.area"])
 
+# quick QA/QC plot
+ggplot(data=spp.npp) + facet_wrap(~PlotID) +
+	geom_line(aes(x=Year, y=ABI.area, color=Species)) +
+	theme_bw()
+
+pdf(file.path(fig.base, "TreeRings_NPP_Species.pdf"))
+ggplot(data=spp.npp) + facet_wrap(~PlotID) +
+	geom_line(aes(x=Year, y=ABI.area, color=Species), size=1) +
+	scale_y_continuous(name=expression(bold(paste("Aboveground Biomass Increment (Mg C ha"^"-1","yr"^"-1",")")))) +
+	scale_x_continuous(limits=c(1900,2010)) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.base, "TreeRings_AGB_Species.pdf"))
+ggplot(data=spp.npp) + facet_wrap(~PlotID) +
+	geom_line(aes(x=Year, y=AB.area, color=Species), size=1) +
+	scale_y_continuous(name=expression(bold(paste("Aboveground Biomass (Mg C ha"^"-1",")")))) +
+	scale_x_continuous(limits=c(1900,2010)) +
+	theme_bw()
+dev.off()
+
+
 # -------------------------
 
 # -------------------------------------------------
@@ -153,9 +173,37 @@ hist(spp.npp[spp.npp$Year>=1990,"ABI.area"])
 # -------------------------------------------------
 # 2. Load plot metadata & merge with NPP
 # -------------------------------------------------
+# -------------------------
+# 2.a. Climate (from PRISM)
+# -------------------------
+climate <- read.csv(file.path("Data", "TreeRing_PRISM_Climate.csv"))
+summary(climate)
+
+# merge the data sets together, not taking any climate we don't actually need
+spp.npp <- merge(spp.npp, climate, all.x=T, all.y=F)
+summary(spp.npp)
+# -------------------------
+
+# -------------------------
+# 2.b. Plant Functional Type Classifications
+# -------------------------
+unique(spp.npp$Species)
+evergreen <- c("PIRE", "PIST", "PIAB", "PIRU", "THOC", "ABBA", "TSCA", "PCRU")
+
+spp.npp$PFT <- as.factor(ifelse(spp.npp$Species %in% evergreen, "Evergreen", "Deciduous"))
+summary(spp.npp)
+# -------------------------
+
+# -------------------------
+# 2.c. Calculating Fcomp (by biomass) for each species
+# -------------------------
+for(i in unique(spp.npp$PlotID)){
+	bm.tot <- sum(spp.npp[spp.npp$PlotID==i, "AB.area"])
+	spp.npp[spp.npp$PlotID==i,"Fcomp"] <- spp.npp[spp.npp$PlotID==i, "AB.area"]/bm.tot
+}
+summary(spp.npp)
+# -------------------------
+
+write.csv(spp.npp, file.path("Data", "TreeRing_NPP_PlotSpecies.csv"), row.names=F)
 # -------------------------------------------------
 
-# -------------------------------------------------
-# 3. Do some additional variable calculations (biome type, etc)
-# -------------------------------------------------
-# -------------------------------------------------
