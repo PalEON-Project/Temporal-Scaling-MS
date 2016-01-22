@@ -31,7 +31,7 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/"
 fig.base="Figures/"
 
@@ -104,10 +104,9 @@ summary(tree.npp)
 #       20+   cm DBH: plot radius = 20 m
 # -------------------------
 # To convert from MG/tree to MGC/HA: biomass increment (mg/tree) * tree/HA * 0.5 (MG C)/(MG biomass)
-
 # associate a stem density with each tree (just so there's a record)
 # tree/HA = 1/(pi * radius^2) tree/m2 * 1e5 m2/HA
-tree.npp$tree.HA <- ifelse(tree.npp$DBH<20, 1/(pi*(13^2)), 1/(pi*(20^2)))*1e5 # trees per hectare
+tree.npp$tree.HA <- ifelse(tree.npp$DBH<20, 1/(pi*(13^2)), 1/(pi*(20^2)))*1e4 # trees per hectare
 
 # Convert tree biomass to per area basis
 # biomass/tree * trees/HA * MgC/MgBiomass
@@ -123,7 +122,6 @@ summary(tree.npp[tree.npp$ABI.area>3,])
 summary(tree.npp[tree.npp$ABI.area>2,])
 
 hist(tree.npp[tree.npp$Year>=1990,"ABI.area"])
-
 # -------------------------
 
 # -------------------------
@@ -134,21 +132,7 @@ spp.npp <- aggregate(tree.npp[,c("BAI", "tree.HA", "AB.area", "ABI.area")],
                      FUN=sum, na.rm=T)
 summary(spp.npp)
 
-# Note: We have some VERY high biomass increments, so lets just check them out real quick
-#       -- For reference, the models at Harvard Forest are mostly in the ballpark of 5-15; 
-#          ED gets up to 20ish
-#       -- This goes back to those few, very large trees, but we're still getting freakishly
-#          high estimates even at just the species level
-summary(spp.npp[spp.npp$ABI.area>20,])
-
-hist(spp.npp$ABI.area)
-hist(spp.npp[spp.npp$Year>=1990,"ABI.area"])
-
-# quick QA/QC plot
-ggplot(data=spp.npp) + facet_wrap(~PlotID) +
-	geom_line(aes(x=Year, y=ABI.area, color=Species)) +
-	theme_bw()
-
+# quick QA/QC plots
 pdf(file.path(fig.base, "TreeRings_NPP_Species.pdf"))
 ggplot(data=spp.npp) + facet_wrap(~PlotID) +
 	geom_line(aes(x=Year, y=ABI.area, color=Species), size=1) +
