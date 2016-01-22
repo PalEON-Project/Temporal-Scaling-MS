@@ -4,22 +4,7 @@
 # Date Created: 10 July 2015
 # ----------------------------------------
 
-# -----------------
-# Matrix of Models and Drivers
-# -----------------
-# Var    ED2  ED2-LU  CLM-BGC  CLM-CN  LPJ-WSL  LPJ-GUESS  JULES-STAT  JULES-TRIFFID  SIBCASA  LINKAGES
-# tair.gs    X     X        X       X        X         X          X             X           X        X
-# precipf.gs X     X        X       X        X         X          X             X           X        X
-# swdown.gs  X     X        X       X        X         X          X             X           X
-# lwdown.gs  X     X                         X                    X             X           X
-# wind.gs    X     X        X       X                             X             X           X
-# psurf.gs   X     X        X       X                             X             X           X
-# qair.gs    X     X        X       X                             X             X           X
-# CO2.gs     X     X        X       X        X         X          X             X           X
-# Ndep                   ?       ?
-
-
-paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
+paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	# data       = data frame with data for 1 model, 1 extent & 1 resolution
 	# model.name = name of model (goes into data tables to make life easier)
 	# Extent     = the temporal extent of the data (e.g. 850-2010, 1990-2010)
@@ -43,11 +28,12 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# ----------------------------------------
 	# extracting some info previously specified
 	model.name <- unique(data$Model)
-	ext.name   <- unique(data$Extent)
+	ext.name   <- paste0(min(data$Year), "-", max(data$Year))
     ext.index  <- regexpr("-", ext.name)[1] # Find the index so we can split apart extent into 2 numbers
-	extent     <- c(as.numeric(substr(ext.name,1,ext.index-1)), as.numeric(substr(ext.name, ext.index+1,nchar(paste(ext.name)))))
-	resolution <- unique(data$Resolution)
+    extent     <- c(as.numeric(substr(ext.name,1,ext.index-1)), as.numeric(substr(ext.name, ext.index+1,nchar(paste(ext.name)))))
+    resolution <- unique(data$Resolution)
 
+	data$Extent <- as.factor(ext.name)
 	# ----------------------------------------
 	# Running the gam; note this now has AR1 temporal autocorrelation
 	# ----------------------------------------
@@ -64,25 +50,19 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# ----------------------------------------
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
-	if(site.effects==T){
-		predictors <- c("tair", "precipf", "CO2", "Age", "Spp.Site")
-		gam1 <- gam(Y ~ s(Age, by=Spp.Site) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
+	if(PFT==T){
+		predictors=c("tair", "precipf", "CO2", "PFT")
+		gam1 <- gam(Y ~ s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + TreeID + PlotID + Site -1, data=data, correlation=corARMA(form=~Year|PlotID, p=1))
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
-		predictors <- c("tair", "precipf", "CO2", "Age", "Spp.Site")
-		gam1 <- gam(Y ~ s(Age, by=Spp.Site) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) , data=data, correlation=corARMA(form=~Year, p=1))
+		predictors=c("tair", "precipf", "CO2")
+		gam1 <- gam(Y ~ s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + TreeID + PlotID + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
 	}
 	# ----------------------------------------
 
 	# ----------------------------------------
-	print("-------------------------------------")
-	print("-------------------------------------")
-	print(paste0("------ Processing Model: ", model.name, " ------"))
 	print(summary(gam1))	
-
-	# get rid of values for predictors not used in the models for clarity later on
-	data[,predictors.all[!(predictors.all %in% predictors)]] <- NA
 
 	# Storing the predicted values from the gam
 	data$fit.gam <- predict(gam1, newdata=data)
@@ -91,7 +71,7 @@ paleon.gams.models <- function(data, response, k, predictors.all, site.effects){
 	# ----------------------------------------
 	# Run all of the post-processing (calculate CIs, etc)
 	# ----------------------------------------
-	mod.out <- process.gamm(gamm.model=gam1, data=data, model.name=model.name, extent=extent, resolution=resolution, response=response, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
+	mod.out <- process.gamm(gamm.model=gam1, data=data, model.name=model.name, extent=extent, resolution=resolution, vars=predictors, write.out=F, outdir=out.dir, fweights=T, ci.model=T, ci.terms=T)
 	# ----------------------------------------
 	
 	return(mod.out)

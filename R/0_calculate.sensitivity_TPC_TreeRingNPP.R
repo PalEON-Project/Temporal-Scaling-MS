@@ -4,7 +4,7 @@
 # Date Created: 10 July 2015
 # ----------------------------------------
 
-paleon.gams.models <- function(data, k, predictors.all, PFT=F){
+paleon.gams.models <- function(data, k, predictors.all, site.effects, PFT=F){
 	# data       = data frame with data for 1 model, 1 extent & 1 resolution
 	# model.name = name of model (goes into data tables to make life easier)
 	# Extent     = the temporal extent of the data (e.g. 850-2010, 1990-2010)
@@ -33,7 +33,7 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	extent     <- c(as.numeric(substr(ext.name,1,ext.index-1)), as.numeric(substr(ext.name, ext.index+1,nchar(paste(ext.name)))))
 	resolution <- unique(data$Resolution)
 
-	data$Extent <- as.factor(extent)
+	data$Extent <- as.factor(ext.name)
 	# ----------------------------------------
 	# Running the gam; note this now has AR1 temporal autocorrelation
 	# ----------------------------------------
@@ -52,13 +52,17 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	# ----------------------------------------
 	if(PFT==T){
 		predictors=c("tair", "precipf", "CO2", "PFT")
-		gam1 <- gam(Y ~ s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
+		gam1 <- gam(Y ~ s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + PlotID + Site -1, data=data, correlation=corARMA(form=~Year|PlotID, p=1))
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
 		predictors=c("tair", "precipf", "CO2")
-		gam1 <- gam(Y ~ s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
+		gam1 <- gam(Y ~ s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + PlotID + Site -1, data=data, correlation=corARMA(form=~Year|PlotID, p=1))
 	}
+	# ----------------------------------------
+
+	# ----------------------------------------
+	print(summary(gam1))	
 
 	# Storing the predicted values from the gam
 	data$fit.gam <- predict(gam1, newdata=data)

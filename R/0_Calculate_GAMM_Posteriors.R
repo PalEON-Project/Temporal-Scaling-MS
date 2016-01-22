@@ -35,29 +35,31 @@ post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, PFT=F,
 			sim.tmp <- data.frame(Xp[,cols.list[[v]]] %*% t(Rbeta[,cols.list[[v]]]) )
 
 			# Saving the quantiles into a data frame
-			if(PFT==F){
 			df.tmp <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Effect=v, x=newdata[,v],
 							   mean=apply(sim.tmp, 1, mean), 
 							   lwr=apply(sim.tmp, 1, quantile, lwr, na.rm=T), 
 							   upr=apply(sim.tmp, 1, quantile, upr, na.rm=T))
 							   
-			} else {
-			df.tmp <- data.frame(Model=model.name, Site=newdata$Site, PFT=newdata$PFT, Extent=newdata$Extent, Resolution=newdata$Resolution, Effect=v, x=newdata[,v],
-							   mean=apply(sim.tmp, 1, mean), 
-							   lwr=apply(sim.tmp, 1, quantile, lwr, na.rm=T), 
-							   upr=apply(sim.tmp, 1, quantile, upr, na.rm=T))
-			}
+			if("PlotID" %in% names(newdata)) df.tmp$PlotID <- newdata$PlotID
+			if("TreeID" %in% names(newdata)) df.tmp$TreeID <- newdata$TreeID
+			if("PFT"    %in% names(newdata)) df.tmp$PFT    <- newdata$PFT
+
 			if(v == vars[1]) df.out <- df.tmp else df.out <- rbind(df.out, df.tmp)
 
   			# Creating a data frame storing all the simulations for more robust analyses
-			sim.tmp$Model  <- model.name
-			sim.tmp$Site   <- newdata$Site
-			sim.tmp$Extent <- newdata$Extent
+			sim.tmp$Model       <- model.name
+			sim.tmp$Site        <- newdata$Site
+			sim.tmp$Extent      <- newdata$Extent
 			sim.tmp$Resolution  <- newdata$Resolution
-			sim.tmp$Effect <- v
-			sim.tmp$x      <- newdata[,v]
-			sim.tmp <- sim.tmp[,c((n+1):ncol(sim.tmp), 1:n)]
+			sim.tmp$Effect      <- v
+			sim.tmp$x           <- newdata[,v]
  
+ 			if("PlotID" %in% names(newdata)) sim.tmp$PlotID <- newdata$PlotID
+			if("TreeID" %in% names(newdata)) sim.tmp$TreeID <- newdata$TreeID
+			if("PFT"    %in% names(newdata)) sim.tmp$PFT    <- newdata$PFT
+
+			sim.tmp             <- sim.tmp[,c((n+1):ncol(sim.tmp), 1:n)]
+
 			if(v == vars[1]) df.sim <- sim.tmp else df.sim <- rbind(df.sim, sim.tmp)
 
 		}
@@ -65,8 +67,29 @@ post.distns <- function(model.gam, model.name, newdata, vars, n, terms=T, PFT=F,
 	} else {
 		sim1 <- Xp %*% t(Rbeta) # simulates n predictions of the response variable in the model.gam
 		
-		df.out <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Year=newdata$Year, mean=apply(sim1, 1, mean, na.rm=T), lwr=apply(sim1, 1, quantile, lwr, na.rm=T), upr=apply(sim1, 1, quantile, upr, na.rm=T))
-		df.sim <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Year=newdata$Year)
+		df.out <- data.frame(Model      = model.name, 
+		                     Site       = newdata$Site, 
+		                     Extent     = newdata$Extent, 
+		                     Resolution = newdata$Resolution, 
+		                     Year       = newdata$Year, 
+		                     mean       = apply(sim1, 1, mean, na.rm=T), 
+		                     lwr        = apply(sim1, 1, quantile, lwr, na.rm=T), 
+		                     upr        = apply(sim1, 1, quantile, upr, na.rm=T))
+
+ 		if("PlotID" %in% names(newdata)) df.out$PlotID <- newdata$PlotID
+		if("TreeID" %in% names(newdata)) df.out$TreeID <- newdata$TreeID
+		if("PFT"    %in% names(newdata)) df.out$PFT    <- newdata$PFT
+
+		df.sim <- data.frame(Model      = model.name, 
+		                     Site       = newdata$Site, 
+		                     Extent     = newdata$Extent, 
+		                     Resolution = newdata$Resolution, 
+		                     Year       = newdata$Year)
+
+ 		if("PlotID" %in% names(newdata)) df.sim$PlotID <- newdata$PlotID
+		if("TreeID" %in% names(newdata)) df.sim$TreeID <- newdata$TreeID
+		if("PFT"    %in% names(newdata)) df.sim$PFT    <- newdata$PFT
+	    
 		for(v in vars){
 			df.out[,v] <- newdata[,v]
 			df.sim[,v] <- newdata[,v]

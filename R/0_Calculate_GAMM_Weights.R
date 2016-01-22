@@ -11,7 +11,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	coef.gam <- coef(model.gam) # the gam coefficients
 	
 	# Some handy column indices
-	# cols.list <- list(Site = which(substr(names(coef.gam),1,4)=="Site" | substr(names(coef.gam),1,11)=="(Intercept)"))
+	# Note: In this script "Site" refers to any interceipt (it can be PlotID, PFT, whatever)
 	cols.list <- list(Site = which(!substr(names(coef.gam),1,2)=="s("))
 	for(v in vars[!vars=="Y.lag"]){
 		cols.list[[v]] <- which(substr(names(coef.gam),1,(nchar(v)+3))==paste0("s(",v,")"))
@@ -54,7 +54,17 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	fit.spline2 <- rowSums(abs(gam.fits[,2:ncol(gam.fits)]), na.rm=T)
 
 	# Factor weights are determined by the relative strength of Temp, Precip, & CO2
-	df.weights <- data.frame(Model=model.name, Site=newdata$Site, Extent=newdata$Extent, Resolution=newdata$Resolution, Year=newdata$Year, fit.full=fit)
+	df.weights <- data.frame(Model=model.name, 
+	                         Site=newdata$Site, 
+	                         Extent=newdata$Extent, 
+	                         Resolution=newdata$Resolution, 
+	                         Year=newdata$Year, 
+	                         fit.full=fit)
+
+ 	if("PlotID" %in% names(newdata)) df.weights$PlotID <- newdata$PlotID
+	if("TreeID" %in% names(newdata)) df.weights$TreeID <- newdata$TreeID
+	if("PFT"    %in% names(newdata)) df.weights$PFT    <- newdata$PFT
+
 	for(v in vars){
 		df.weights[,paste("fit", v, sep=".")   ] <- gam.fits[,v]
 		df.weights[,paste( "sd", v, sep=".")   ] <- gam.sd[,v]

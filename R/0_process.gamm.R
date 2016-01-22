@@ -1,9 +1,8 @@
-process.gamm <- function(gamm.model, data, model.name, response, vars, resolution="t.001", extent=c(850,2010), 
-						  	fweights=T, sites=T, ci.model=T, ci.terms=T, PFT=F, n=250,
+process.gamm <- function(gamm.model, data, model.name, vars, resolution="t.001", extent=c(850,2010), 
+						  	fweights=T, sites=T, ci.model=T, ci.terms=T, n=250,
 						  	write.out=T, outdir, control=list()){
 	# data     = data frame with data in it
 	# model.name    = which model.name to subset
-	# response = which variable to use as response in the gam
 	# k        = number of knots in the spline
 	# n        = number of simulations for generating confidence intervals
 	# outdir   = where to save the .Rdata file
@@ -26,9 +25,8 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, resolutio
 	# -----------
 	if(ci.model==T){
 		ci.response <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=data, vars=vars, terms=F)
-		out[["ci.response"]] <- ci.response$ci 
+		out[["ci.response"]]  <- ci.response$ci 
 		out[["sim.response"]] <- ci.response$sims 
-
 	}
 	# -----------
 	
@@ -37,44 +35,48 @@ process.gamm <- function(gamm.model, data, model.name, response, vars, resolutio
 	# -----------
 	if(ci.terms==T){
 		n.out = n
-		sites.dat <- unique(data$Site)
-		ns        <- length(sites.dat)
-		for(i in 1:ns){
-			if(i == 1){ 
-				site.vec <- paste(rep(sites.dat[i], n.out) )
-			} else {
-				site.vec <- c(site.vec, paste(rep(sites.dat[i], n.out)))
-			}
-		}
-		if(PFT==F){	
-		  new.dat <- data.frame(	Site=site.vec,
-								Extent=as.factor(paste(extent[1], extent[2], sep="-")), 
-								Resolution=rep(resolution, n.out*ns))
-		} else {
-		  pfts <- unique(data$PFT)
-		  new.dat <- data.frame(Site       = rep(site.vec, length(pfts)),
-								Extent     = as.factor(paste(extent[1], extent[2], sep="-")), 
-								Resolution = rep(rep(resolution, n.out*ns), length(pfts))
-							    )
-		  for(i in 1:length(pfts)){
-		  	new.dat[(i*n.out*ns - n.out*ns + 1):(i*n.out*ns),"PFT"] <- pfts[i]
-		  }
-		}
-		for(v in vars){
-			if(is.factor(data[,v])){
-				new.dat[,v] <- as.factor(unique(data[,v])[1])
-			} else {
-				new.dat[,v] <- rep(seq(min(data[,v],   na.rm=T), max(data[,v],   na.rm=T), length.out=n.out), ns)
-			}
-		}								
-								
-		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T, PFT=PFT)
 
-		out[["ci.terms"]] <- ci.terms.pred$ci 
+		new.dat <- data.frame(Model=model.name,
+							  Extent=as.factor(paste(extent[1], extent[2], sep="-")), 
+							  Resolution=resolution)
+		
+		# Common extra variables used in fitting the models
+		vars.extra <- c("Site", "PlotID", "TreeID", "PFT")
+		for(v in vars.extra){
+			if(v %in% names(data)){
+			  if(v %in% vars){
+			 	# if v is a variable used to fit curves, merge it into the data frame
+			 	var.temp <- data.frame(x=unique(data[,v])) 
+			 	names(var.temp) <- v
+			 	new.dat <- merge(new.dat, var.temp)
+			  } else {
+			 	# if v is not a sensitivity variable, just pick the first value 
+			 	# because it doesn't matter
+			 	new.dat[,v] <- unique(data[,v])[1]
+			  }				
+			} 
+		}
+
+		# Figure out which vars are numeric vs. factor
+		vars.num <- vector()
+		for(v in vars){
+			if(class(data[,v])=="numeric") vars.num <- c(vars.num, v)
+		}
+
+		var.temp <- data.frame(array(dim=c(n.out, length(vars.num))))
+		names(var.temp) <- vars.num
+		for(v in vars.num){
+			var.temp[,v] <- seq(min(data[,v], na.rm=T), max(data[,v], na.rm=T), length.out=n.out)
+		}								
+		new.dat <- merge(new.dat, var.temp, all.x=T, all.y=T)
+								
+		ci.terms.pred <- post.distns(model.gam=gamm.model, model.name=model.name, n=n, newdata=new.dat, vars=vars, terms=T)
+
+		out[["ci.terms"]]  <- ci.terms.pred$ci 
 		out[["sim.terms"]] <- ci.terms.pred$sims 
 	}	
 	# -----------
-	if(write.out==T) save(out, file=file.path(outdir, paste("gamm", model.name, response, resolution, "AllSites", "Rdata", sep=".")))
+	if(write.out==T) save(out, file=file.path(outdir, paste("gamm", model.name, resolution, "AllSites", "Rdata", sep=".")))
 	return(out)
 	# -----------
 
