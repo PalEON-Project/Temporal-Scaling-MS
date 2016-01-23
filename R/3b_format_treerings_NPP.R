@@ -31,7 +31,7 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/"
 fig.base="Figures/"
 
@@ -68,7 +68,7 @@ in.base = "raw_inputs/NPP_TreeRings"
 # -------------------------
 # 1.a. Load tree-level aNPP files
 # -------------------------
-lyford  <- read.csv(file.path(in.base, "Harvard_Lyford", "Lyf.ab.all.csv"))
+lyford  <- read.csv(file.path(in.base, "Harvard_Lyford", "lyf.ab.all.csv"))
 tower   <- read.csv(file.path(in.base, "Harvard_Tower" , "tow.ab.all.csv"))
 howland <- read.csv(file.path(in.base, "Howland"       , "how.ab.all.csv"))
 
@@ -84,8 +84,10 @@ summary(tree.npp)
 
 # Adding some indexing that makes more sense to me
 # What they call "Site" is really a plot nested within sites; 
+# Also, their actual site is different from a modeling Site
 tree.npp$PlotID <- tree.npp$Site 
-tree.npp$Site   <- as.factor(ifelse(nchar(paste(tree.npp$Site))>=4, substr(tree.npp$PlotID, 1, 3), substr(tree.npp$PlotID, 1, 2)))
+tree.npp$Site2  <- as.factor(ifelse(nchar(paste(tree.npp$Site))>=4, substr(tree.npp$PlotID, 1, 3), substr(tree.npp$PlotID, 1, 2)))
+tree.npp$Site   <- as.factor(ifelse(tree.npp$Site2=="HOW", "PHO", "PHA"))
 summary(tree.npp)
 
 # ####################
@@ -118,9 +120,6 @@ summary(tree.npp)
 # Note: it looks like we have some major outliers here (aNPP of a single tree is ~15% of model NPP)
 #       -- This looks to be the work of a few very large QURUs (>60 cm) at Lyford; most is pre-1980
 hist(tree.npp$ABI.area)
-summary(tree.npp[tree.npp$ABI.area>3,])
-summary(tree.npp[tree.npp$ABI.area>2,])
-
 hist(tree.npp[tree.npp$Year>=1990,"ABI.area"])
 # -------------------------
 
@@ -128,7 +127,7 @@ hist(tree.npp[tree.npp$Year>=1990,"ABI.area"])
 # 1.c. Aggregate to species biomass per plot (MgC/HA)
 # -------------------------
 spp.npp <- aggregate(tree.npp[,c("BAI", "tree.HA", "AB.area", "ABI.area")], 
-                     by=tree.npp[,c("Site", "PlotID", "Species", "Year")], 
+                     by=tree.npp[,c("Site", "Site2", "PlotID", "Species", "Year")], 
                      FUN=sum, na.rm=T)
 summary(spp.npp)
 
@@ -148,8 +147,6 @@ ggplot(data=spp.npp) + facet_wrap(~PlotID) +
 	scale_x_continuous(limits=c(1900,2010)) +
 	theme_bw()
 dev.off()
-
-
 # -------------------------
 
 # -------------------------------------------------

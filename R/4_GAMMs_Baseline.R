@@ -117,29 +117,22 @@ for(m in 1:length(model.name)){
 	print("-------------------------------------")
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
-	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
-	dat.mod <- ecosys[ecosys$Resolution==resolutions & ecosys$Model==m.name, c("Model", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
-	names(dat.mod)[(ncol(dat.mod)-length(predictors.all)+1):ncol(dat.mod)] <- predictors.all
-	
-	if(!max(dat.mod[,response], na.rm=T)>0) next # If a variable is missing, just skip over this model for now
+	# Taking the subsets of data we want in a single gam
+	dat.subsets <- ecosys$Resolution == resolutions & 
+		               ecosys$Model      == m.name
+	data.temp <- ecosys[dat.subsets, c("Model", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix))]
+	names(data.temp)[(ncol(data.temp)-length(predictors.all)+1):ncol(data.temp)] <- predictors.all
 
-# for(r in 1:length(resolutions)){ # Resolution loop
+	# If a variable is missing, just skip over this model for now
+	if(!max(data.temp[,response], na.rm=T)>0) next 
 
-	# Figure out which years to take: 
-	# Note: working backwards to help make sure we get modern end of the CO2.gs & temperature distributions
-	run.end <- ifelse(substr(m.name,1,3)=="jul", 2009, 2010) # Note: Jules missing 2010, so 
-	run.start <- 850
-	inc <- 1 # making sure we're always dealign with whole numbers
-	yrs <- seq(from=run.end, to=run.start, by=-1)
-
-	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Model.Order", "Site", "Year", response, predictors.all)]
-
-	# Making a note of the extent & resolution
+	# Making a note of the resolution
 	data.temp$Resolution <- as.factor(resolutions)
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
 	data.temp <- data.temp[complete.cases(data.temp[,response]),]
 
+	# Copy the response variable 
 	data.temp$Y <- data.temp[,response]
 
 	paleon.models[[paste(m.name)]] <- data.temp
@@ -181,7 +174,7 @@ for(i in 1:length(models.base)){
 	}
 }
 
-save(mod.out, file=file.path(dat.dir, "gamm_models_baseline_NPP.Rdata"))
+save(mod.out, file=file.path(dat.dir, "gamm_baseline_Models.Rdata"))
 # -------------------------------------------------
 
 
@@ -231,7 +224,7 @@ dev.off()
 # -------------------------------------------------
 
 # Clear the memory!
-rm(mod.out, models.base, ecosys, dat.mod)
+rm(mod.out, models.base, ecosys)
 # -------------------------------------------------------------------------------
 
 
@@ -253,8 +246,8 @@ spp.npp <- read.csv(file.path("Data", "TreeRing_NPP_PlotSpecies.csv"))
 summary(spp.npp)
 
 # aggregate to total plot NPP (ABI.area)
-plot.npp <- aggregate(spp.npp[,c("AB.area", "ABI.area", "tree.HA", "Fcomp")], by=spp.npp[,c("Site", "PlotID", "Year")], FUN=sum)
-plot.npp[,c(paste0(predictors.all, predictor.suffix))] <- aggregate(spp.npp[,c(paste0(predictors.all, predictor.suffix))], by=spp.npp[,c("Site", "PlotID", "Year")], FUN=mean)[,c(paste0(predictors.all, predictor.suffix))]
+plot.npp <- aggregate(spp.npp[,c("AB.area", "ABI.area", "tree.HA", "Fcomp")], by=spp.npp[,c("Site", "Site2", "PlotID", "Year")], FUN=sum)
+plot.npp[,c(paste0(predictors.all, predictor.suffix))] <- aggregate(spp.npp[,c(paste0(predictors.all, predictor.suffix))], by=spp.npp[,c("Site", "Site2", "PlotID", "Year")], FUN=mean)[,c(paste0(predictors.all, predictor.suffix))]
 summary(plot.npp)
 
 # Add some important identifiers for my file structure
@@ -262,8 +255,8 @@ plot.npp$Model       <- as.factor("TreeRingNPP")
 plot.npp$Model.Order <- as.factor("Tree Ring NPP")
 summary(plot.npp)
 
-# subset only complete cases where we have met data and data from the past 25 years
-plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-25),]
+# subset only complete cases where we have met data and data from the past 30 years
+plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
 summary(plot.npp)
 # -------------------------------------------------
 
@@ -383,10 +376,13 @@ summary(dat.mod$RWI)
 # -------------------------------------------------
 # 3.d. Run the gamms -- WITH site intercept
 # -------------------------------------------------
+# This isn't working well in parallel, so we'll run it 1 at a time
 # cores.use <- min(12, length(dat.mod))
+# models.base <- mclapply(dat.mod, paleon.gams.models, mc.cores=cores.use, k=k, predictors.all=predictors.all, PFT=F)
 
-models.base <- mclapply(dat.mod, paleon.gams.models, mc.cores=cores.use, k=k, predictors.all=predictors.all, site.effects=T)
-# mod.out <- paleon.gams.models(data=dat.mod$RWI, k=k, predictors.all=predictors.all, PFT=F)
+models.base <- list()
+models.base[["RWI"]] <- paleon.gams.models(data=dat.mod$RWI, k=k, predictors.all=predictors.all, PFT=F)
+models.base[["BAI"]] <- paleon.gams.models(data=dat.mod$BAI, k=k, predictors.all=predictors.all, PFT=F)
 
 save(models.base, file=file.path(dat.dir, "gamm_baseline_TreeRings.Rdata"))
 # -------------------------------------------------
@@ -424,7 +420,7 @@ save(mod.out, file=file.path(dat.dir, "gamm_baseline_TreeRings.Rdata"))
 # -------------------------------------------------
 pdf(file.path(fig.dir, "GAMM_DriverSensitivity_Baseline_TreeRings.pdf"))
 print(
-ggplot(data=mod.out$ci.terms) + facet_wrap(~ Effect, scales="free_x") + theme_bw() +		
+ggplot(data=mod.out$ci.terms) + facet_grid(Model ~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +

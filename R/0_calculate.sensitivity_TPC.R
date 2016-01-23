@@ -28,12 +28,12 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	# ----------------------------------------
 	# extracting some info previously specified
 	model.name <- unique(data$Model)
-	ext.name   <- paste0(min(data$Year), "-", max(data$Year))
+	ext.name   <- paste0(min(data$Year), "-", 2010)
     ext.index  <- regexpr("-", ext.name)[1] # Find the index so we can split apart extent into 2 numbers
 	extent     <- c(as.numeric(substr(ext.name,1,ext.index-1)), as.numeric(substr(ext.name, ext.index+1,nchar(paste(ext.name)))))
 	resolution <- unique(data$Resolution)
 
-	data$Extent <- as.factor(extent)
+	data$Extent <- as.factor(ext.name)
 	# ----------------------------------------
 	# Running the gam; note this now has AR1 temporal autocorrelation
 	# ----------------------------------------

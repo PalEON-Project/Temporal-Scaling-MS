@@ -9,32 +9,28 @@
 # Workflow
 # -------------------------
 # 1. Models
-#    a. Set Directories
-#    b. Load model data files & function scripts
-#    c. Settings for the rest of this section
-#    d. Setting up to run gamms in parallel
-#    e. Run the gamms (with site intercept)
-#    f. Bind Models into single list
-#    g. Diagnostic Graphs
-# 2. Tree Rings NPP
-#    a. Set Directories
-#    b. Load model data files & function scripts
-#    c. Settings for the rest of this section
-#    d. Setting up to run gamms in parallel
-#    e. Run the gamms (with site intercept)
-#    f. Bind Models into single list
-#    g. Diagnostic Graphs
-# 3. Tree Rings RWI
-#    a. Set Directories
-#    b. Load model data files & function scripts
-#    c. Settings for the rest of this section
-#    d. Setting up to run gamms in parallel
-#    e. Run the gamms (with site intercept)
-#    f. Bind Models into single list
-#    g. Diagnostic Graphs
+#    a. Load model data files & function scripts
+#    b. Settings for the rest of this section
+#    c. Setting up to run gamms in parallel
+#    d. Run the gamms (with site intercept)
+#    e. Bind Models into single list
+#    f. Diagnostic Graphs
+# 2. Tree Rings NPP 
+#    a. Load model data files & function scripts
+#    b. Settings for the rest of this section
+#    c. Setting up to run gamms 
+#    d. Run the gamms (with site & intercepts); save the data
+#    e. Bind Models into single list
+#    f. Diagnostic Graphs
+# 3. Tree Rings: BAI & RWI
+#    a. Load model data files & function scripts
+#    b. Settings for the rest of this section
+#    c. Setting up to run gamms in parallel
+#    d. Run the gamms (with site & intercepts); save the data
+#    e. Bind Models into single list
+#    f. Diagnostic Graphs
 # -------------------------
 # ----------------------------------------
-
 
 # ----------------------------------------
 # Load Libaries
@@ -51,14 +47,10 @@ library(car)
 sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 
-# -------------------------------------------------------------------------------
-# 1. Models
-# -------------------------------------------------------------------------------
 # ----------------------------------------
-# 1.a. Set Directories
+# Set Directories & file paths
 # ----------------------------------------
 setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-# setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -67,17 +59,19 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "Sensitivity_Models_Comp")
-dat.dir <- file.path(dat.base, "Sensitivity_Models_Comp")
+fig.dir <- file.path(fig.base, "Sensitivity_PFT")
+dat.dir <- file.path(dat.base, "Sensitivity_PFT")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
 if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 
-
+# -------------------------------------------------------------------------------
+# 1. Models
+# -------------------------------------------------------------------------------
 # ----------------------------------------
-# 1.b. Load data files & function scripts
+# 1.a. Load model data files & function scripts
 # ----------------------------------------
 # Ecosys file = organized, post-processed m.name outputs
 #	generated with 1_generate_ecosys.R
@@ -85,7 +79,22 @@ load(file.path("Data", "EcosysData.Rdata"))
 summary(ecosys)
 model.colors
 
-source('R/0_calculate.sensitivity_TPC_Comp.R', chdir = TRUE)
+# Adding a biome classification
+ecosys$Fcomp_check <- rowSums(ecosys[,c("Evergreen", "Deciduous", "Grass")])
+ecosys$PFT <- as.factor(
+			  ifelse(ecosys$Evergreen/ecosys$Fcomp_check>=0.7, "Evergreen", 
+              ifelse(ecosys$Deciduous/ecosys$Fcomp_check>=0.7, "Deciduous",
+              ifelse(ecosys$Grass    /ecosys$Fcomp_check>=0.7, "Grass"    ,
+              ifelse(rowSums(ecosys[,c("Evergreen", "Deciduous")])/ecosys$Fcomp_check>=0.7, "Mixed",
+              ifelse(ecosys$Grass/ecosys$Fcomp_check>=0.3 & 
+                     ecosys$Grass/ecosys$Fcomp_check<0.7, "Savanna",
+              ifelse(!is.na(ecosys$Evergreen), "Other", NA
+              )))))))
+summary(ecosys[,c(1:18,c(1:18, (ncol(ecosys)-3):ncol(ecosys)))])
+# summary(ecosys[ecosys$PFT=="Other",c(1:18, (ncol(ecosys)-3):ncol(ecosys))])
+
+
+source('R/0_calculate.sensitivity_TPC.R', chdir = TRUE)
 source('R/0_GAMM_Plots.R', chdir = TRUE)
 
 # Read in model color scheme
@@ -94,15 +103,18 @@ model.colors
 
 
 # -------------------------------------------------
-# 1.c. Settings for the rest of this script
+# 1.b. Settings for the rest of this section
 # -------------------------------------------------
-# Get rid of CLM-BGC because its actual drivers are messed up
+# Get rid of LINKAGES because its acting kind of funny
 ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 # Setting up a loop for 1 m.name, 1 temporal scale
+sites       <- unique(ecosys$Site)
+model.name  <- unique(ecosys$Model)
+model.order <- unique(ecosys$Model.Order)
 resolutions <- c("t.001") # Note: Big models can't handle t.100 at the site level because there aren't enough data points
 extents <- data.frame(Start=c(850), End=c(2010)) 
-response <- c("NPP")
+response <- "NPP"
 predictors.all <- c("tair", "precipf", "CO2")
 predictor.suffix <- c(".gs")
 k=4
@@ -111,13 +123,8 @@ e=1
 
 
 # -------------------------------------------------
-# 1.d. Setting up the data and putting it in a list to run the gamms in parallel
+# 1.c. Setting up the data and putting it in a list to run the gamms in parallel
 # -------------------------------------------------
-ecosys <- ecosys[complete.cases(ecosys[,c(response, predictors.all, "Evergreen", "Grass")]),]
-sites       <- unique(ecosys$Site)
-model.name  <- unique(ecosys$Model)
-model.order <- unique(ecosys$Model.Order)
-
 paleon.models <- list()
 for(m in 1:length(model.name)){
 	m.name  <- model.name[m]
@@ -126,30 +133,25 @@ for(m in 1:length(model.name)){
 	print("-------------------------------------")
 	print(paste0("------ Processing Model: ", m.order, " ------"))
 
-	# Note: Here we're renaming things that had the suffix to just be generalized tair, etc 
-	dat.mod <- ecosys[ecosys$Resolution==resolutions & ecosys$Model==m.name, c("Model", "Updated", "Model.Order", "Site", "Year", response, paste0(predictors.all, predictor.suffix), "Evergreen", "Grass")]
-	names(dat.mod)[7:(7+length(predictors.all)-1)] <- predictors.all
+	# Skip models that don't have multiple PFTs/Forest types (SiBCASA)
+	if(!length(unique(ecosys[ecosys$Model==m.name, "PFT"]))>1) next 
+
+	# Taking the subsets of data we want in a single gam
+	dat.subsets <- ecosys$Resolution == resolutions & 
+		               ecosys$Model      == m.name
+	data.temp <- ecosys[dat.subsets, c("Model", "Model.Order", "Site", "Year", response, "PFT", paste0(predictors.all, predictor.suffix))]
+
+	# renaming the met var
+	names(data.temp)[(ncol(data.temp)-length(predictors.all)+1):ncol(data.temp)] <- predictors.all 
 	
-	if(!max(dat.mod[,response], na.rm=T)>0) next # If a variable is missing, just skip over this model for now
+	# If a variable is missing, just skip over this model for now
+	if(!max(data.temp[,response], na.rm=T)>0) next 
 
-# for(r in 1:length(resolutions)){ # Resolution loop
-
-	# Figure out which years to take: 
-	# Note: working backwards to help make sure we get modern end of the CO2.gs & temperature distributions
-	run.end <- ifelse(substr(m.name,1,3)=="jul", 2009, 2010) # Note: Jules missing 2010, so 
-	run.start <- 850
-	inc <- 1 # making sure we're always dealign with whole numbers
-	yrs <- seq(from=run.end, to=run.start, by=-1)
-
-	data.temp <- dat.mod[(dat.mod$Year %in% yrs), c("Model", "Updated", "Model.Order", "Site", "Year", response, predictors.all, "Evergreen", "Grass")]
-
-	# Making a note of the extent & resolution
-	ext <- as.factor(paste(1850, 2010, sep="-"))
-	data.temp$Extent <- as.factor(ext)
+	# Making a note of the resolution
 	data.temp$Resolution <- as.factor(resolutions)
 
 	# Getting rid of NAs; note: this has to happen AFTER extent definition otherwise scale & extent are compounded
-	data.temp <- data.temp[complete.cases(data.temp[,c(response)]),]
+	data.temp <- data.temp[complete.cases(data.temp[,response]),]
 
 	data.temp$Y <- data.temp[,response]
 
@@ -159,17 +161,21 @@ for(m in 1:length(model.name)){
 # --------------------------------
 
 
-# --------------------------------------------------------------------------
-# 1.e. Run & Process gamms -- with Site Effect
-# --------------------------------------------------------------------------
+# -------------------------------------------------
+# 1.d. Run the gamms -- WITH site intercept
+# -------------------------------------------------
 cores.use <- min(12, length(paleon.models))
 # cores.use <- length(paleon.models)
 
-models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, response=response, k=k, predictors.all=c(predictors.all, "Evergreen", "Grass"), site.effects=T)
+# Note: SibCASA doesn't work because it doesn't have Fcomp or Biomes
+paleon.models <- paleon.models[which(!names(paleon.models)=="sibcasa")]
+summary(paleon.models)
+
+models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, k=k, predictors.all=predictors.all, PFT=T)
 # -------------------------------------------------
 
 # -------------------------------------------------
-# 1.f. Bind Models together to put them in a single object to make them easier to work with
+# 1.e. Bind Models together to put them in a single object to make them easier to work with
 # -------------------------------------------------
 for(i in 1:length(models.base)){
 	if(i==1) {
@@ -180,7 +186,7 @@ for(i in 1:length(models.base)){
 		mod.out$sim.response <- models.base[[i]]$sim.response
 		mod.out$ci.terms     <- models.base[[i]]$ci.terms
 		mod.out$sim.terms    <- models.base[[i]]$sim.terms
-		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
+		mod.out[[paste("gamm", names(models.base)[i], "PFT", sep=".")]] <- models.base[[i]]$gamm
 	} else {
 		mod.out$data         <- rbind(mod.out$data,         models.base[[i]]$data)
 		mod.out$weights      <- rbind(mod.out$weights,      models.base[[i]]$weights)
@@ -188,21 +194,21 @@ for(i in 1:length(models.base)){
 		mod.out$sim.response <- rbind(mod.out$sim.response, models.base[[i]]$sim.response)
 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     models.base[[i]]$ci.terms)
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    models.base[[i]]$sim.terms)
-		mod.out[[paste("gamm", names(models.base)[i], sep=".")]] <- models.base[[i]]$gamm
+		mod.out[[paste("gamm", names(models.base)[i], "PFT", sep=".")]] <- models.base[[i]]$gamm
 	}
 }
 
-save(mod.out, file=file.path(dat.dir, "gamm_models_NPP_Comp.Rdata"))
+save(mod.out, file=file.path(dat.dir, "gamm_PFT_Models.Rdata"))
 # -------------------------------------------------
 
 
 # -------------------------------------------------
-# 1.g. Diagnostic Graphs
+# 1.f. Diagnostic Graphs
 # -------------------------------------------------
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 
-pdf(file.path(fig.dir, "GAMM_ModelFit_NPP_Comp.pdf"))
+pdf(file.path(fig.dir, "GAMM_ModelFit_PFT_Models.pdf"))
 print(
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[,], aes(x=Year, y=Y), alpha=0.5) +
@@ -212,7 +218,7 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~Model, scales="free") + th
 	# scale_y_continuous(limits=quantile(mod.out$data$response, c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("Baseline, No Site Effect", response, sep=" - "), x="Year", y=response)
 )
 print(	
 ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + theme_bw() +
@@ -223,102 +229,347 @@ ggplot(data=mod.out$ci.response[,]) + facet_grid(Site~ Model, scales="free") + t
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Composition Effects", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("Baseline, No Site Effect", response, sep=" - "), x="Year", y=response)
 )
 dev.off()
 
+mod.out$ci.terms$x <- as.numeric(paste(mod.out$ci.terms$x))
+summary(mod.out$ci.terms)
 
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_NPP_Comp.pdf"))
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_PFT_Models.pdf"))
+m.order <- unique(mod.out$data[mod.out$data$PFT %in% c("Deciduous", "Evergreen", "Mixed"),"Model.Order"])
+col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
 print(
-ggplot(data=mod.out$ci.terms[!(mod.out$ci.terms$Effect %in% c("Grass", "Evergreen")),]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT" & mod.out$ci.terms$PFT %in% c("Deciduous", "Evergreen", "Mixed"),]) + facet_grid(PFT ~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0("Driver Sensitivity (Non-Relativized)"), y=paste0("NPP Contribution")) # +
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) # +
+)
+
+print(
+ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT" & mod.out$ci.terms$PFT %in% c("Deciduous", "Evergreen", "Mixed") & mod.out$ci.terms$upr<=15,]) + facet_grid(PFT ~ Effect, scales="free") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Model), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) # +
+)
+m.order <- unique(mod.out$data[mod.out$data$PFT %in% c("Grass", "Savanna"),"Model.Order"])
+col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
+print(
+ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT" & mod.out$ci.terms$PFT %in% c("Grass", "Savanna"),]) + facet_grid(PFT ~ Effect, scales="free") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Model), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) # +
+)
+
+m.order <- unique(mod.out$data[,"Model.Order"])
+col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
+print(
+ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT" & mod.out$ci.terms$upr<=10 & mod.out$ci.terms$lwr>=-20,]) + facet_grid(PFT ~ Effect, scales="free") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Model), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) # +
 )
 dev.off()
 # -------------------------------------------------
 
 # Clear the memory!
-rm(mod.out, models.base)
+rm(mod.out, models.base, ecosys, dat.mod)
 # -------------------------------------------------------------------------------
+
 
 # -------------------------------------------------------------------------------
 # 2. Tree Rings NPP
 # -------------------------------------------------------------------------------
-# -------------------------------------------------
-# 1.a. Set Directories
-# -------------------------------------------------
+# ----------------------------------------
+# 2.a. Load & format data files & function scripts
+# ----------------------------------------
+source('R/0_calculate.sensitivity_TPC_TreeRingNPP.R', chdir = TRUE)
+source('R/0_GAMM_Plots.R', chdir = TRUE)
+
+# What Climate predictors we're interested in
+predictors.all   <- c("tair", "precipf", "CO2")
+predictor.suffix <- c(".gs")
+
+# Load Tree ring NPP data
+spp.npp <- read.csv(file.path("Data", "TreeRing_NPP_PlotSpecies.csv"))
+summary(spp.npp)
+
+# Getting PFT Fcomp per plot
+pft.npp <- aggregate(spp.npp[,c("AB.area", "ABI.area", "tree.HA", "Fcomp")], by=spp.npp[,c("Site", "Site2", "PlotID", "PFT", "Year")], FUN=sum)
+pft.npp[,c(paste0(predictors.all, predictor.suffix))] <- aggregate(spp.npp[,c(paste0(predictors.all, predictor.suffix))], by=spp.npp[,c("Site", "Site2", "PlotID", "PFT", "Year")], FUN=mean)[,c(paste0(predictors.all, predictor.suffix))]
+summary(pft.npp)
+
+# aggregate to total plot NPP (ABI.area)
+plot.npp <- aggregate(spp.npp[,c("AB.area", "ABI.area", "tree.HA", "Fcomp")], by=spp.npp[,c("Site", "Site2", "PlotID", "Year")], FUN=sum)
+plot.npp[,c(paste0(predictors.all, predictor.suffix))] <- aggregate(spp.npp[,c(paste0(predictors.all, predictor.suffix))], by=spp.npp[,c("Site", "Site2", "PlotID", "Year")], FUN=mean)[,c(paste0(predictors.all, predictor.suffix))]
+summary(plot.npp)
+
+# Adding in the PFT factor
+pft.vector <- vector()
+for(i in 1:nrow(plot.npp)){
+	p=plot.npp[i,"PlotID"]
+	y=plot.npp[i,"Year"]
+
+	f.decid <- pft.npp[pft.npp$PlotID==p & pft.npp$Year==y & pft.npp$PFT=="Deciduous", "Fcomp"]
+	f.evg   <- pft.npp[pft.npp$PlotID==p & pft.npp$Year==y & pft.npp$PFT=="Evergreen", "Fcomp"]
+		
+	if(length(f.decid)==0) f.decid = 0
+	if(length(f.evg  )==0) f.evg   = 0
+
+	pft.type <- ifelse(f.evg>=0.7, "Evergreen", 
+              ifelse(f.decid>=0.7, "Deciduous",
+              ifelse((f.decid + f.evg)>=0.7, "Mixed", 
+              ifelse(!is.na(ecosys$Evergreen), "Other", NA
+              ))))
+
+	pft.vector <- c(pft.vector, pft.type)
+}
+pft.vector <- as.factor(paste(pft.vector))
+summary(pft.vector)
+
+plot.npp$PFT <- pft.vector
+summary(plot.npp)
+
+# Add some important identifiers for my file structure
+pft.npp$Model       <- as.factor("pftNPP")
+pft.npp$Model.Order <- as.factor("PFT NPP")
+summary(plot.npp)
+
+plot.npp$Model       <- as.factor("plotNPP")
+plot.npp$Model.Order <- as.factor("Plot NPP")
+summary(plot.npp)
+
+# subset only complete cases where we have met data and data from the past 30 years
+plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
+pft.npp  <- pft.npp[complete.cases(pft.npp) & pft.npp$Year>=(2010-30),]
+summary(plot.npp)
 # -------------------------------------------------
 
 # -------------------------------------------------
-# 1.b. Load model data files & function scripts
+# 2.b. Settings for the rest of this section
 # -------------------------------------------------
-# -------------------------------------------------
-
-# -------------------------------------------------
-# 1.c. Settings for the rest of this section
-# -------------------------------------------------
-# -------------------------------------------------
-
-# -------------------------------------------------
-# 1.d. Setting up the data and putting it in a list to run the gamms in parallel
-# -------------------------------------------------
+# Setting up a loop for 1 m.name, 1 temporal scale
+response    <- "ABI.area"
+resolutions <- "t.001" # Note: Big models can't handle t.100 at the site level because there aren't enough data points
+extents <- data.frame(Start=min(plot.npp$Year), End=max(plot.npp$Year)) 
+k=4
+e=1	
 # -------------------------------------------------
 
 # -------------------------------------------------
-# 1.e Run the gamms -- WITH site intercept
+# 2.c. Setting up the data for the model
 # -------------------------------------------------
+dat.mod <- list()
+
+dat.mod[["Plot"]]              <- plot.npp[,c( "Model", "Model.Order", "Site", "PlotID", "PFT", "Year")]
+dat.mod$Plot[,predictors.all] <- plot.npp[,paste0(predictors.all, predictor.suffix)]
+dat.mod$Plot$Y                <- plot.npp[,response]
+dat.mod$Plot$Resolution        <- as.factor(resolutions)
+
+dat.mod[["PFT"]]               <- pft.npp[,c( "Model", "Model.Order", "Site", "PlotID", "PFT", "Year")]
+dat.mod$PFT[,predictors.all]   <- pft.npp[,paste0(predictors.all, predictor.suffix)]
+dat.mod$PFT$Y                  <- pft.npp[,response]
+dat.mod$PFT$Resolution         <- as.factor(resolutions)
 # -------------------------------------------------
 
 # -------------------------------------------------
-# 1.f. Bind Models together to put them in a single object to make them easier to work with
+# 2.d. Run the gamms (with site & intercepts); save the data
 # -------------------------------------------------
+models.base <- list()
+
+models.base[["Plot"]] <- paleon.gams.models(data=dat.mod$Plot, k=k, predictors.all=predictors.all, PFT=T)
+models.base[["PFT"]] <- paleon.gams.models(data=dat.mod$PFT, k=k, predictors.all=predictors.all, PFT=T)
+# -------------------------------------------------
+
+
+# -------------------------------------------------
+# 1.e. Bind Models together to put them in a single object to make them easier to work with
+# -------------------------------------------------
+for(i in 1:length(models.base)){
+	if(i==1) {
+		mod.out <- list()
+		mod.out$data         <- models.base[[i]]$data
+		mod.out$weights      <- models.base[[i]]$weights
+		mod.out$ci.response  <- models.base[[i]]$ci.response
+		mod.out$sim.response <- models.base[[i]]$sim.response
+		mod.out$ci.terms     <- models.base[[i]]$ci.terms
+		mod.out$sim.terms    <- models.base[[i]]$sim.terms
+		mod.out[[paste("gamm", names(models.base)[i], "PFT", sep=".")]] <- models.base[[i]]$gamm
+	} else {
+		mod.out$data         <- rbind(mod.out$data,         models.base[[i]]$data)
+		mod.out$weights      <- rbind(mod.out$weights,      models.base[[i]]$weights)
+		mod.out$ci.response  <- rbind(mod.out$ci.response,  models.base[[i]]$ci.response)
+		mod.out$sim.response <- rbind(mod.out$sim.response, models.base[[i]]$sim.response)
+		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     models.base[[i]]$ci.terms)
+		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    models.base[[i]]$sim.terms)
+		mod.out[[paste("gamm", names(models.base)[i], "PFT", sep=".")]] <- models.base[[i]]$gamm
+	}
+}
+
+save(mod.out, file=file.path(dat.dir, "gamm_PFT_TreeRingNPP.Rdata"))
 # -------------------------------------------------
 
 # -------------------------------------------------
-# 1.g. Diagnostic Graphs
+# 2.f. Diagnostic Graphs
 # -------------------------------------------------
+pdf(file.path(fig.dir, "GAMM_ModelFit_PFT_TreeRingNPP.pdf"))
+print(
+ggplot() + facet_wrap(PlotID~Model, scales="fixed") + theme_bw() +
+ 	geom_line(data= mod.out$data[mod.out$data$Model=="plotNPP",], aes(x=Year, y=Y), alpha=0.5, size=1) +
+	geom_ribbon(data=mod.out$ci.response[mod.out$ci.response$Model=="plotNPP",], aes(x=Year, ymin=lwr, ymax=upr, fill=PlotID), alpha=0.5) +
+	geom_line(data=mod.out$ci.response[mod.out$ci.response$Model=="plotNPP",], aes(x=Year, y=mean, color=PlotID), size=0.35) +
+	labs(title=paste("Baseline, No Site Effect", response, sep=" - "), x="Year", y=response)
+)
+print(
+ggplot() + facet_wrap(PlotID~Model, scales="fixed") + theme_bw() +
+ 	geom_line(data= mod.out$data[mod.out$data$Model=="pftNPP",], aes(x=Year, y=Y, color=PFT), alpha=0.5, size=1) +
+	geom_ribbon(data=mod.out$ci.response[mod.out$ci.response$Model=="pftNPP",], aes(x=Year, ymin=lwr, ymax=upr, fill=PFT), alpha=0.5) +
+	geom_line(data=mod.out$ci.response[mod.out$ci.response$Model=="pftNPP",], aes(x=Year, y=mean, color= PFT), size=0.35) +
+	labs(title=paste("Baseline, No Site Effect", response, sep=" - "), x="Year", y=response)
+)
+dev.off()
+
+mod.out$ci.terms$x <- as.numeric(paste(mod.out$ci.terms$x))
+summary(mod.out$ci.terms)
+
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_PFT_TreeRingNPP.pdf"))
+print(
+ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT", ]) + facet_grid(Model~ Effect, scales="free_x") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=PFT), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=PFT), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) # +
+)
+dev.off()
 # -------------------------------------------------
 # -------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------
-# 3. Tree Rings RWI
+# 3. Tree Rings BAI
 # -------------------------------------------------------------------------------
 # -------------------------------------------------
-# 1.a. Set Directories
+# 3.a. Load model data files & function scripts
+# -------------------------------------------------
+source('R/0_calculate.sensitivity_TPC_TreeRings.R', chdir = TRUE)
+
+# What Climate predictors we're interested in
+predictors.all   <- c("tair", "precipf", "CO2")
+predictor.suffix <- c(".gs")
+
+# Load tree ring width data
+tree.rings <- read.csv("Data/TreeRing_RingWidths.csv")
+summary(tree.rings)
+
+# subset only complete cases where we have met data & ring width measurements
+tree.rings <- tree.rings[complete.cases(tree.rings[,c("BAI", "RWI", paste0(predictors.all, predictor.suffix))]) & tree.rings$Resolution=="t.001",]
+summary(tree.rings)
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 3.b. Settings for the rest of this section
+# -------------------------------------------------
+k=4
+e=1	
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 3.c. Setting up the data and putting it in a list to run the gamms in parallel
+# -------------------------------------------------
+dat.mod <- list()
+
+dat.mod[["BAI"]]             <- tree.rings[,c("Site", "PlotID", "TreeID", "PFT", "Year")]
+dat.mod$BAI$Model            <- as.factor("TreeRingBAI")
+dat.mod$BAI$Model.Order      <- as.factor("Tree Ring BAI")
+dat.mod$BAI[,predictors.all] <- tree.rings[,paste0(predictors.all, predictor.suffix)]
+dat.mod$BAI$Resolution       <- tree.rings[,"Resolution"]
+dat.mod$BAI$Y                <- tree.rings[,"BAI"]
+summary(tree.rings)
+
+
+dat.mod[["RWI"]]             <- tree.rings[,c("Site", "PlotID", "TreeID", "PFT", "Year")]
+dat.mod$RWI$Model            <- as.factor("TreeRingRWI")
+dat.mod$RWI$Model.Order      <- as.factor("Tree Ring RWI")
+dat.mod$RWI[,predictors.all] <- tree.rings[,paste0(predictors.all, predictor.suffix)]
+dat.mod$RWI$Resolution       <- tree.rings[,"Resolution"]
+dat.mod$RWI$Y                <- tree.rings[,"RWI"]
+
+
+summary(dat.mod$BAI)
+summary(dat.mod$RWI)
+# -------------------------------------------------
+
+# -------------------------------------------------
+# 3.d. Run the gamms -- WITH site intercept
+# -------------------------------------------------
+# This isn't working well in parallel, so we'll run it 1 at a time
+# cores.use <- min(12, length(dat.mod))
+# models.base <- mclapply(dat.mod, paleon.gams.models, mc.cores=cores.use, k=k, predictors.all=predictors.all, PFT=F)
+
+models.base <- list()
+models.base[["RWI"]] <- paleon.gams.models(data=dat.mod$RWI, k=k, predictors.all=predictors.all, PFT=T)
+models.base[["BAI"]] <- paleon.gams.models(data=dat.mod$BAI, k=k, predictors.all=predictors.all, PFT=T)
+
+save(models.base, file=file.path(dat.dir, "gamm_PFT_TreeRings.Rdata"))
 # -------------------------------------------------
 # -------------------------------------------------
 
 # -------------------------------------------------
-# 1.b. Load model data files & function scripts
+# 3.e. Bind Models together to put them in a single object to make them easier to work with
 # -------------------------------------------------
+for(i in 1:length(models.base)){
+	if(i==1) {
+		mod.out <- list()
+		mod.out$data         <- models.base[[i]]$data
+		mod.out$weights      <- models.base[[i]]$weights
+		mod.out$ci.response  <- models.base[[i]]$ci.response
+		mod.out$sim.response <- models.base[[i]]$sim.response
+		mod.out$ci.terms     <- models.base[[i]]$ci.terms
+		mod.out$sim.terms    <- models.base[[i]]$sim.terms
+		mod.out[[paste("gamm", names(models.base)[i], "PFT", sep=".")]] <- models.base[[i]]$gamm
+	} else {
+		mod.out$data         <- rbind(mod.out$data,         models.base[[i]]$data)
+		mod.out$weights      <- rbind(mod.out$weights,      models.base[[i]]$weights)
+		mod.out$ci.response  <- rbind(mod.out$ci.response,  models.base[[i]]$ci.response)
+		mod.out$sim.response <- rbind(mod.out$sim.response, models.base[[i]]$sim.response)
+		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     models.base[[i]]$ci.terms)
+		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    models.base[[i]]$sim.terms)
+		mod.out[[paste("gamm", names(models.base)[i], "PFT", sep=".")]] <- models.base[[i]]$gamm
+	}
+}
+
+save(mod.out, file=file.path(dat.dir, "gamm_PFT_TreeRings.Rdata"))
 # -------------------------------------------------
 
 # -------------------------------------------------
-# 1.c. Settings for the rest of this section
+# 3.f. Diagnostic Graphs
 # -------------------------------------------------
-# -------------------------------------------------
+mod.out$ci.terms$x <- as.numeric(paste(mod.out$ci.terms$x))
+summary(mod.out$ci.terms)
 
-# -------------------------------------------------
-# 1.d. Setting up the data and putting it in a list to run the gamms in parallel
-# -------------------------------------------------
-# -------------------------------------------------
-
-# -------------------------------------------------
-# 1.e Run the gamms -- WITH site intercept
-# -------------------------------------------------
-# -------------------------------------------------
-
-# -------------------------------------------------
-# 1.f. Bind Models together to put them in a single object to make them easier to work with
-# -------------------------------------------------
-# -------------------------------------------------
-
-# -------------------------------------------------
-# 1.g. Diagnostic Graphs
-# -------------------------------------------------
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_PFT_TreeRings.pdf"))
+print(
+ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT", ]) + facet_grid(Model ~ Effect, scales="free") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=PFT), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=PFT), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	# scale_fill_manual(values=paste(col.model)) +
+	# scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) # +
+)
+dev.off()
 # -------------------------------------------------
 # -------------------------------------------------------------------------------
