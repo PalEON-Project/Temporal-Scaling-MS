@@ -57,7 +57,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # 1. Load Data Sets
 # ----------------------------------------
 # Ecosystem Model Outputs
-ecosys <- read.csv(file.path(inputs, "MIP_Data_Ann_2015.csv"))
+ecosys <- read.csv(file.path(inputs, "PalEON_MIP_Yearly.csv"))
 ecosys$Model.Order <- recode(ecosys$Model, "'clm.bgc'='01'; 'clm.cn'='02'; 'ed2'='03'; 'ed2.lu'='04';  'jules.stat'='05'; 'jules.triffid'='06'; 'linkages'='07'; 'lpj.guess'='08'; 'lpj.wsl'='09'; 'sibcasa'='10'")
 levels(ecosys$Model.Order) <- c("CLM-BGC", "CLM-CN", "ED2", "ED2-LU", "JULES-STATIC", "JULES-TRIFFID", "LINKAGES", "LPJ-GUESS", "LPJ-WSL", "SiBCASA")
 summary(ecosys)
