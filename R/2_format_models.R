@@ -146,11 +146,13 @@ for(s in unique(ecosys$Site)){
 		# Deviation = percent above or below the mean for the reference window
 		#             (observed-ref.mean)/ref.mean 
 		# -----------------------
-		for(v in unique(vars)){
-			ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
-			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".dev")] <- (ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean)/ref.mean
-
+		for(v in vars){
+			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".dev")]  <- NA
 		}
+		
+		ref.mean <- colMeans(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), vars], na.rm=T)
+
+		ecosys[ecosys$Site==s & ecosys$Model==m, paste0(vars, ".dev")] <- t(apply(ecosys[ecosys$Site==s & ecosys$Model==m, vars], 1, FUN=function(x){(x - ref.mean)/ref.mean}))
 		# -----------------------
 
 		# -----------------------
@@ -158,10 +160,12 @@ for(s in unique(ecosys$Site)){
 		# Deviation = absolute deviation from reference window
 		#             observed - ref.mean
 		# -----------------------
-		for(v in unique(vars.climate2)){
-			ref.mean <- mean(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), v], na.rm=T)
-			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".abs.dev")] <- ecosys[ecosys$Site==s & ecosys$Model==m, v] - ref.mean
+		for(v in vars.climate2){
+			ecosys[ecosys$Site==s & ecosys$Model==m, paste0(v, ".abs.dev")]  <- NA
 		}
+
+		ref.mean <- colMeans(ecosys[ecosys$Site==s & ecosys$Model==m & ecosys$Year>= min(ref.window) & ecosys$Year<=max(ref.window), vars.climate2], na.rm=T)
+		ecosys[ecosys$Site==s & ecosys$Model==m, paste0(vars.climate2, ".abs.dev")] <- t(apply(ecosys[ecosys$Site==s & ecosys$Model==m, vars.climate2], 1, FUN=function(x){x - ref.mean}))
 		# -----------------------
 	}
 }
@@ -192,13 +196,11 @@ summary(ecosys)
 # Doing the scale by model & site
 for(s in unique(ecosys$Site)){
 	for(m in unique(ecosys$Model)){
-		for(v in vars.all){
-			temp <- ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.001", v]
+			temp <- ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.001", vars.all]
 
-			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.010", v] <- rollapply(temp, FUN=mean, width=10, align="center", fill=NA)
-			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.050", v] <- rollapply(temp, FUN=mean, width=50, align="center", fill=NA)
-			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.100", v] <- rollapply(temp, FUN=mean, width=100, align="center", fill=NA)
-		}
+			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.010", vars.all] <- rollapply(temp, FUN=mean, width=10, align="center", fill=NA, by.columns=T)
+			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.050", vars.all] <- rollapply(temp, FUN=mean, width=50, align="center", fill=NA, by.columns=T)
+			ecosys[ecosys$Model==m & ecosys$Site==s & ecosys$Resolution=="t.100", vars.all] <- rollapply(temp, FUN=mean, width=100, align="center", fill=NA, by.columns=T)
 		# -----------------------
 	}
 }
@@ -213,7 +215,7 @@ save(ecosys, model.colors, file=file.path(path.data, "EcosysData.Rdata"))
 # ----------------------------------------
 load(file.path(path.data, "EcosysData.Rdata"))
 
-# Note: CLM-BGC is wrong, so lets exclude it for now
+# Note: Linkages hasn't been updates, so we're going to ignore it
 ecosys <- ecosys[!ecosys$Model=="linkages",]
 col.model <- paste(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])
 # col.model <- paste(model.colors[,"color"])
