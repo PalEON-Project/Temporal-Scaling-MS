@@ -26,6 +26,7 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	source('R/0_process.gamm.R', chdir = TRUE)
 	source('R/0_gamm_Plots.R', chdir = TRUE)
 	# ----------------------------------------
+
 	# extracting some info previously specified
 	model.name <- unique(data$Model)
 	ext.name   <- paste0(min(data$Year), "-", 2010)
@@ -34,15 +35,6 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	resolution <- unique(data$Resolution)
 
 	data$Extent <- as.factor(ext.name)
-	# ----------------------------------------
-	# Running the gam; note this now has AR1 temporal autocorrelation
-	# ----------------------------------------
-	# This is different from model.site.gam in that it has an added random site slope.
-	#	This random effect lets us gauge the overall model.name response to our fixed effects 
-	#   regardless of the site.  
-	#   Pros: Generalized and helps characterize the basic model responses
-	#   Cons: Sloooooooooooow! (or at least slow with the PalEON data set)
-	#------------------------------
 
 	# ----------------------------------------
 	# Select which set of predictors based on which model it is
@@ -51,16 +43,19 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
 	if(PFT==T){
-		predictors=c("tair", "precipf", "CO2", "PFT")
-		gam1 <- gam(Y ~ s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
+		predictors=c("tair", "precipf", "CO2", "PFT", "Time")
+		gam1 <- gam(Y ~ s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + log(Time), data=data, correlation=corARMA(form=~Year|PlotID, p=1))
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
-		predictors=c("tair", "precipf", "CO2")
-		gam1 <- gam(Y ~ s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site -1, data=data, correlation=corARMA(form=~Year|Site, p=1))
+		predictors=c("tair", "precipf", "CO2", "Time")
+		gam1 <- gam(Y ~ s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + log(Time), data=data, correlation=corARMA(form=~Year|PlotID, p=1))
 	}
+	# ----------------------------------------
 
+	# ----------------------------------------
 	# Storing the predicted values from the gam
+	# ----------------------------------------
 	data$fit.gam <- predict(gam1, newdata=data)
 	# ----------------------------------------
 

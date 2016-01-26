@@ -184,7 +184,6 @@ summary(paleon.models$TreeRingRW)
 }
 # -------------------------------------------------------------------------------
 
-
 # -------------------------------------------------------------------------------
 # 2. Run the gamms 
 # -------------------------------------------------------------------------------
@@ -194,9 +193,6 @@ cores.use <- min(12, length(paleon.models))
 models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, k=k, predictors.all=predictors.all, PFT=F)
 # mod.out <- paleon.gams.models(data=paleon.models[[10]], k=k, predictors.all=predictors.all, PFT=F)
 # summary(mod.out$gamm)
-models.base[[1]]
-summary(models.base)
-par(mfrow=c(2,2)); plot(mod.out$gamm)
 
 # -------------------------------------------------------------------------------
 
