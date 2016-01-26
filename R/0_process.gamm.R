@@ -60,7 +60,7 @@ process.gamm <- function(gamm.model, data, model.name, vars, resolution="t.001",
 		# Figure out which vars are numeric vs. factor
 		vars.num <- vector()
 		for(v in vars){
-			if(class(data[,v])=="numeric") vars.num <- c(vars.num, v)
+			if(class(data[,v]) %in% c("numeric", "integer")) vars.num <- c(vars.num, v)
 		}
 
 		var.temp <- data.frame(array(dim=c(n.out, length(vars.num))))
