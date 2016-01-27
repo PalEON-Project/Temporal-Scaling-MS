@@ -18,6 +18,8 @@
 # -------------------------
 # ----------------------------------------
 
+rm(list=ls())
+
 # ----------------------------------------
 # Load Libaries
 # ----------------------------------------
@@ -128,8 +130,8 @@ plot.npp[,c(paste0(predictors.all, predictor.suffix))] <- aggregate(spp.npp[,c(p
 summary(plot.npp)
 
 # Subset a period where we're not worried about 
-# plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
-# summary(plot.npp)
+plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
+summary(plot.npp)
 
 # Add the data to paleon.models
 paleon.models[["TreeRingNPP"]]             <- plot.npp[,c("Site", "PlotID", "Year")]
@@ -170,7 +172,7 @@ paleon.models$TreeRingRW$Model            <- as.factor("TreeRingRW")
 paleon.models$TreeRingRW$Model.Order      <- as.factor("Tree Ring RW")
 paleon.models$TreeRingRW[,predictors.all] <- tree.rings[,paste0(predictors.all, predictor.suffix)]
 paleon.models$TreeRingRW$Y                <- tree.rings[,response]
-paleon.models$TreeRingRW$Time             <- tree.rings[,time.mod]
+paleon.models$TreeRingRW$Time             <- log(tree.rings[,time.mod])
 paleon.models$TreeRingRW$Resolution       <- tree.rings[,"Resolution"]
 
 # Make sure everything is complete cases

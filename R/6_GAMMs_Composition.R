@@ -17,6 +17,7 @@
 # 4. Diagnostic Graphs
 # -------------------------
 # ----------------------------------------
+rm(list=ls())
 
 # ----------------------------------------
 # Load Libaries
@@ -85,12 +86,15 @@ ecosys$Fcomp_check <- rowSums(ecosys[,c("Evergreen", "Deciduous", "Grass")])
 ecosys$PFT <- as.factor(
 			  ifelse(ecosys$Evergreen/ecosys$Fcomp_check>=0.7, "Evergreen", 
               ifelse(ecosys$Deciduous/ecosys$Fcomp_check>=0.7, "Deciduous",
-              ifelse(ecosys$Grass    /ecosys$Fcomp_check>=0.7, "Grass"    ,
               ifelse(rowSums(ecosys[,c("Evergreen", "Deciduous")])/ecosys$Fcomp_check>=0.7, "Mixed",
-              ifelse(ecosys$Grass/ecosys$Fcomp_check>=0.3 & 
-                     ecosys$Grass/ecosys$Fcomp_check<0.7, "Savanna",
-              ifelse(!is.na(ecosys$Evergreen), "Other", NA
-              )))))))
+              ifelse(ecosys$Grass    /ecosys$Fcomp_check>=0.3, "Grass/Savanna"    ,
+              ifelse(!is.na(ecosys$Evergreen), "Something's Wrong", NA
+              ))))))
+
+# Add in info from Kevin Schaefer for SiBCASA
+ecosys[ecosys$Model=="sibcasa" & ecosys$Site %in% c("PHA", "PBL")              , "PFT"] <- "Deciduous"
+ecosys[ecosys$Model=="sibcasa" & ecosys$Site %in% c("PHO", "PUN", "PDL", "PMB"), "PFT"] <- "Evergreen"
+
 summary(ecosys[,c(1:18,(ncol(ecosys)-3):ncol(ecosys))])
 
 
@@ -106,8 +110,8 @@ for(m in unique(ecosys$Model)){
 	# What will our spatio-temporal explanatory factor ("Time") be?
 	if(!is.na(mean(ecosys[dat.subsets,"AGB"]))) time.mod="AGB" else time.mod="LAI"
 
-	# Skip models that don't have multiple PFTs/Forest types (SiBCASA)
-	if(!length(unique(ecosys[dat.subsets, "PFT"]))>1) next 
+	# Skip models that don't have multiple PFTs/Forest types (Jules-Triffid)
+	if(!length(unique(ecosys[!is.na(ecosys$PFT) & dat.subsets, "PFT"]))>1) next 
 
 	data.temp                  <- ecosys[dat.subsets, c("Model", "Model.Order", "Site", "Year", "PFT")]
 	data.temp$PlotID           <- ecosys[dat.subsets,"Site" ]
@@ -144,6 +148,10 @@ pft.npp <- aggregate(spp.npp[,c("AB.area", "ABI.area", "tree.HA", "Fcomp")], by=
 pft.npp[,c(paste0(predictors.all, predictor.suffix))] <- aggregate(spp.npp[,c(paste0(predictors.all, predictor.suffix))], by=spp.npp[,c("Site", "Site2", "PlotID", "PFT", "Year")], FUN=mean)[,c(paste0(predictors.all, predictor.suffix))]
 summary(pft.npp)
 
+ggplot(pft.npp) + facet_wrap(~PlotID) +
+	geom_line(aes(x=Year, y=Fcomp, color=PFT)) +
+	theme_bw()
+
 
 # aggregate to total plot NPP (ABI.area)
 plot.npp <- aggregate(spp.npp[,c(response, time.mod)], by=spp.npp[,c("Site", "Site2", "PlotID", "Year")], FUN=sum)
@@ -152,6 +160,7 @@ summary(plot.npp)
 
 # Adding in the PFT factor
 pft.vector <- vector()
+evg.vector <- vector()
 for(i in 1:nrow(plot.npp)){
 	p=plot.npp[i,"PlotID"]
 	y=plot.npp[i,"Year"]
@@ -169,12 +178,15 @@ for(i in 1:nrow(plot.npp)){
               ))))
 
 	pft.vector <- c(pft.vector, pft.type)
+	evg.vector <- c(evg.vector, f.evg   )
+
 }
 plot.npp$PFT <- as.factor(pft.vector)
 summary(plot.npp)
 
+
 # Subset a period where we're not worried about 
-# plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
+plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
 # summary(plot.npp)
 
 # Add the data to paleon.models
@@ -216,7 +228,7 @@ paleon.models$TreeRingRW$Model            <- as.factor("TreeRingRW")
 paleon.models$TreeRingRW$Model.Order      <- as.factor("Tree Ring RW")
 paleon.models$TreeRingRW[,predictors.all] <- tree.rings[,paste0(predictors.all, predictor.suffix)]
 paleon.models$TreeRingRW$Y                <- tree.rings[,response]
-paleon.models$TreeRingRW$Time             <- tree.rings[,time.mod]
+paleon.models$TreeRingRW$Time             <- log(tree.rings[,time.mod])
 paleon.models$TreeRingRW$Resolution       <- tree.rings[,"Resolution"]
 
 # Make sure everything is complete cases

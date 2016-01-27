@@ -310,6 +310,53 @@ ggplot(data=ecosys[ecosys$Site=="PHA",]) + #facet_wrap(~Site) +
 
 
 # ---------------------------
+# 5.b. Plotting LAI by model & site
+# ---------------------------
+pdf(file.path(fig.dir, "LAI_Annual_AllSites_AllModels.pdf"))
+ggplot(data=ecosys[ecosys$Resolution=="t.001",]) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=LAI, color=Model)) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "LAI_Annual_PHA_AllModels.pdf"))
+ggplot(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+	geom_line(aes(x=Year, y=LAI, color=Model)) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "LAI_Annual_Century_AllSites_AllModels.pdf"))
+ggplot(data=ecosys[,]) + facet_wrap(~Site) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001",], aes(x=Year, y=LAI, color=Model), size=0.25, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100",], aes(x=Year, y=LAI, color=Model), size=1.5) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+pdf(file.path(fig.dir, "LAI_Annual_Century_PHA_AllModels.pdf"))
+ggplot(data=ecosys[ecosys$Site=="PHA",]) + facet_wrap(~Site) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=LAI, color=Model), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=LAI, color=Model), size=2) +
+	scale_color_manual(values=col.model) +
+	theme_bw()
+dev.off()
+
+
+ggplot(data=ecosys[ecosys$Site=="PHA",]) + #facet_wrap(~Site) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.001" & ecosys$Site=="PHA",], aes(x=Year, y=LAI, color=Model.Order), size=1, alpha=0.3) +
+	geom_line(data=ecosys[ecosys$Resolution=="t.100" & ecosys$Site=="PHA",], aes(x=Year, y=LAI, color= Model.Order), size=2) +
+	scale_color_manual(values=col.model) +
+	theme_bw() +
+	theme(plot.title=element_text(face="bold", size=rel(3))) + theme(legend.position=c(0.6,0.9), legend.text=element_text(size=rel(1.5)), legend.title=element_text(size=rel(2))) + labs(color="Model", y=expression(bold(paste("Aboveground Biomass (Mg C ha"^"-1",")"))), title="Comparison of Model Aboveground Biomass") +
+	guides(color=guide_legend(ncol=3)) +
+	theme(axis.line=element_line(color="black", size=0.5), panel.grid.major=element_blank(), panel.grid.minor= element_blank(), panel.border= element_blank(), panel.background= element_blank(), axis.text.x=element_text(angle=0, color="black", size=rel(2)), axis.text.y=element_text(color="black", size=rel(2)), axis.title.x=element_text(face="bold", size=rel(2), vjust=-0.5),  axis.title.y=element_text(face="bold", size=rel(2), vjust=1), plot.margin=unit(c(0.1,0.5,0.5,0.1), "lines"))
+
+# ---------------------------
+
+
+
+# ---------------------------
 # 5.c. Plotting Fraction Evergreen by model & site
 # ---------------------------
 pdf(file.path(fig.dir, "Evergreen_Annual_AllSites_AllModels.pdf"))

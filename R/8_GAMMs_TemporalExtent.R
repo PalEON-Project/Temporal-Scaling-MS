@@ -19,7 +19,7 @@
 # 4. Diagnostic Graphs
 # -------------------------
 # ----------------------------------------
-
+rm(list=ls())
 # ----------------------------------------
 # Load Libaries
 # ----------------------------------------
@@ -197,8 +197,9 @@ plot.npp$PFT <- as.factor(pft.vector)
 summary(plot.npp)
 
 # Subset a period where we're not worried about 
-# plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
+plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
 # summary(plot.npp)
+
 for(y in start.yrs){
 	# Taking the subsets of data we want in a single gam
 	dat.subsets <- plot.npp$Site      %in% c("PHO", "PHA") &
@@ -263,7 +264,7 @@ for(y in start.yrs){
 	data.temp$Model            <- as.factor("TreeRingRW")
 	data.temp$Model.Order      <- as.factor("Tree Ring RW")
 	data.temp$Y                <- tree.rings[dat.subsets,response]
-	data.temp$Time             <- tree.rings[dat.subsets,time.mod]
+	data.temp$Time             <- log(tree.rings[dat.subsets,time.mod])
 	data.temp[,predictors.all] <- tree.rings[dat.subsets, paste0(predictors.all, predictor.suffix)]
 	data.temp$Resolution       <- as.factor("t.001")
 
