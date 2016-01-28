@@ -54,7 +54,6 @@ library(car); library(zoo)
 # 1. Set Directories
 # ----------------------------------------
 setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-# setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms/Sensitivity_Baseline"
 out.dir <- "Data/analyses/response_baseline"
@@ -83,12 +82,24 @@ wt.terms   <- mod.out$weights[,]
 sim.terms  <- mod.out$sim.terms
 sim.terms $Effect <- as.factor(sim.terms$Effect)
 
+# Grouping the kind and source of the data
+dat.ecosys$Y.type <- as.factor(ifelse(dat.ecosys$Model=="TreeRingRW", "RW", "NPP"))
+ci.terms  $Y.type <- as.factor(ifelse(ci.terms  $Model=="TreeRingRW", "RW", "NPP"))
+wt.terms  $Y.type <- as.factor(ifelse(wt.terms  $Model=="TreeRingRW", "RW", "NPP"))
+sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRW", "RW", "NPP"))
+
+dat.ecosys$data.type <- as.factor(ifelse(substr(dat.ecosys$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
+ci.terms  $data.type <- as.factor(ifelse(substr(ci.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
+wt.terms  $data.type <- as.factor(ifelse(substr(wt.terms  $Model,1,8)=="TreeRing", "Tree 
+Rings", "Model"))
+sim.terms $data.type <- as.factor(ifelse(substr(sim.terms $Model,1,8)=="TreeRing", "Tree 
+Rings", "Model"))
+
 summary(ci.terms)
 summary(dat.ecosys)
 summary(wt.terms)
 summary(sim.terms[,1:10])
 # ----------------------------------------
-
 
 
 # ----------------------------------------
@@ -99,16 +110,18 @@ summary(sim.terms[,1:10])
 # ----------------------------------------
 # Across all scales (resolution) finding the mean NPP
 # NOTE: we ARE relativizing per site here since the response curves were site-specific
-summary(dat.ecosys)
 
 # Make sure all data sets are ordered by year, then treeID, then plotID, then Model
-sort.order <- c("Model", "PlotID", "TreeID", "Year")
+# sort.order <- c("Model", "PlotID", "TreeID", "Year")
 dat.ecosys <- dat.ecosys[order(dat.ecosys$Model, dat.ecosys$PlotID, dat.ecosys$TreeID, dat.ecosys$Year),]
-wt.terms <- wt.terms[order(wt.terms$Model, wt.terms$PlotID, wt.terms$TreeID, wt.terms$Year),]
+wt.terms   <- wt.terms[order(wt.terms$Model, wt.terms$PlotID, wt.terms$TreeID, wt.terms$Year),]
 
 # Double Check to make sure things are sorted by year so rollapply works
 dat.ecosys[which(dat.ecosys$Model=="TreeRingRW")[1:20],]
 wt.terms  [which(wt.terms  $Model=="TreeRingRW")[1:20],]
+
+summary(dat.ecosys)
+summary(wt.terms)
 
 {
 for(m in unique(ci.terms$Model)){
@@ -239,19 +252,6 @@ for(m in unique(ci.terms$Model)){
 		# -----------------------
 
 }
-
-# Grouping the kind and source of the data
-dat.ecosys$Y.type <- as.factor(ifelse(dat.ecosys$Model=="TreeRingRW", "RW", "NPP"))
-ci.terms  $Y.type <- as.factor(ifelse(ci.terms  $Model=="TreeRingRW", "RW", "NPP"))
-wt.terms  $Y.type <- as.factor(ifelse(wt.terms  $Model=="TreeRingRW", "RW", "NPP"))
-sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRW", "RW", "NPP"))
-
-dat.ecosys$data.type <- as.factor(ifelse(substr(dat.ecosys$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
-ci.terms  $data.type <- as.factor(ifelse(substr(ci.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
-wt.terms  $data.type <- as.factor(ifelse(substr(wt.terms  $Model,1,8)=="TreeRing", "Tree 
-Rings", "Model"))
-sim.terms $data.type <- as.factor(ifelse(substr(sim.terms $Model,1,8)=="TreeRing", "Tree 
-Rings", "Model"))
 } # End section block
 
 
