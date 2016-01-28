@@ -42,7 +42,7 @@ k=4
 # wanted to do PFT, but we don't get even representation,
 # so we're going to restrict it to PHO which has NPP data &
 # the greatest composition consistency among models and data
-sites <- c("PHO") 
+sites <- c("PHO", "PHA", "PUN", "PBL", "PDL", "PMB") 
 
 # ----------------------------------------
 
@@ -341,7 +341,7 @@ ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeR
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Extent", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("Extent"), x="Year", y="NPP")
 )
 }
 
@@ -353,7 +353,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + fa
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("TempExtent", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("TempExtent"), x="Year", y="NPP")
 )
 
 trees.subset <- c("30-01", "30-02", "30-03", "30-04", "30-21", "30-22")
@@ -367,7 +367,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.ou
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("TempExtent", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("TempExtent"), x="Year", y="RW")
 )
 }
 dev.off()
@@ -380,7 +380,7 @@ pdf(file.path(fig.dir, "GAMM_DriverSensitivity_TempExtent.pdf"))
 m.order <- unique(mod.out$data[,"Model.Order"])
 col.model <- c(paste(model.colors[model.colors$Model.Order %in% m.order,"color"]), "black", "gray30")
 print(
-ggplot(data=mod.out$ci.terms[,]) + facet_grid(Extent ~ Effect, scales="free") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_grid(Extent ~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +

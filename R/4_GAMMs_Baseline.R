@@ -42,7 +42,7 @@ k=4
 # ----------------------------------------
 # Set Directories & file paths
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -166,13 +166,28 @@ summary(tree.rings)
 tree.rings <- tree.rings[complete.cases(tree.rings[,c(response, paste0(predictors.all, predictor.suffix))]) & tree.rings$Resolution=="t.001",]
 summary(tree.rings)
 
+# -----------
+# Adding in a few other factors that could be good predictors
+# -----------
+plot.age <- aggregate(tree.rings[,c("Age", "DBH")], by=tree.rings[,c("PlotID", "Year")], FUN=mean, na.rm=T)
+plot.age$BA.sum <- aggregate(tree.rings[,c("DBH")], by=tree.rings[,c("PlotID", "Year")], FUN=function(x){sum(pi*((x/2)^2), na.rm=T)})[,3]
+plot.age$BA.mean <- aggregate(tree.rings[,c("DBH")], by=tree.rings[,c("PlotID", "Year")], FUN=function(x){mean(pi*((x/2)^2), na.rm=T)})[,3]
+names(plot.age)[3:ncol(plot.age)] <- paste0("plot.", names(plot.age)[3:ncol(plot.age)])
+summary(plot.age)
+
+tree.rings <- merge(tree.rings, plot.age, all.x=T, all.y=T)
+
+tree.rings$BA <- pi*(tree.rings$DBH/2)^2
+summary(tree.rings)
+# -----------
+
 # Add the data to paleon.models
 paleon.models[["TreeRingRW"]]             <- tree.rings[,c("Site", "PlotID", "TreeID", "Year")]
 paleon.models$TreeRingRW$Model            <- as.factor("TreeRingRW")
 paleon.models$TreeRingRW$Model.Order      <- as.factor("Tree Ring RW")
 paleon.models$TreeRingRW[,predictors.all] <- tree.rings[,paste0(predictors.all, predictor.suffix)]
 paleon.models$TreeRingRW$Y                <- tree.rings[,response]
-paleon.models$TreeRingRW$Time             <- log(tree.rings[,time.mod])
+paleon.models$TreeRingRW$Time             <- tree.rings[,time.mod]
 paleon.models$TreeRingRW$Resolution       <- tree.rings[,"Resolution"]
 
 # Make sure everything is complete cases
@@ -193,9 +208,6 @@ cores.use <- min(12, length(paleon.models))
 # cores.use <- length(paleon.models)
 
 models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, k=k, predictors.all=predictors.all, PFT=F)
-# mod.out <- paleon.gams.models(data=paleon.models[[10]], k=k, predictors.all=predictors.all, PFT=F)
-# summary(mod.out$gamm)
-
 # -------------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------------
@@ -246,7 +258,7 @@ ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeR
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Baseline, No Site Effect", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("Baseline"), x="Year", y="NPP")
 )
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + facet_wrap(~ PlotID, scales="free") + theme_bw() +
@@ -257,7 +269,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + fa
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Baseline, No Site Effect", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("Baseline"), x="Year", y="NPP")
 )
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$PlotID=="ME029",]) + facet_wrap(~ TreeID, scales="free") + theme_bw() +
@@ -268,7 +280,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.ou
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("Baseline, No Site Effect", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("Baseline"), x="Year", y="RW")
 )
 }
 dev.off()
@@ -276,7 +288,7 @@ dev.off()
 
 pdf(file.path(fig.dir, "GAMM_DriverSensitivity_Baseline.pdf"))
 print(
-ggplot(data=mod.out$ci.terms) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect %in% c("Time", "Year"),]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +

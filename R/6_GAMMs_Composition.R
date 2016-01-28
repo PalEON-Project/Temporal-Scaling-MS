@@ -41,7 +41,7 @@ k=4
 # ----------------------------------------
 # Set Directories & file paths
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -300,7 +300,7 @@ ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeR
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("PFT", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("PFT"), x="Year", y="NPP")
 )
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + facet_wrap(~ PlotID, scales="free") + theme_bw() +
@@ -311,7 +311,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + fa
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("PFT", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("PFT"), x="Year", y="NPP")
 )
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$PlotID=="ME029",]) + facet_wrap(~ TreeID, scales="free") + theme_bw() +
@@ -322,7 +322,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.ou
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("PFT", response, sep=" - "), x="Year", y=response)
+	labs(title=paste("PFT"), x="Year", y="RW")
 )
 }
 dev.off()
@@ -330,12 +330,12 @@ dev.off()
 mod.out$ci.terms$x <- as.numeric(paste(mod.out$ci.terms$x))
 summary(mod.out$ci.terms)
 
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_PFT.pdf"))
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_PFT.pdf"), height=11, width=8.5)
 {
 m.order <- unique(mod.out$data[mod.out$data$PFT %in% c("Deciduous", "Evergreen", "Mixed"),"Model.Order"])
 col.model <- c(paste(model.colors[model.colors$Model.Order %in% m.order,"color"]), "black", "gray30")
 print(
-ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT" & mod.out$ci.terms$PFT %in% c("Deciduous", "Evergreen", "Mixed"),]) + facet_grid(PFT ~ Effect, scales="free") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_grid(PFT ~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
@@ -345,25 +345,13 @@ ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT" & mod.out$ci.terms$
 )
 
 print(
-ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT" & mod.out$ci.terms$PFT %in% c("Deciduous", "Evergreen", "Mixed") & !(mod.out$ci.terms$Model %in% c("ed2", "ed2.lu") & mod.out$ci.terms$Effect=="CO2" & mod.out$ci.terms$PFT=="Deciduous"),]) + facet_grid(PFT ~ Effect, scales="free") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("tair", "precipf", "CO2") & !(mod.out$ci.terms$Model %in% c("ed2", "ed2.lu") & mod.out$ci.terms$Effect=="CO2" & (mod.out$ci.terms$PFT=="Deciduous" | mod.out$ci.terms$PFT=="Mixed")),]) + facet_grid(PFT ~ Effect, scales="free_x") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
 	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) 
-)
-
-m.order <- unique(mod.out$data[mod.out$data$PFT %in% c("Grass", "Savanna"),"Model.Order"])
-col.model <- model.colors[model.colors$Model.Order %in% m.order,"color"]
-print(
-ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect=="PFT" & mod.out$ci.terms$PFT %in% c("Grass", "Savanna"),]) + facet_grid(PFT ~ Effect, scales="free") + theme_bw() +		
-	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
-	geom_line(aes(x=x, y=mean, color=Model), size=2) +
-	geom_hline(yintercept=0, linetype="dashed") +
-	scale_fill_manual(values=paste(col.model)) +
-	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) # +
 )
 }
 dev.off()
