@@ -40,9 +40,9 @@ resolutions <- "t.001"
 k=4
 
 # wanted to do PFT, but we don't get even representation,
-# so we're going to restrict it to sites with NPP products
-# pft <- "Evergreen"
-sites <- c("PHA", "PHO") 
+# so we're going to restrict it to PHO which has NPP data &
+# the greatest composition consistency among models and data
+sites <- c("PHO") 
 
 # ----------------------------------------
 
@@ -202,7 +202,7 @@ plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
 
 for(y in start.yrs){
 	# Taking the subsets of data we want in a single gam
-	dat.subsets <- plot.npp$Site      %in% c("PHO", "PHA") &
+	dat.subsets <- plot.npp$Site      %in% sites &
 	               plot.npp$Year       >=  y
 
 	# Skip data that doesn't meet the criteria for the model
@@ -250,7 +250,7 @@ summary(tree.rings)
 
 for(y in start.yrs){
 	# Taking the subsets of data we want in a single gam
-	dat.subsets <- tree.rings$Site      %in% c("PHO", "PHA") &
+	dat.subsets <- tree.rings$Site      %in% sites &
 	               tree.rings$Year       >=  y
 
 	# Skip data that doesn't meet the criteria for the model
@@ -333,7 +333,7 @@ pdf(file.path(fig.dir, "GAMM_ModelFit_TempExtent.pdf"))
 {
 for(e in unique(mod.out$data$Extent)){
 print(	
-ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",]) + facet_grid(PlotID~ Model, scales="free") + theme_bw() +
+ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",]) + facet_wrap(~ Model, scales="free") + theme_bw() +
  	geom_line(data= mod.out$data[mod.out$data$Extent==e & !substr(mod.out$data$Model, 1, 8)=="TreeRing",], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(data=mod.out$ci.response[mod.out$ci.response$Extent==e & !substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",], aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(data=mod.out$ci.response[mod.out$ci.response$Extent==e & !substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",], aes(x=Year, y=mean, color=Model), size=0.35) +
@@ -346,7 +346,7 @@ ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeR
 }
 
 print(	
-ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + facet_grid(PlotID~ Extent, scales="free_x") + theme_bw() +
+ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + facet_wrap(~ PlotID, scales="free_x") + theme_bw() +
  	geom_line(data= mod.out$data[mod.out$data$Model=="TreeRingNPP",], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
