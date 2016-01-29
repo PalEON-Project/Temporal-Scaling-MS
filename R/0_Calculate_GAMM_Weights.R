@@ -11,20 +11,23 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	coef.gam <- coef(model.gam) # the gam coefficients
 	
 	# Some handy column indices
-	# Note: In this script "Site" refers to any interceipt (it can be PlotID, PFT, whatever)
-	cols.list <- list(Site = which(!substr(names(coef.gam),1,2)=="s("))
+	# Note: In this script "Site" refers to any intercept (it can be PlotID, PFT, whatever)
+	cols.list <- list()
+	intercepts = which(!substr(names(coef.gam),1,2)=="s(")
+	if(length(intercepts)>0){
+		cols.list[["Site"]] <- intercepts
+	}
 	for(v in vars[!vars=="Y.lag"]){
 		cols.list[[v]] <- which(substr(names(coef.gam),1,(nchar(v)+3))==paste0("s(",v,")"))
 	}
-
 	# calculating the smoother for each effect; 
 	# now storing everything in a data frame
-	gam.fits <- data.frame(intercept=vector(length=nrow(newdata)))
+	gam.fits <- data.frame(intercept=rep(0, nrow(newdata)))
 
 	if(length(cols.list[["Site"]])>1) {
 		gam.fits[,"intercept"] <- as.vector(Xp[,cols.list[["Site"]]]   %*% coef.gam[cols.list[["Site"]]] )
 
-	} else {
+	} else if(length(cols.list[["Site"]])==1) {
 		gam.fits[["intercept"]] <- as.vector(t(Xp[,cols.list[["Site"]]]    *  coef.gam[cols.list[["Site"]]])) # Note: no matrix multiplication because it's 1 x 1
 	}
 
@@ -36,7 +39,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	gam.sd <- data.frame(intercept=vector(length=nrow(newdata)))
 	if(length(cols.list[["Site"]])>1){
 		gam.sd[,"intercept"] <- rowSums(Xp[,cols.list[["Site"]]] %*% model.gam$Vp[cols.list[["Site"]], cols.list[["Site"]]] * Xp[,cols.list[["Site"]]] )^0.5
-	} else {
+	} else if(length(cols.list[["Site"]])==1){
 		gam.sd[,"intercept"] <-    sum (Xp[,cols.list[["Site"]]]  *  model.gam$Vp[cols.list[["Site"]], cols.list[["Site"]]] * Xp[,cols.list[["Site"]]] )^0.5
 	}
 

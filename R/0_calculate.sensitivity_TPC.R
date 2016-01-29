@@ -20,7 +20,7 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	# ----------------------------------------
 	# Load Libaries
 	# ----------------------------------------
-	require(parallel)
+	# require(parallel)
 	require(mgcv)
 	
 	source('R/0_process.gamm.R', chdir = TRUE)
