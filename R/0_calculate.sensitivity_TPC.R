@@ -44,7 +44,7 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	# ----------------------------------------
 	if(PFT==T){
 		predictors=c("tair", "precipf", "CO2", "PFT", "Time", "Year")
-		gam1 <- gam(Y ~  s(Year, k=3, bs="cr") + s(Time, k=4) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT), data=data, correlation=corARMA(form=~Year|PlotID, p=1))
+		gam1 <- gam(Y ~  s(Year, k=3, bs="cr") + s(Time, k=4) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT), data=data)
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
