@@ -42,7 +42,7 @@ k=4
 # ----------------------------------------
 # Set Directories & file paths
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -286,7 +286,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.ou
 dev.off()
 
 
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_Baseline.pdf"))
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_Baseline.pdf"), height=8.5, width=11)
 print(
 ggplot(data=mod.out$ci.terms[!mod.out$ci.terms$Effect %in% c("Time", "Year"),]) + facet_wrap(~ Effect, scales="free") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +

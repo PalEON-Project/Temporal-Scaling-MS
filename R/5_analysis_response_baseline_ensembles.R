@@ -56,8 +56,8 @@ library(car); library(zoo)
 setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 path.data <- "Data"
 in.base <- "Data/gamms/Sensitivity_Baseline"
-out.dir <- "Data/analyses/response_baseline"
-fig.dir <- "Figures/analyses/response_baseline"
+out.dir <- "Data/analyses/analysis_baseline"
+fig.dir <- "Figures/analyses/analysis_baseline"
 
 if(!dir.exists(out.dir)) dir.create(out.dir)
 if(!dir.exists(fig.dir)) dir.create(fig.dir)
@@ -90,10 +90,8 @@ sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRW", "RW", "NPP
 
 dat.ecosys$data.type <- as.factor(ifelse(substr(dat.ecosys$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
 ci.terms  $data.type <- as.factor(ifelse(substr(ci.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
-wt.terms  $data.type <- as.factor(ifelse(substr(wt.terms  $Model,1,8)=="TreeRing", "Tree 
-Rings", "Model"))
-sim.terms $data.type <- as.factor(ifelse(substr(sim.terms $Model,1,8)=="TreeRing", "Tree 
-Rings", "Model"))
+wt.terms  $data.type <- as.factor(ifelse(substr(wt.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
+sim.terms $data.type <- as.factor(ifelse(substr(sim.terms $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
 
 summary(ci.terms)
 summary(dat.ecosys)
@@ -222,7 +220,7 @@ for(m in unique(ci.terms$Model)){
 		wt.terms[wt.terms$Model==m,paste0(y.rel, ".rel")] <- 1+(wt.terms[wt.terms$Model==m,y.rel])/npp
 		
 		# We only really care about smoothing the relativized weights
-		y.rel2 <- c(paste0(y.rel, ".rel"), "weight.tair", "weight.precipf", "weight.CO2")
+		y.rel2 <- c(y.rel, paste0(y.rel, ".rel"), "weight.tair", "weight.precipf", "weight.CO2")
 		for(y in y.rel2){
 			wt.terms[wt.terms$Model==m,paste0(y, ".10")] <- NA	
 		}
@@ -491,10 +489,10 @@ summary(ci.terms.graph)
 
 
 # Plot the relativized
-pdf(file.path(fig.dir, "Fig2_NPP_Sensitivity_Models_Rel_Baseline.pdf"), height=8.5, width=11)
+pdf(file.path(fig.dir, "Fig2_Sensitivity_Models_Rel_Baseline.pdf"), height=8.5, width=11)
 {
 print(
-ggplot(data=ci.terms.graph[!ci.terms.graph$Effect=="Time",]) + facet_wrap(~Effect, scales="free_x") +
+ggplot(data=ci.terms.graph[ci.terms.graph$Effect %in% c("tair", "precipf", "CO2"),]) + facet_wrap(~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
 	geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
 	scale_x_continuous(expand=c(0,0), name="") +
@@ -538,16 +536,73 @@ dev.off()
 # 6.a. Graphing
 # -----------------------
 # combining wt.terms & dat.ecosys... they shouldn't need a merge because dimensions are the same
-wt.terms2 <- cbind(wt.terms, dat.ecosys[,c("Model", "Model.Order", "Site", "Year", "Y", "Y.rel", "Y.10", "Y.rel.10")])
+wt.terms2 <- cbind(wt.terms, dat.ecosys[,c("Model.Order","Y", "Y.rel", "Y.10", "Y.rel.10")])
+
+# change the data type
 wt.terms2$data.type <- as.factor(ifelse(substr(wt.terms2$Model,1,8)=="TreeRing", paste(wt.terms2$Model), "Model"))
 summary(wt.terms2)
 
-indices.wt2 <- wt.terms2$Site=="PHA" & wt.terms2$Resolution=="t.001" & wt.terms2$Extent=="0850-2010" 
+# --------------------------
+# Adjusting CO2 Effect
+# --------------------------
+# Note: because the gam makes the smoother cross 0 at the MEAN CO2 (which is in the 1800s), 
+# it's saying the region is pretty CO2-limited at periods where that doesn't really make 
+# sense, so we're going to off relativize it to whatever the starting point for the run is
+# --------------------------
+{
+for(m in unique(wt.terms2$Model)){
+	yr1       <- min(wt.terms2[wt.terms2$Model==m, "Year"]) # find the minimum year
+	yr2       <- min(wt.terms2[wt.terms2$Model==m & !is.na(wt.terms2$weight.CO2), "Year"]) # find the minimum year
+	co2.base <- mean(wt.terms2[wt.terms2$Model==m & wt.terms2$Year<=(yr1+5), "fit.CO2"], na.rm=T) # mean of the 5 years around the starting 
+	co2.base.10 <- mean(wt.terms2[wt.terms2$Model==m & wt.terms2$Year<=(yr2+5),"fit.CO2.10"],na.rm=T) # mean of the 5 years around the starting point
+	wt.terms2[wt.terms2$Model==m, "fit.CO2.adj"] <- wt.terms2[wt.terms2$Model==m, "fit.CO2"] - co2.base
+	wt.terms2[wt.terms2$Model==m, "fit.CO2.10.adj"] <- wt.terms2[wt.terms2$Model==m, "fit.CO2.10"] - co2.base.10
+}
+summary(wt.terms2)
+
+
+ggplot(data=wt.terms2[wt.terms2$Model=="lpj.guess",]) + 
+	facet_wrap(~PlotID, scales="free") +
+	scale_x_continuous(limits=c(1500,2010)) +
+	geom_line(aes(x=Year, y=fit.CO2.10), color="green3", size=1, linetype="dashed") +
+	geom_line(aes(x=Year, y=fit.CO2.10.adj), color="green3", size=2) +
+	geom_line(aes(x=Year, y=fit.precipf.10), color="blue2") +
+	geom_line(aes(x=Year, y=fit.tair.10), color="red2") +
+	theme_bw()
+
+
+wt.terms2[,c("weight.tair.adj", "weight.precipf.adj","weight.CO2.adj")] <- abs(wt.terms2[,c("fit.tair", "fit.precipf", "fit.CO2.adj")])/rowSums(abs(wt.terms2[,c("fit.tair", "fit.precipf", "fit.CO2.adj")]))
+wt.terms2[,c("weight.tair.10.adj", "weight.precipf.10.adj","weight.CO2.10.adj")] <- abs(wt.terms2[,c("fit.tair.10", "fit.precipf.10", "fit.CO2.10.adj")])/rowSums(abs(wt.terms2[,c("fit.tair.10", "fit.precipf.10", "fit.CO2.10.adj")]))
+
+ggplot(data=wt.terms2[wt.terms2$Model=="lpj.guess",]) + 
+	facet_wrap(~PlotID, scales="free") +
+	scale_x_continuous(limits=c(1500,2010)) +
+	# geom_line(aes(x=Year, y=abs(weight.CO2.10)), color="green3", size=1, linetype="dashed") +
+	# geom_line(aes(x=Year, y=abs(weight.precipf.10)), color="blue2", size=0.5, linetype="dashed") +
+	# geom_line(aes(x=Year, y=abs(weight.tair.10)), color="red2", size=0.5, linetype="dashed") +
+	geom_line(aes(x=Year, y=weight.CO2.10.adj), color="green3") +
+	geom_line(aes(x=Year, y=weight.precipf.10.adj), color="blue2") +
+	geom_line(aes(x=Year, y=weight.tair.10.adj), color="red2") +
+	theme_bw()
+
+
+wt.terms2[is.na(wt.terms2$weight.tair.10       ),"weight.tair.10"       ] <- 0
+wt.terms2[is.na(wt.terms2$weight.precipf.10    ),"weight.precipf.10"    ] <- 0
+wt.terms2[is.na(wt.terms2$weight.CO2.10        ),"weight.CO2.10"        ] <- 0
+wt.terms2[is.na(wt.terms2$weight.tair.10.adj   ),"weight.tair.10.adj"   ] <- 0
+wt.terms2[is.na(wt.terms2$weight.precipf.10.adj),"weight.precipf.10.adj"] <- 0
+wt.terms2[is.na(wt.terms2$weight.CO2.10.adj    ),"weight.CO2.10.adj"    ] <- 0
+
+summary(rowSums(wt.terms2[,c("weight.tair.adj", "weight.precipf.adj","weight.CO2.adj")]))
+}
+# --------------------------
 
 summary(wt.terms2)
 summary(ci.terms)
 
-factors.aggregate <- c("fit.full", "fit.tair", "fit.tair.rel", "weight.tair", "fit.precipf", "fit.precipf.rel", "weight.precipf", "fit.CO2", "fit.CO2.rel", "weight.CO2", "Y.rel", "Y.10", "Y.rel.10", "weight.tair.10", "weight.precipf.10", "weight.CO2.10")
+# factors.aggregate <- c("fit.full", "fit.tair", "fit.tair.rel", "weight.tair", "fit.precipf", "fit.precipf.rel", "weight.precipf", "fit.CO2", "fit.CO2.rel", "weight.CO2", "Y.rel", "Y.10", "Y.rel.10", "weight.tair.10", "weight.precipf.10", "weight.CO2.10", "weight.CO2.adj",)
+factors.aggregate <- c("fit.full", "Y.rel", "Y.rel.10", "weight.tair.adj", "weight.precipf.adj", "weight.CO2.adj", "weight.tair.10.adj", "weight.precipf.10.adj", "weight.CO2.10.adj")
+# factors.aggregate <- c("fit.full", "Y.rel", "Y.rel.10", "weight.tair", "weight.precipf", "weight.CO2", "weight.tair.10", "weight.precipf.10", "weight.CO2.10")
 
 # --------
 # 6.a.1. Aggregate by site
@@ -572,43 +627,45 @@ ensemble.wts.site <- cbind(ensemble.wts1, ensemble.wts.lo[,4:ncol(ensemble.wts.l
 summary(ensemble.wts.site)
 
 # Re-normalizing factor weights
-wts.sum.10 <- abs(ensemble.wts.site$weight.tair.10) + abs(ensemble.wts.site$weight.precipf.10) + abs(ensemble.wts.site$weight.CO2.10)
-ensemble.wts.site[,c("weight.tair.10","weight.precipf.10", "weight.CO2.10")] <- ensemble.wts.site[,c("weight.tair.10","weight.precipf.10", "weight.CO2.10")]/wts.sum.10
-ensemble.wts.site[is.na(ensemble.wts.site$weight.tair.10   ),"weight.tair.10"   ] <- 0
-ensemble.wts.site[is.na(ensemble.wts.site$weight.precipf.10),"weight.precipf.10"] <- 0
-ensemble.wts.site[is.na(ensemble.wts.site$weight.CO2.10    ),"weight.CO2.10"    ] <- 0
+summary(rowSums(abs(ensemble.wts.site[,c("weight.tair.10.adj", "weight.precipf.10.adj","weight.CO2.10.adj")])))
 
-wts.sum <- abs(ensemble.wts.site$weight.tair) + abs(ensemble.wts.site$weight.precipf) + abs(ensemble.wts.site$weight.CO2)
-ensemble.wts.site[,c("weight.tair","weight.precipf", "weight.CO2")] <- ensemble.wts.site[,c("weight.tair","weight.precipf", "weight.CO2")]/wts.sum
-summary(ensemble.wts.site)
+# wts.sum.10 <- abs(ensemble.wts.site$weight.tair.10.adj) + abs(ensemble.wts.site$weight.precipf.10.adj) + abs(ensemble.wts.site$weight.CO2.10.adj)
+# ensemble.wts.site[,c("weight.tair.10.adj","weight.precipf.10.adj", "weight.CO2.10.adj")] <- ensemble.wts.site[,c("weight.tair.10.adj","weight.precipf.10.adj", "weight.CO2.10.adj")]/wts.sum.10
+# ensemble.wts.site[is.na(ensemble.wts.site$weight.tair.10.adj   ),"weight.tair.10.adj"   ] <- 0
+# ensemble.wts.site[is.na(ensemble.wts.site$weight.precipf.10.adj),"weight.precipf.10.adj"] <- 0
+# ensemble.wts.site[is.na(ensemble.wts.site$weight.CO2.10.adj    ),"weight.CO2.10.adj"    ] <- 0
+
+# wts.sum <- abs(ensemble.wts.site$weight.tair) + abs(ensemble.wts.site$weight.precipf) + abs(ensemble.wts.site$weight.CO2)
+# ensemble.wts.site[,c("weight.tair","weight.precipf", "weight.CO2")] <- ensemble.wts.site[,c("weight.tair","weight.precipf", "weight.CO2")]/wts.sum
+# summary(ensemble.wts.site)
 
 
-summary(ensemble.wts.site)
+# summary(ensemble.wts.site)
 } # End aggregation
 
-pdf(file.path(fig.dir, "NPP_Ensemble_Drivers_Time_AllSites_1900-2010_Decadal.pdf"), width=11, height=8.5)
+pdf(file.path(fig.dir, "Ensemble_Drivers_Time_AllSites_1850-2010_Decadal.pdf"), width=11, height=8.5)
  source("R/5a_graph_ensembles_rgb_AllSites.R")	# THis is in a separate script because it's so dang long
 dev.off()
 
-pdf(file.path(fig.dir, "NPP_Ensemble_Drivers_Time_PHA_1850-2010_Decadal.pdf"), width=11, height=8.5)
+pdf(file.path(fig.dir, "Ensemble_Drivers_Time_PHA_1700-2010_Decadal.pdf"), width=11, height=8.5)
 {
 print(
 ggplot() + facet_grid(data.type~., scales="free_y") +
+	scale_x_continuous(limits=c(1700,2010), expand=c(0,0), breaks=seq(round(min(ensemble.wts.site$Year), -2), round(max(ensemble.wts.site$Year), -2), by=100)) +
  	geom_ribbon(data= ensemble.wts.site[ensemble.wts.site$Site=="PHA",], aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.35) +
 	geom_line(data= ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="Model",], aes(x=Year, y=Y.rel.10*100),
-	          color=rgb(abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="Model","weight.tair.10"]),
-                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="Model","weight.CO2.10"]),
-                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="Model","weight.precipf.10"])), size=3) +
+	          color=rgb(abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="Model","weight.tair.10.adj"]),
+                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="Model","weight.CO2.10.adj"]),
+                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="Model","weight.precipf.10.adj"])), size=3) +
 	geom_line(data= ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingRW",], aes(x=Year, y=Y.rel.10*100),
-	          color=rgb(abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingRW","weight.tair.10"]),
-                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingRW","weight.CO2.10"]),
-                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingRW","weight.precipf.10"])), size=3) +
+	          color=rgb(abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingRW","weight.tair.10.adj"]),
+                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingRW","weight.CO2.10.adj"]),
+                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingRW","weight.precipf.10.adj"])), size=3) +
 	geom_line(data= ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingNPP",], aes(x=Year, y=Y.rel.10*100),
-	          color=rgb(abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingNPP","weight.tair.10"]),
-                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingNPP","weight.CO2.10"]),
-                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingNPP","weight.precipf.10"])), size=3) +
+	          color=rgb(abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingNPP","weight.tair.10.adj"]),
+                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingNPP","weight.CO2.10.adj"]),
+                        abs(ensemble.wts.site[ensemble.wts.site$Site=="PHA" & ensemble.wts.site$data.type=="TreeRingNPP","weight.precipf.10.adj"])), size=3) +
  	geom_hline(y=100, linetype="dashed") +
-	scale_x_continuous(limits=c(1700,2010), expand=c(0,0), breaks=seq(round(min(ensemble.wts.site$Year), -2), round(max(ensemble.wts.site$Year), -2), by=100)) +
 	scale_y_continuous(name=expression(bold(paste("Relative NPP (%)"))), expand=c(0,0)) +
 	# ggtitle("NPP Controlling Factor") + 
 	theme(legend.text=element_text(size=rel(1)), 
@@ -684,43 +741,45 @@ ensemble.wts <- cbind(ensemble.wts3, ensemble.wts.lo[,3:ncol(ensemble.wts.lo)], 
 summary(ensemble.wts)
 
 # Fill weights in the smoothed data that are NA with 0
-ensemble.wts[is.na(ensemble.wts$weight.tair.10   ),"weight.tair.10"   ] <- 0
-ensemble.wts[is.na(ensemble.wts$weight.precipf.10),"weight.precipf.10"] <- 0
-ensemble.wts[is.na(ensemble.wts$weight.CO2.10    ),"weight.CO2.10"    ] <- 0
+summary(rowSums(abs(ensemble.wts.site[,c("weight.tair.10.adj", "weight.precipf.10.adj","weight.CO2.10.adj")])))
+
+# ensemble.wts[is.na(ensemble.wts$weight.tair.10   ),"weight.tair.10"   ] <- 0
+# ensemble.wts[is.na(ensemble.wts$weight.precipf.10),"weight.precipf.10"] <- 0
+# ensemble.wts[is.na(ensemble.wts$weight.CO2.10    ),"weight.CO2.10"    ] <- 0
 } # End aggregation
 summary(ensemble.wts) 
 
 # Re-normalizing factor weights
-wts.sum.10 <- abs(ensemble.wts$weight.tair.10) + abs(ensemble.wts$weight.precipf.10) + abs(ensemble.wts$weight.CO2.10)
-ensemble.wts[,c("weight.tair.10","weight.precipf.10", "weight.CO2.10")] <- ensemble.wts[,c("weight.tair.10","weight.precipf.10", "weight.CO2.10")]/wts.sum.10
-ensemble.wts[is.na(ensemble.wts$weight.tair.10   ),"weight.tair.10"   ] <- 0
-ensemble.wts[is.na(ensemble.wts$weight.precipf.10),"weight.precipf.10"] <- 0
-ensemble.wts[is.na(ensemble.wts$weight.CO2.10    ),"weight.CO2.10"    ] <- 0
+# wts.sum.10 <- abs(ensemble.wts$weight.tair.10) + abs(ensemble.wts$weight.precipf.10) + abs(ensemble.wts$weight.CO2.10)
+# ensemble.wts[,c("weight.tair.10","weight.precipf.10", "weight.CO2.10")] <- ensemble.wts[,c("weight.tair.10","weight.precipf.10", "weight.CO2.10")]/wts.sum.10
+# ensemble.wts[is.na(ensemble.wts$weight.tair.10   ),"weight.tair.10"   ] <- 0
+# ensemble.wts[is.na(ensemble.wts$weight.precipf.10),"weight.precipf.10"] <- 0
+# ensemble.wts[is.na(ensemble.wts$weight.CO2.10    ),"weight.CO2.10"    ] <- 0
 
-wts.sum <- abs(ensemble.wts$weight.tair) + abs(ensemble.wts$weight.precipf) + abs(ensemble.wts$weight.CO2)
-ensemble.wts[,c("weight.tair","weight.precipf", "weight.CO2")] <- ensemble.wts[,c("weight.tair","weight.precipf", "weight.CO2")]/wts.sum
+# wts.sum <- abs(ensemble.wts$weight.tair) + abs(ensemble.wts$weight.precipf) + abs(ensemble.wts$weight.CO2)
+# ensemble.wts[,c("weight.tair","weight.precipf", "weight.CO2")] <- ensemble.wts[,c("weight.tair","weight.precipf", "weight.CO2")]/wts.sum
 summary(ensemble.wts)
 
 
 
-pdf(file.path(fig.dir, "NPP_Ensemble_Drivers_Time_Region_1700-2010_Decadal.pdf"), width=11, height=8.5)
+pdf(file.path(fig.dir, "Ensemble_Drivers_Time_Region_1500-2010_Decadal.pdf"), width=11, height=8.5)
 {
 ggplot() + facet_grid(data.type~., space="free", scales="free_y") +
+	scale_x_continuous(limits=c(1500,2010), expand=c(0,0), breaks=seq(round(min(ensemble.wts$Year), -2), round(max(ensemble.wts$Year), -2), by=100)) +
  	geom_ribbon(data= ensemble.wts[,], aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.35) +
 	geom_line(data= ensemble.wts[ensemble.wts$data.type=="Model",], aes(x=Year, y=Y.rel.10*100),
-	          color=rgb(abs(ensemble.wts[ensemble.wts$data.type=="Model","weight.tair.10"]),
-                        abs(ensemble.wts[ensemble.wts$data.type=="Model","weight.CO2.10"]),
-                        abs(ensemble.wts[ensemble.wts$data.type=="Model","weight.precipf.10"])), size=3) +
+	          color=rgb(abs(ensemble.wts[ensemble.wts$data.type=="Model","weight.tair.10.adj"]),
+                        abs(ensemble.wts[ensemble.wts$data.type=="Model","weight.CO2.10.adj"]),
+                        abs(ensemble.wts[ensemble.wts$data.type=="Model","weight.precipf.10.adj"])), size=3) +
 	geom_line(data= ensemble.wts[ensemble.wts$data.type=="TreeRingRW",], aes(x=Year, y=Y.rel.10*100),
-	          color=rgb(abs(ensemble.wts[ensemble.wts$data.type=="TreeRingRW","weight.tair.10"]),
-                        abs(ensemble.wts[ensemble.wts$data.type=="TreeRingRW","weight.CO2.10"]),
-                        abs(ensemble.wts[ensemble.wts$data.type=="TreeRingRW","weight.precipf.10"])), size=3) +
+	          color=rgb(abs(ensemble.wts[ensemble.wts$data.type=="TreeRingRW","weight.tair.10.adj"]),
+                        abs(ensemble.wts[ensemble.wts$data.type=="TreeRingRW","weight.CO2.10.adj"]),
+                        abs(ensemble.wts[ensemble.wts$data.type=="TreeRingRW","weight.precipf.10.adj"])), size=3) +
 	geom_line(data= ensemble.wts[ensemble.wts$data.type=="TreeRingNPP",], aes(x=Year, y=Y.rel.10*100),
-	          color=rgb(abs(ensemble.wts[ensemble.wts$data.type=="TreeRingNPP","weight.tair.10"]),
-                        abs(ensemble.wts[ensemble.wts$data.type=="TreeRingNPP","weight.CO2.10"]),
-                        abs(ensemble.wts[ensemble.wts$data.type=="TreeRingNPP","weight.precipf.10"])), size=3) +
+	          color=rgb(abs(ensemble.wts[ensemble.wts$data.type=="TreeRingNPP","weight.tair.10.adj"]),
+                        abs(ensemble.wts[ensemble.wts$data.type=="TreeRingNPP","weight.CO2.10.adj"]),
+                        abs(ensemble.wts[ensemble.wts$data.type=="TreeRingNPP","weight.precipf.10.adj"])), size=3) +
  	geom_hline(y=100, linetype="dashed") +
-	scale_x_continuous(limits=c(1700,2010), expand=c(0,0), breaks=seq(round(min(ensemble.wts$Year), -2), round(max(ensemble.wts$Year), -2), by=100)) +
 	scale_y_continuous(name=expression(bold(paste("Relative NPP (%)"))), expand=c(0,0), breaks=c(50, 100, 150, 200)) +
 	# ggtitle("NPP Controlling Factor") + 
 	theme(legend.text=element_text(size=rel(1)), 

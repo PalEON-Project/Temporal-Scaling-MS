@@ -40,7 +40,7 @@ library(car); library(zoo)
 # ----------------------------------------
 # 1. Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms/Sensitivity_PFT"
@@ -285,7 +285,7 @@ summary(ci.terms)
 pdf(file.path(fig.dir, "Fig3_Sensitivity_Models_Rel_PFT.pdf"), height=8.5, width=11)
 {
 print(
-ggplot(data=ci.terms.graph[!ci.terms.graph$Effect %in% c("Time", "PFT"),]) + facet_grid(PFT~Effect, scales="free_x") +
+ggplot(data=ci.terms.graph[ci.terms.graph$Effect %in% c("tair", "precipf", "CO2"),]) + facet_grid(PFT~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
 	geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
 	scale_x_continuous(expand=c(0,0), name="") +
