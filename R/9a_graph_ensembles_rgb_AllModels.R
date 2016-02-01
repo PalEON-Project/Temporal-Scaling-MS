@@ -1,28 +1,32 @@
-wts.sum <- abs(wt.terms2$weight.tair.10) + abs(wt.terms2$weight.precipf.10) + abs(wt.terms2$weight.CO2.10)
-wt.terms2[,c("weight.tair.10","weight.precipf.10", "weight.CO2.10")] <- wt.terms2[,c("weight.tair.10","weight.precipf.10", "weight.CO2.10")]/wts.sum
-wt.terms2[is.na(wt.terms2$weight.tair.10   ),"weight.tair.10"   ] <- 0
-wt.terms2[is.na(wt.terms2$weight.precipf.10),"weight.precipf.10"] <- 0
-wt.terms2[is.na(wt.terms2$weight.CO2.10    ),"weight.CO2.10"    ] <- 0
+ensemble.wts.graph <- ensemble.wts0
+ensemble.wts.graph <- ensemble.wts.graph[!ensemble.wts.graph$Extent=="1985-2010",]
+summary(ensemble.wts.graph)
 
-{
+# wts.sum <- abs(ensemble.wts.graph$weight.tair.10.adj) + abs(ensemble.wts.graph$weight.precipf.10.adj) + abs(ensemble.wts.graph$weight.CO2.10.adj)
+# ensemble.wts.graph[,c("weight.tair.10.adj","weight.precipf.10.adj", "weight.CO2.10.adj")] <- ensemble.wts.graph[,c("weight.tair.10.adj","weight.precipf.10.adj", "weight.CO2.10.adj")]/wts.sum
+ensemble.wts.graph[is.na(ensemble.wts.graph$weight.tair.10.adj   ),"weight.tair.10.adj"   ] <- 0
+ensemble.wts.graph[is.na(ensemble.wts.graph$weight.precipf.10.adj),"weight.precipf.10.adj"] <- 0
+ensemble.wts.graph[is.na(ensemble.wts.graph$weight.CO2.10.adj    ),"weight.CO2.10.adj"    ] <- 0
+ensemble.wts.graph$ci.max <- ifelse(ensemble.wts.graph$fit.full.rel.10.hi>1.5,1.5,ensemble.wts.graph$fit.full.rel.10.hi)
+ensemble.wts.graph$ci.min <- ifelse(ensemble.wts.graph$fit.full.rel.10.lo<0.5,0.5,ensemble.wts.graph$fit.full.rel.10.lo)
+ensemble.wts.graph$fit.graph <- ifelse(ensemble.wts.graph$fit.full.rel.10<0.5,NA,ensemble.wts.graph$fit.full.rel.10)
+
+pdf(file.path(fig.dir, "Ensemble_Drivers_Time_Region_1500-2010_Decadal_byModel.pdf"), width=11, height=8.5)
+for(m in unique(ensemble.wts.graph$Model)){
 print(
-ggplot(data= wt.terms2[wt.terms2$Model=="lpj.wsl" ,]) + facet_grid(Extent~Model, scales="free_y") +
- 	# geom_ribbon(data= wt.terms2[,], aes(x=Year, ymin=fit.full.rel.lo*100, ymax=fit.full.rel.hi*100), alpha=0.35) +
-	geom_line(data= wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent=="1985-2010",], aes(x=Year, y=fit.full.rel.10*100),
-	          color=rgb(abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent=="1985-2010","weight.tair.10"]),
-                        abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent =="1985-2010","weight.CO2.10"]),
-                        abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent =="1985-2010","weight.precipf.10"])), size=3) +
-	geom_line(data= wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent=="1901-2010",], aes(x=Year, y=fit.full.rel.10*100),
-	          color=rgb(abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent=="1901-2010","weight.tair.10"]),
-                        abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent =="1901-2010","weight.CO2.10"]),
-                        abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent =="1901-2010","weight.precipf.10"])), size=3) +
-	geom_line(data= wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent=="850-2010",], aes(x=Year, y=fit.full.rel.10*100),
-	          color=rgb(abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent=="850-2010","weight.tair.10"]),
-                        abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent =="850-2010","weight.CO2.10"]),
-                        abs(wt.terms2[wt.terms2$Model=="lpj.wsl" & wt.terms2$Extent =="850-2010","weight.precipf.10"])), size=3) +
+ggplot(data= ensemble.wts.graph[ensemble.wts.graph$Model==m ,]) + facet_grid(Extent~Model, scales="free_y") +
+  scale_x_continuous(limits=c(1500,2010), expand=c(0,0), breaks=seq(round(min(ensemble.wts.graph$Year), -2), round(max(ensemble.wts.graph$Year), -2), by=100)) +
+  geom_ribbon(data= ensemble.wts.graph[ensemble.wts.graph$Model==m,], aes(x=Year, ymin=fit.full.rel.10.lo*100, ymax=fit.full.rel.10.hi*100), alpha=0.35) +
+	geom_line(data= ensemble.wts.graph[ensemble.wts.graph$Model==m & ensemble.wts.graph$Extent=="1901-2010",], aes(x=Year, y=fit.full.rel.10*100),
+	          color=rgb(abs(ensemble.wts.graph[ensemble.wts.graph$Model==m & ensemble.wts.graph$Extent=="1901-2010","weight.tair.10.adj"]),
+                        abs(ensemble.wts.graph[ensemble.wts.graph$Model==m & ensemble.wts.graph$Extent =="1901-2010","weight.CO2.10.adj"]),
+                        abs(ensemble.wts.graph[ensemble.wts.graph$Model==m & ensemble.wts.graph$Extent =="1901-2010","weight.precipf.10.adj"])), size=3) +
+	geom_line(data= ensemble.wts.graph[ensemble.wts.graph$Model==m & ensemble.wts.graph$Extent=="850-2010",], aes(x=Year, y=fit.full.rel.10*100),
+	          color=rgb(abs(ensemble.wts.graph[ensemble.wts.graph$Model==m & ensemble.wts.graph$Extent=="850-2010","weight.tair.10.adj"]),
+                        abs(ensemble.wts.graph[ensemble.wts.graph$Model==m & ensemble.wts.graph$Extent =="850-2010","weight.CO2.10.adj"]),
+                        abs(ensemble.wts.graph[ensemble.wts.graph$Model==m & ensemble.wts.graph$Extent =="850-2010","weight.precipf.10.adj"])), size=3) +
  	geom_hline(yintercept=100, linetype="dashed") +
-	# scale_x_continuous(limits=c(1850,2010), expand=c(0,0), breaks=seq(round(min(wt.terms2$Year), -2), round(max(wt.terms2$Year), -2), by=100)) +
-	scale_y_continuous(name=expression(bold(paste("Relative NPP (%)"))), expand=c(0,0)) +
+# 	scale_y_continuous(name=expression(bold(paste("Relative NPP (%)"))), expand=c(0,0)) +
 	# ggtitle("NPP Controlling Factor") + 
 	theme(legend.text=element_text(size=rel(1)), 
 	      legend.title=element_text(size=rel(1)),
@@ -43,3 +47,4 @@ ggplot(data= wt.terms2[wt.terms2$Model=="lpj.wsl" ,]) + facet_grid(Extent~Model,
 	      axis.ticks.margin=unit(1.0, "lines"))
 )
 }
+dev.off()

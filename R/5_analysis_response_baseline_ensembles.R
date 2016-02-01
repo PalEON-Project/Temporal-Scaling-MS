@@ -41,7 +41,7 @@
 #    b. Quantitative Analysis
 # -------------------------
 # ----------------------------------------
-
+rm(list=ls())
 # ----------------------------------------
 # Load Libaries
 # ----------------------------------------
@@ -66,37 +66,39 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 # 2. Load data files & function scripts
 # ----------------------------------------
+{
 load(file.path(path.data, "EcosysData.Rdata"))
 ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 # Colors for the rest of the script
 models.use <- unique(ecosys[,"Model.Order"])
-colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% models.use, "color"]), "black", "gray40"))
+colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% models.use, "color"]), "black", "gray30"))
 
-# Load the statistical model results
-load(file.path(in.base, "gamm_baseline.Rdata"))
+# # Load the statistical model results
+# load(file.path(in.base, "gamm_baseline.Rdata"))
 
-dat.ecosys <- cbind(mod.out$data[, ], mod.out$ci.response[,c("mean", "lwr", "upr")])
-ci.terms   <- mod.out$ci.terms[,]
-wt.terms   <- mod.out$weights[,]
-sim.terms  <- mod.out$sim.terms
-sim.terms $Effect <- as.factor(sim.terms$Effect)
+# dat.ecosys <- cbind(mod.out$data[, ], mod.out$ci.response[,c("mean", "lwr", "upr")])
+# ci.terms   <- mod.out$ci.terms[,]
+# wt.terms   <- mod.out$weights[,]
+# sim.terms  <- mod.out$sim.terms
+# sim.terms $Effect <- as.factor(sim.terms$Effect)
 
-# Grouping the kind and source of the data
-dat.ecosys$Y.type <- as.factor(ifelse(dat.ecosys$Model=="TreeRingRW", "RW", "NPP"))
-ci.terms  $Y.type <- as.factor(ifelse(ci.terms  $Model=="TreeRingRW", "RW", "NPP"))
-wt.terms  $Y.type <- as.factor(ifelse(wt.terms  $Model=="TreeRingRW", "RW", "NPP"))
-sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRW", "RW", "NPP"))
+# # Grouping the kind and source of the data
+# dat.ecosys$Y.type <- as.factor(ifelse(dat.ecosys$Model=="TreeRingRW", "RW", "NPP"))
+# ci.terms  $Y.type <- as.factor(ifelse(ci.terms  $Model=="TreeRingRW", "RW", "NPP"))
+# wt.terms  $Y.type <- as.factor(ifelse(wt.terms  $Model=="TreeRingRW", "RW", "NPP"))
+# sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRW", "RW", "NPP"))
 
-dat.ecosys$data.type <- as.factor(ifelse(substr(dat.ecosys$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
-ci.terms  $data.type <- as.factor(ifelse(substr(ci.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
-wt.terms  $data.type <- as.factor(ifelse(substr(wt.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
-sim.terms $data.type <- as.factor(ifelse(substr(sim.terms $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
+# dat.ecosys$data.type <- as.factor(ifelse(substr(dat.ecosys$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
+# ci.terms  $data.type <- as.factor(ifelse(substr(ci.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
+# wt.terms  $data.type <- as.factor(ifelse(substr(wt.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
+# sim.terms $data.type <- as.factor(ifelse(substr(sim.terms $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
 
-summary(ci.terms)
-summary(dat.ecosys)
-summary(wt.terms)
-summary(sim.terms[,1:10])
+# summary(ci.terms)
+# summary(dat.ecosys)
+# summary(wt.terms)
+# summary(sim.terms[,1:10])
+}
 # ----------------------------------------
 
 
@@ -106,158 +108,164 @@ summary(sim.terms[,1:10])
 # 		1. Relative by model-mean NPP
 #       2. Decadal smoothing to help show generalized patterns
 # ----------------------------------------
-# Across all scales (resolution) finding the mean NPP
-# NOTE: we ARE relativizing per site here since the response curves were site-specific
-
-# Make sure all data sets are ordered by year, then treeID, then plotID, then Model
-# sort.order <- c("Model", "PlotID", "TreeID", "Year")
-dat.ecosys <- dat.ecosys[order(dat.ecosys$Model, dat.ecosys$PlotID, dat.ecosys$TreeID, dat.ecosys$Year),]
-wt.terms   <- wt.terms[order(wt.terms$Model, wt.terms$PlotID, wt.terms$TreeID, wt.terms$Year),]
-
-# Double Check to make sure things are sorted by year so rollapply works
-dat.ecosys[which(dat.ecosys$Model=="TreeRingRW")[1:20],]
-wt.terms  [which(wt.terms  $Model=="TreeRingRW")[1:20],]
-
-summary(dat.ecosys)
-summary(wt.terms)
-
 {
-for(m in unique(ci.terms$Model)){
+# # Across all scales (resolution) finding the mean NPP
+# # NOTE: we ARE relativizing per site here since the response curves were site-specific
 
-		# -----------------------
-		# 3.a. Find the NPP to relativize each set off of
-		# Using mean model NPP across sites since the GAMM response curves are for 
-		#    the whole model & not site-specific are parameterized
-		# -----------------------
-		# Find the start year for the extent
-		# yr <- ifelse(nchar(as.character(e))==8, as.numeric(substr(e,1,3)), as.numeric(substr(e,1,4)))
+# # Make sure all data sets are ordered by year, then treeID, then plotID, then Model
+# # sort.order <- c("Model", "PlotID", "TreeID", "Year")
+# dat.ecosys <- dat.ecosys[order(dat.ecosys$Model, dat.ecosys$PlotID, dat.ecosys$TreeID, dat.ecosys$Year),]
+# wt.terms   <- wt.terms[order(wt.terms$Model, wt.terms$PlotID, wt.terms$TreeID, wt.terms$Year),]
 
-		npp <- mean(dat.ecosys[dat.ecosys$Model==m, "Y"], na.rm=T)			
-		# -----------------------
+# # Double Check to make sure things are sorted by year so rollapply works
+# dat.ecosys[which(dat.ecosys$Model=="TreeRingRW")[1:20],]
+# wt.terms  [which(wt.terms  $Model=="TreeRingRW")[1:20],]
+
+# summary(dat.ecosys)
+# summary(wt.terms)
+
+# {
+# for(m in unique(ci.terms$Model)){
+
+		# # -----------------------
+		# # 3.a. Find the NPP to relativize each set off of
+		# # Using mean model NPP across sites since the GAMM response curves are for 
+		# #    the whole model & not site-specific are parameterized
+		# # -----------------------
+		# # Find the start year for the extent
+		# # yr <- ifelse(nchar(as.character(e))==8, as.numeric(substr(e,1,3)), as.numeric(substr(e,1,4)))
+
+		# npp <- mean(dat.ecosys[dat.ecosys$Model==m, "Y"], na.rm=T)			
+		# # -----------------------
 		
-		# -----------------------
-		# 3.b Relativizing everything in dat.ecosys to make it comparable to tree rings
-		# -----------------------
-		{		
-		# Which factors to relativize
-		y.rel <- c("Y", "fit.gam", "mean", "lwr", "upr")
+		# # -----------------------
+		# # 3.b Relativizing everything in dat.ecosys to make it comparable to tree rings
+		# # -----------------------
+		# {		
+		# # Which factors to relativize
+		# y.rel <- c("Y", "fit.gam", "mean", "lwr", "upr")
 
-		# for some reason, I can create multiple new columns at once
-		# Solution: use a loop to create blank columns and then fill them
-		for(y in y.rel){
-			dat.ecosys[dat.ecosys$Model==m,paste0(y, ".rel"       )] <- NA	
-			dat.ecosys[dat.ecosys$Model==m,paste0(y, ".10"        )] <- NA	
-			dat.ecosys[dat.ecosys$Model==m,paste0(y, ".rel", ".10")] <- NA	
-		}
-		dat.ecosys[dat.ecosys$Model==m,paste0(y.rel, ".rel")] <- dat.ecosys[dat.ecosys$Model==m, y.rel]/npp
+		# # for some reason, I can create multiple new columns at once
+		# # Solution: use a loop to create blank columns and then fill them
+		# for(y in y.rel){
+			# dat.ecosys[dat.ecosys$Model==m,paste0(y, ".rel"       )] <- NA	
+			# dat.ecosys[dat.ecosys$Model==m,paste0(y, ".10"        )] <- NA	
+			# dat.ecosys[dat.ecosys$Model==m,paste0(y, ".rel", ".10")] <- NA	
+		# }
+		# dat.ecosys[dat.ecosys$Model==m,paste0(y.rel, ".rel")] <- dat.ecosys[dat.ecosys$Model==m, y.rel]/npp
 		
-		# Getting 10-year running means to make clearer figures
-		for(s in unique(dat.ecosys[dat.ecosys$Model==m, "Site"])){
-			# Note: If we're working with tree ring data, we need to go by plot for NPP products 
-			#       & by Tree for individual-level tree rings products
-			if(m=="TreeRingNPP"){
-				for(p in unique(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s, "PlotID"])){
+		# # Getting 10-year running means to make clearer figures
+		# for(s in unique(dat.ecosys[dat.ecosys$Model==m, "Site"])){
+			# # Note: If we're working with tree ring data, we need to go by plot for NPP products 
+			# #       & by Tree for individual-level tree rings products
+			# if(m=="TreeRingNPP"){
+				# for(p in unique(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s, "PlotID"])){
 
-					# Raw NPP (to add dark line over faded annual wiggles)
-					dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$PlotID==p,paste0(y.rel, ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$PlotID==p, y.rel], FUN=mean, width=10, align="center", fill=NA, by.column=T)
+					# # Raw NPP (to add dark line over faded annual wiggles)
+					# dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$PlotID==p,paste0(y.rel, ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$PlotID==p, y.rel], FUN=mean, width=10, align="center", fill=NA, by.column=T)
 
-					# Relativized NPP (to have generalized patterns for figures)
-					dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$PlotID==p,paste0(y.rel, ".rel", ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s  & dat.ecosys$PlotID==p, paste0(y.rel, ".rel")], FUN=mean, width=10, align="center", fill=NA, by.column=T)
-				}
-			} else if(m=="TreeRingRW") {
-				for(t in unique(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s, "TreeID"])){
-					# If we have too few data points, we need to skip that tree 
-					if(length(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$TreeID==t, y.rel[1]]) < 10) next
+					# # Relativized NPP (to have generalized patterns for figures)
+					# dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$PlotID==p,paste0(y.rel, ".rel", ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s  & dat.ecosys$PlotID==p, paste0(y.rel, ".rel")], FUN=mean, width=10, align="center", fill=NA, by.column=T)
+				# }
+			# } else if(m=="TreeRingRW") {
+				# for(t in unique(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s, "TreeID"])){
+					# # If we have too few data points, we need to skip that tree 
+					# if(length(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$TreeID==t, y.rel[1]]) < 10) next
 
-					# Raw NPP (to add dark line over faded annual wiggles)
-					dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$TreeID==t,paste0(y.rel, ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$TreeID==t, y.rel], FUN=mean, width=10, align="center", fill=NA, by.column=T)
+					# # Raw NPP (to add dark line over faded annual wiggles)
+					# dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$TreeID==t,paste0(y.rel, ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$TreeID==t, y.rel], FUN=mean, width=10, align="center", fill=NA, by.column=T)
 
-					# Relativized NPP (to have generalized patterns for figures)
-					dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$TreeID==t,paste0(y.rel, ".rel", ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s  & dat.ecosys$TreeID==t, paste0(y.rel, ".rel")], FUN=mean, width=10, align="center", fill=NA, by.column=T)
-				}
-			} else {
-				# Raw NPP (to add dark line over faded annual wiggles)
-				dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s,paste0(y.rel, ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s, y.rel], FUN=mean, width=10, align="center", fill=NA, by.column=T)
+					# # Relativized NPP (to have generalized patterns for figures)
+					# dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s & dat.ecosys$TreeID==t,paste0(y.rel, ".rel", ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s  & dat.ecosys$TreeID==t, paste0(y.rel, ".rel")], FUN=mean, width=10, align="center", fill=NA, by.column=T)
+				# }
+			# } else {
+				# # Raw NPP (to add dark line over faded annual wiggles)
+				# dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s,paste0(y.rel, ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s, y.rel], FUN=mean, width=10, align="center", fill=NA, by.column=T)
 
-				# Relativized NPP (to have generalized patterns for figures)
-				dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s,paste0(y.rel, ".rel", ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s, paste0(y.rel, ".rel")], FUN=mean, width=10, align="center", fill=NA, by.column=T)
-			}
-		}
-		}		
-		# -----------------------
+				# # Relativized NPP (to have generalized patterns for figures)
+				# dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s,paste0(y.rel, ".rel", ".10" )] <- rollapply(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Site==s, paste0(y.rel, ".rel")], FUN=mean, width=10, align="center", fill=NA, by.column=T)
+			# }
+		# }
+		# }		
+		# # -----------------------
 
 		
-		# -----------------------
-		# 3.c. Finding the percent change in NPP relative to the mean for that particular scale
-		# -----------------------
-		{
-		y.rel <- c("mean", "lwr", "upr")
-		for(y in y.rel){
-			ci.terms[ci.terms$Model==m,paste0(y, ".rel"       )] <- NA	
-		}		
+		# # -----------------------
+		# # 3.c. Finding the percent change in NPP relative to the mean for that particular scale
+		# # -----------------------
+		# {
+		# y.rel <- c("mean", "lwr", "upr")
+		# for(y in y.rel){
+			# ci.terms[ci.terms$Model==m,paste0(y, ".rel"       )] <- NA	
+		# }		
 
-		ci.terms[ci.terms$Model==m,paste0(y.rel,".rel")] <- ci.terms[ci.terms $Model==m, y.rel]/npp
+		# ci.terms[ci.terms$Model==m,paste0(y.rel,".rel")] <- ci.terms[ci.terms $Model==m, y.rel]/npp
 		
-		# Tacking on the simulated distributions so we can do ensemble CIs or robust comparisons
-		cols.sim <- which(substr(names(sim.terms),1,1)=="X")
-		sim.terms[sim.terms$Model==m,cols.sim] <- sim.terms[sim.terms$Model==m,cols.sim]/npp
-		}
-		# -----------------------
+		# # Tacking on the simulated distributions so we can do ensemble CIs or robust comparisons
+		# cols.sim <- which(substr(names(sim.terms),1,1)=="X")
+		# sim.terms[sim.terms$Model==m,cols.sim] <- sim.terms[sim.terms$Model==m,cols.sim]/npp
+		# }
+		# # -----------------------
 
-		# -----------------------
-		# 3.d. Relativizing the factor fits through times and weights as well
-		# Note: because a fit of 0 means no change from the mean, we need to add 1 to all of these
-		# -----------------------
-		{
-		y.rel <- c("fit.tair", "fit.precipf", "fit.CO2")
-		# for some reason, I can create multiple new columns at once
-		# Solution: use a loop to create blank columns and then fill them
-		for(y in y.rel){
-			wt.terms[wt.terms$Model==m,paste0(y, ".rel"       )] <- NA	
-			wt.terms[wt.terms$Model==m,paste0(y, ".rel", ".10")] <- NA	
-		}
+		# # -----------------------
+		# # 3.d. Relativizing the factor fits through times and weights as well
+		# # Note: because a fit of 0 means no change from the mean, we need to add 1 to all of these
+		# # -----------------------
+		# {
+		# y.rel <- c("fit.tair", "fit.precipf", "fit.CO2")
+		# # for some reason, I can create multiple new columns at once
+		# # Solution: use a loop to create blank columns and then fill them
+		# for(y in y.rel){
+			# wt.terms[wt.terms$Model==m,paste0(y, ".rel"       )] <- NA	
+			# wt.terms[wt.terms$Model==m,paste0(y, ".rel", ".10")] <- NA	
+		# }
 		
-		wt.terms[wt.terms$Model==m,paste0(y.rel, ".rel")] <- 1+(wt.terms[wt.terms$Model==m,y.rel])/npp
+		# wt.terms[wt.terms$Model==m,paste0(y.rel, ".rel")] <- 1+(wt.terms[wt.terms$Model==m,y.rel])/npp
 		
-		# We only really care about smoothing the relativized weights
-		y.rel2 <- c(y.rel, paste0(y.rel, ".rel"), "weight.tair", "weight.precipf", "weight.CO2")
-		for(y in y.rel2){
-			wt.terms[wt.terms$Model==m,paste0(y, ".10")] <- NA	
-		}
+		# # We only really care about smoothing the relativized weights
+		# y.rel2 <- c(y.rel, paste0(y.rel, ".rel"), "weight.tair", "weight.precipf", "weight.CO2")
+		# for(y in y.rel2){
+			# wt.terms[wt.terms$Model==m,paste0(y, ".10")] <- NA	
+		# }
 
-		# Getting 10-year running means to make clearer figures
-		for(s in unique(dat.ecosys[dat.ecosys$Model==m, "Site"])){
-			if(m=="TreeRingNPP"){
-				for(p in unique(wt.terms[wt.terms$Model==m & wt.terms$Site==s, "PlotID"])){
-					# Relativized NPP (to have generalized patterns for figures)
-					wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$PlotID==p,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$PlotID==p, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)			
-				}
-			} else if(m=="TreeRingRW"){
-				for(t in unique(wt.terms[wt.terms$Model==m & wt.terms$Site==s, "TreeID"])){
+		# # Getting 10-year running means to make clearer figures
+		# for(s in unique(dat.ecosys[dat.ecosys$Model==m, "Site"])){
+			# if(m=="TreeRingNPP"){
+				# for(p in unique(wt.terms[wt.terms$Model==m & wt.terms$Site==s, "PlotID"])){
+					# # Relativized NPP (to have generalized patterns for figures)
+					# wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$PlotID==p,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$PlotID==p, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)			
+				# }
+			# } else if(m=="TreeRingRW"){
+				# for(t in unique(wt.terms[wt.terms$Model==m & wt.terms$Site==s, "TreeID"])){
 
-					# If we have too few data points, we need to skip that tree 
-					if(length(wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$TreeID==t, y.rel2[1]]) < 10) next
+					# # If we have too few data points, we need to skip that tree 
+					# if(length(wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$TreeID==t, y.rel2[1]]) < 10) next
 
-					# Relativized NPP (to have generalized patterns for figures)
-					wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$TreeID==t,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$TreeID==t, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)			
-				}				
-			} else {
-				# Relativized NPP (to have generalized patterns for figures)
-				wt.terms[wt.terms$Model==m & wt.terms$Site==s,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Site==s, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)
-			}
-		}
-		}
-		# -----------------------
+					# # Relativized NPP (to have generalized patterns for figures)
+					# wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$TreeID==t,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Site==s & wt.terms$TreeID==t, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)			
+				# }				
+			# } else {
+				# # Relativized NPP (to have generalized patterns for figures)
+				# wt.terms[wt.terms$Model==m & wt.terms$Site==s,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Site==s, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)
+			# }
+		# }
+		# }
+		# # -----------------------
 
+# }
+# } # End section block
+
+
+# summary(dat.ecosys)
+# summary(ci.terms)
+# summary(wt.terms)
+# summary(sim.terms[,1:10])
+
+# save(dat.ecosys, ci.terms, wt.terms, sim.terms, file=file.path(out.dir, "post-process_baseline.RData"))
 }
-} # End section block
-
-
-summary(dat.ecosys)
-summary(ci.terms)
-summary(wt.terms)
-summary(sim.terms[,1:10])
 # ----------------------------------------
+
+load(file.path(out.dir, "post-process_baseline.RData"))
 
 # ----------------------------------------
 # 4. Graphing & Summary Statistics of Raw NPP
@@ -451,9 +459,59 @@ dev.off()
 # 4.b. Summary Statistics
 # ---------------------
 # --------
-# 4.b.1 Range of NPP variability within & among models/data
+# 4.b.1 Description of Model variability across space & Time
 # --------
+# Aggregate to the site-level by model
+models.sites                         <- aggregate(dat.ecosys[,c("Y", "Y.rel")], 
+                                                  by=dat.ecosys[,c("Model", "Model.Order", "Y.type", "data.type", "Site")], 
+                                                  FUN=mean)
+models.sites[,c("Y.sd", "Y.rel.sd")] <- aggregate(dat.ecosys[,c("Y", "Y.rel")], 
+                                                  by=dat.ecosys[,c("Model", "Model.Order", "Y.type", "data.type", "Site")], 
+                                                  FUN=sd)[,c("Y", "Y.rel")]
+summary(models.sites)
+
+# Aggregate to the model level by time
+models.time                         <- aggregate(dat.ecosys[,c("Y", "Y.rel")], 
+                                                  by=dat.ecosys[,c("Model", "Model.Order", "Y.type", "data.type", "Year")], 
+                                                  FUN=mean)
+models.time[,c("Y.sd", "Y.rel.sd")] <- aggregate(dat.ecosys[,c("Y", "Y.rel")], 
+                                                  by=dat.ecosys[,c("Model", "Model.Order", "Y.type", "data.type", "Year")], 
+                                                  FUN=sd)[,c("Y", "Y.rel")]
+summary(models.time)
+
+
+
+# Compute some sumary statistics
+models.stats                         <- aggregate(models.sites[,c("Y", "Y.rel")], 
+                                                  by=models.sites[,c("Model", "Model.Order", "Y.type", "data.type")], 
+                                                  FUN=mean)
+models.stats[,c("Y.sd", "Y.rel.sd")] <- aggregate(models.sites[,c("Y", "Y.rel")], 
+                                                  by=models.sites[,c("Model", "Model.Order", "Y.type", "data.type")], 
+                                                  FUN=sd)[,c("Y", "Y.rel")]
+models.stats
+
+models.stats.time                         <- aggregate(models.time[,c("Y", "Y.rel")], 
+                                                       by=models.time[,c("Model", "Model.Order", "Y.type", "data.type")], 
+                                                       FUN=mean)
+models.stats.time[,c("Y.sd", "Y.rel.sd")] <- aggregate(models.time[,c("Y", "Y.rel")], 
+                                                       by=models.time[,c("Model", "Model.Order", "Y.type", "data.type")], 
+                                                       FUN=sd)[,c("Y", "Y.rel")]
+models.stats.time
+
 # --------
+
+# --------
+# 4.b.2. Description of Site variability
+# --------
+site.stats      <- aggregate(models.sites[,c("Y", "Y.rel")], 
+                             by=models.sites[,c("Site", "Y.type", "data.type")], 
+                             FUN=mean)
+site.stats[,c("Y.sd", "Y.rel.sd")]   <- aggregate(models.sites[,c("Y", "Y.rel")], 
+                                                     by=models.sites[,c("Site", "Y.type", "data.type")], 
+                                                     FUN=sd)[,c("Y", "Y.rel")]
+site.stats
+# --------
+
 
 # ---------------------
 
@@ -465,6 +523,8 @@ dev.off()
 # 5. Graphing & Analyzing Sensitivity
 # ----------------------------------------
 {
+summary(ci.terms)
+summary(sim.terms[,1:10])
 # -----------------------
 # 5.a. Graphing
 # -----------------------
@@ -513,13 +573,202 @@ dev.off()
 # 5.b. Quantitative Analysis
 # -----------------------
 # --------
-# 5.b.1. Range of change in NPP with each factor
+# 5.b.0. Getting the first derivative (first diference) of each line so we can take the mean slope
 # --------
+{
+# First make sure the effects are sorted by x to make this easier
+ci.terms  <- ci.terms [order(ci.terms $Model, ci.terms $Effect, ci.terms $x),]
+sim.terms <- sim.terms[order(sim.terms$Model, sim.terms$Effect, sim.terms$x),]
+ci.terms[1:20,1:10]
+dim(ci.terms)
+summary(ci.terms)
+
+# Making a new dataframe dedicated to the derivatives
+cols.sims <- which(substr(names(sim.terms),1,1)=="X")
+sim.deriv <- sim.terms[,]
+sim.deriv[,cols.sims] <- NA
+
+for(e in unique(ci.terms$Effect)){
+ for(m in unique(ci.terms$Model)){
+   x.dif <- c(diff(ci.terms[ci.terms$Model==m & ci.terms$Effect==e, "x"], lag=1), NA)
+   y.dif <- c(diff(ci.terms[ci.terms$Model==m & ci.terms$Effect==e, "mean.rel"], lag=1), NA)
+   ci.terms[ci.terms$Model==m & ci.terms$Effect==e, "deriv"] <- y.dif/x.dif
+ 
+   # For the full simiulation for robust analysis
+   y.dif2 <- rbind(apply(sim.terms[sim.terms$Model==m & sim.terms$Effect==e, cols.sims], 2, FUN=diff), NA)
+   x.dif <- c(diff(sim.terms[sim.terms$Model==m & sim.terms$Effect==e, "x"], lag=1), NA)
+   sim.deriv[sim.deriv$Model==m & sim.deriv$Effect==e, cols.sims] <- apply(y.dif2, 2, FUN=function(y){y/x.dif})
+ } 
+}
+
+# Stacking and aggregating the simulations
+deriv.stack <- stack(sim.deriv[,cols.sims])
+names(deriv.stack)  <- c("deriv", "sim")
+deriv.stack[,names(sim.deriv)[which(!(1:ncol(sim.deriv)) %in% cols.sims)]] <- sim.deriv[,which(!(1:ncol(sim.deriv)) %in% cols.sims)]
+summary(deriv.stack)
+
+vars.deriv <- c("deriv", "x")
+deriv.agg                             <- aggregate(deriv.stack[,vars.deriv], 
+                                                   by=deriv.stack[,c("Model", "Extent", "Y.type", "data.type", "Effect", "sim")], 
+                                                   FUN=mean, na.rm=T)
+deriv.agg[,paste0(vars.deriv, ".sd")] <- aggregate(deriv.stack[,vars.deriv], 
+                                                   by=deriv.stack[,c("Model", "Extent", "Y.type", "data.type", "Effect", "sim")], 
+                                                   FUN=sd, na.rm=T)[,vars.deriv]
+summary(deriv.agg)
+
+# Condensing model variability across space and time (since that's what we did for calculating sensitivity)
+vars.agg <- c("Y", "Y.rel", "Time")
+mod.agg                           <- aggregate(dat.ecosys[,vars.agg], 
+                                               by=dat.ecosys[,c("Model", "Model.Order", "Y.type", "data.type")], 
+                                               FUN=mean)
+mod.agg[,paste0(vars.agg, ".sd")] <- aggregate(dat.ecosys[,vars.agg], 
+                                               by=dat.ecosys[,c("Model", "Model.Order", "Y.type", "data.type")], 
+                                               FUN=sd)[,vars.agg]
+mod.agg
+
+
+# Finding the change in key variables in the modern era
+for(v in vars.agg){
+  mod.agg[mod.agg$Model==m,paste0("dModern.", v)] <- NA  
+}
+
+for(m in unique(mod.agg$Model)){
+  mod.agg[mod.agg$Model==m, paste0("dModern.", vars.agg)] <- colMeans(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Year>=1990 & dat.ecosys$Year<=2010, vars.agg], na.rm=T) -
+                                                             colMeans(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Year>=1830 & dat.ecosys$Year<=1850, vars.agg], na.rm=T)
+}
+mod.agg
+
+# Combining mod.agg and the mean deriviative for each variable and model
+summary(ci.terms)
+ci.terms.agg <- aggregate(ci.terms[,c("mean.rel", "deriv")], by=ci.terms[,c("Model", "Effect")], FUN=mean, na.rm=T)
+ci.terms.agg <- merge(mod.agg, ci.terms.agg, all.x=T, all.y=T)
+summary(ci.terms.agg)
+
+
+deriv.agg <- merge(deriv.agg, mod.agg, all.x=T, all.y=T)
+
 # --------
 
 # --------
-# 5.b.2. Model closest to data for the ranges observed
+# 5.b.1. Sensitivity comparisons as a function of baseline NPP & variability
+#  -- Note: Here we're comparing characteristics of models, so we're going to go with 
+#           the data aggregated so that there's one value per model.  (We will NOT use
+#           the simulations)
 # --------
+{
+# Sensitivity range vs. NPP
+summary(ci.terms.agg)
+summary(deriv.agg)
+
+# Correlations with mean NPP
+pdf(file.path(fig.dir, "Sensitivity_versus_NPP_Models.pdf"), height=8.5, width=11)
+ggplot(data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect %in% c("tair", "precipf", "CO2"),]) + 
+  facet_wrap(~Effect, scales="free") +
+  geom_point(aes(x=Y, y=deriv, color=Model), size=10) +
+  scale_fill_manual(values=colors.use) +
+  scale_color_manual(values=colors.use) +
+  stat_smooth(aes(x=Y, y=deriv), method="lm", size=2, color="black") +
+  theme_bw()
+dev.off()
+
+co2.npp     <- lm(deriv ~ Y, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2"    ,])
+tair.npp    <- lm(deriv ~ Y, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair"   ,])
+precipf.npp <- lm(deriv ~ Y, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+summary(co2.npp)
+summary(tair.npp)
+summary(precipf.npp)
+
+
+# Correlations with NPP variability
+summary(ci.terms.agg)
+pdf(file.path(fig.dir, "Sensitivity_versus_Variability_Models.pdf"), height=8.5, width=11)
+ggplot(data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect %in% c("tair", "precipf", "CO2"),]) + 
+  facet_wrap(~Effect, scales="free") +
+  geom_point(aes(x=Y.rel.sd, y=deriv, color=Model), size=10) +
+  scale_fill_manual(values=colors.use) +
+  scale_color_manual(values=colors.use) +
+  stat_smooth(aes(x=Y.rel.sd, y=deriv), method="lm", size=2, color="black") +
+  theme_bw()
+dev.off()
+
+co2.sd     <- lm(deriv ~ Y.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2"    ,])
+tair.sd    <- lm(deriv ~ Y.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair"   ,])
+precipf.sd <- lm(deriv ~ Y.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+summary(co2.sd)
+summary(tair.sd)
+summary(precipf.sd)
+
+# Correlations with modern change in NPP
+summary(ci.terms.agg)
+pdf(file.path(fig.dir, "Sensitivity_versus_Change_Models.pdf"), height=8.5, width=11)
+ggplot(data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect %in% c("tair", "precipf", "CO2"),]) + 
+  facet_wrap(~Effect, scales="free") +
+  geom_point(aes(x=dModern.Y.rel, y=deriv, color=Model), size=10) +
+  scale_fill_manual(values=colors.use) +
+  scale_color_manual(values=colors.use) +
+  stat_smooth(aes(x=dModern.Y.rel, y=deriv), method="lm", size=2, color="black") +
+  theme_bw()
+dev.off()
+
+co2.mod     <- lm(deriv ~ dModern.Y.rel, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2"    ,])
+tair.mod    <- lm(deriv ~ dModern.Y.rel, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair"   ,])
+precipf.mod <- lm(deriv ~ dModern.Y.rel, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+summary(co2.mod)
+summary(tair.mod)
+summary(precipf.mod)
+
+
+# A couple additional stats on sensitivity agreement 
+summary(ci.terms)
+clim.agg <- c("mean.rel", "deriv")
+clim.effects                           <- aggregate(ci.terms.agg[,clim.agg], 
+                                                    by=ci.terms.agg[,c("Y.type", "data.type", "Effect")], 
+                                                    FUN=mean, na.rm=T)
+clim.effects[,paste0(clim.agg, ".sd")] <- aggregate(ci.terms.agg[,clim.agg], 
+                                                    by=ci.terms.agg[,c("Y.type", "data.type", "Effect")], 
+                                                    FUN=sd, na.rm=T)[,clim.agg]
+clim.effects
+clim.effects[clim.effects$data.type=="Model",]
+}
+# --------
+
+# --------
+# 5.b.2. Sensitivity as a function of disturbance
+# --------
+# Locating the fire file that didn't get put into ecosys
+output.all <- read.csv("../../phase1a_output_variables/PalEON_MIP_Yearly.csv")
+summary(output.all)
+
+agg.fire <- aggregate(output.all[,c("Fire")], by=output.all[,c("Model", "Updated")], FUN=mean, na.rm=T)
+names(agg.fire)[3] <- "Fire"
+agg.fire[is.na(agg.fire$Fire),] <- 0
+agg.fire
+
+ci.terms.agg <- merge(ci.terms.agg, agg.fire[,c("Model", "Fire")], all.x=T, all.y=F)
+ci.terms.agg
+
+# Correlations with NPP variability
+summary(ci.terms.agg)
+pdf(file.path(fig.dir, "Sensitivity_versus_Fire_Models.pdf"), height=8.5, width=11)
+ggplot(data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect %in% c("tair", "precipf", "CO2"),]) + 
+  facet_wrap(~Effect, scales="free") +
+  geom_point(aes(x=Fire, y=deriv, color=Model), size=10) +
+  scale_fill_manual(values=colors.use) +
+  scale_color_manual(values=colors.use) +
+  stat_smooth(aes(x=Fire, y=deriv), method="lm", size=2, color="black") +
+  theme_bw()
+dev.off()
+
+co2.fire     <- lm(deriv ~ Fire, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2"    ,])
+tair.fire    <- lm(deriv ~ Fire, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair"   ,])
+precipf.fire <- lm(deriv ~ Fire, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+summary(co2.fire)
+summary(tair.fire)
+summary(precipf.fire)
+
+summary(co2.fire)
+summary(tair.fire)
+summary(precipf.fire)
 # --------
 
 # -----------------------
@@ -532,6 +781,7 @@ dev.off()
 # ---------------------------------
 # 6. Graphing & Analyzing ensemble means of Drivers of change and sensitivities through time
 # ---------------------------------
+{
 # -----------------------
 # 6.a. Graphing
 # -----------------------
@@ -815,6 +1065,7 @@ dev.off()
 # -----------------------
 # -----------------------
 
+}
 # ----------------------------------------
 
 
