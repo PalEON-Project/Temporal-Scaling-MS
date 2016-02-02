@@ -53,7 +53,7 @@ library(car); library(zoo)
 # ----------------------------------------
 # 1. Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 path.data <- "Data"
 in.base <- "Data/gamms/Sensitivity_Baseline"
 out.dir <- "Data/analyses/analysis_baseline"
@@ -272,6 +272,26 @@ load(file.path(out.dir, "post-process_baseline.RData"))
 # ----------------------------------------
 {
 summary(dat.ecosys)
+
+# Getting some quick site stats for Table 1:
+ecosys2 <- aggregate(dat.ecosys[dat.ecosys$Model=="ed2" & dat.ecosys$Resolution=="t.001", c("tair", "precipf", "CO2")],
+                     by=dat.ecosys[dat.ecosys$Model=="ed2" & dat.ecosys$Extent=="850-2010" & dat.ecosys$Resolution=="t.001",c("Site", "Extent")], 
+                     FUN=mean)
+ecosys2[,c("tair.sd", "precipf.sd", "CO2.sd")] <- aggregate(dat.ecosys[dat.ecosys$Model=="ed2" & dat.ecosys$Resolution=="t.001", c("tair", "precipf", "CO2")],
+                                                           by=dat.ecosys[dat.ecosys$Model=="ed2" & dat.ecosys$Extent=="850-2010" & dat.ecosys$Resolution=="t.001",c("Site", "Extent")], 
+                                                           FUN=sd)[,c("tair", "precipf", "CO2")]
+ecosys2[,c("tair")] <- ecosys2[,c("tair")]-273.15
+ecosys2
+
+sites.table <- data.frame(Site  = c( "PHA" ,  "PHO" ,  "PUN" ,  "PBL" ,  "PDL" ,    "PMB"   ), 
+                          Lon   = c(-72.18 , -68.73 , -89.53 , -94.58 , -95.17 ,   -82.83   ), 
+                          Lat   = c( 42.54 ,  45.25 ,  62.22 ,  46.28 ,  47.17 ,    43.61   ),
+                          Biome = c("Decid", "Mixed", "Mixed", "Mixed", "Mixed", "Evergreen"))
+sites.table <- merge(sites.table, ecosys2[,c("Site", "tair", "tair.sd", "precipf", "precipf.sd")], all.x=T, all.y=T)
+sites.table[,c("tair", "tair.sd")] <- round(sites.table[,c("tair", "tair.sd")], 1)
+sites.table[,c("precipf", "precipf.sd")] <- round(sites.table[,c("precipf", "precipf.sd")], 0)
+
+write.csv(sites.table, file=file.path(out.dir, "Table1_SiteDescriptions.csv"), row.names=F)
 
 # models.use <- unique(dat.ecosys[,"Model.Order"])
 # colors.use <- as.vector(model.colors[model.colors$Model.Order %in% models.use, "color"])
