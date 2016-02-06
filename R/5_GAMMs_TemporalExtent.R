@@ -80,6 +80,7 @@ paleon.models <- list()
 {
 # Define what our response variable will be
 response <- "NPP"
+time.mod <- "Year"
 
 # Ecosys file = organized, post-processed m.name outputs
 #	generated with 1_generate_ecosys.R
@@ -90,27 +91,27 @@ ecosys <- ecosys[!ecosys$Model=="linkages",]
 summary(ecosys)
 
 
-# ------------------
-## Adding a biome classification so we can restrict analyses to 1 plot
-#
-#  # NOTE: This doesn't work with different temporal extents, so we have to go with
-#          specific plots
-# ------------------
-ecosys$Fcomp_check <- rowSums(ecosys[,c("Evergreen", "Deciduous", "Grass")])
-ecosys$PFT <- as.factor(
-			  ifelse(ecosys$Evergreen/ecosys$Fcomp_check>=0.7, "Evergreen", 
-              ifelse(ecosys$Deciduous/ecosys$Fcomp_check>=0.7, "Deciduous",
-              ifelse(ecosys$Grass    /ecosys$Fcomp_check>=0.7, "Grass"    ,
-              ifelse(rowSums(ecosys[,c("Evergreen", "Deciduous")])/ecosys$Fcomp_check>=0.7, "Mixed",
-              ifelse(ecosys$Grass/ecosys$Fcomp_check>=0.3 & 
-                     ecosys$Grass/ecosys$Fcomp_check<0.7, "Savanna",
-              ifelse(!is.na(ecosys$Evergreen), "Other", NA
-              )))))))
-summary(ecosys[,c(1:18,(ncol(ecosys)-3):ncol(ecosys))])
+# # ------------------
+# ## Adding a biome classification so we can restrict analyses to 1 plot
+# #
+# #  # NOTE: This doesn't work with different temporal extents, so we have to go with
+# #          specific plots
+# # ------------------
+# ecosys$Fcomp_check <- rowSums(ecosys[,c("Evergreen", "Deciduous", "Grass")])
+# ecosys$PFT <- as.factor(
+			  # ifelse(ecosys$Evergreen/ecosys$Fcomp_check>=0.5 & (ecosys$Evergreen & ecosys$Deciduous)/ecosys$Fcomp_check>=0.75, "Evergreen", 
+              # ifelse(ecosys$Deciduous/ecosys$Fcomp_check>=0.7  & (ecosys$Evergreen & ecosys$Deciduous)/ecosys$Fcomp_check>=0.75, "Deciduous",
+              # ifelse(ecosys$Grass    /ecosys$Fcomp_check>=0.7, "Grass"    ,
+              # ifelse(rowSums(ecosys[,c("Evergreen", "Deciduous")])/ecosys$Fcomp_check>=0.7, "Mixed",
+              # ifelse(ecosys$Grass/ecosys$Fcomp_check>=0.3 & 
+                     # ecosys$Grass/ecosys$Fcomp_check<0.7, "Savanna",
+              # ifelse(!is.na(ecosys$Evergreen), "Other", NA
+              # )))))))
+# summary(ecosys[,c(1:18,(ncol(ecosys)-3):ncol(ecosys))])
 
-summary(ecosys[!(ecosys$Model=="sibcasa") & ecosys$PFT=="Evergreen",c(1:18,(ncol(ecosys)-3):ncol(ecosys))])
-summary(ecosys[!(ecosys$Model=="sibcasa") & ecosys$PFT=="Evergreen" & ecosys$Resolution=="t.001","PFT"])
-# ------------------
+# summary(ecosys[!(ecosys$Model=="sibcasa") & ecosys$PFT=="Evergreen",c(1:18,(ncol(ecosys)-3):ncol(ecosys))])
+# summary(ecosys[!(ecosys$Model=="sibcasa") & ecosys$PFT=="Evergreen" & ecosys$Resolution=="t.001","PFT"])
+# # ------------------
 
 
 for(m in unique(ecosys$Model)){
@@ -128,19 +129,20 @@ for(m in unique(ecosys$Model)){
 		# Skip models without the right data combo
 		if(!length(which(dat.subsets)==TRUE)>0) next 
 
-		# What will our spatio-temporal explanatory factor ("Time") be?
-		if(!is.na(mean(ecosys[dat.subsets,"AGB"]))) time.mod="AGB" else time.mod="LAI"
+		# What will our spatio-temporal explanatory factor ("Biomass") be?
+		if(!is.na(mean(ecosys[dat.subsets,"AGB"]))) biomass.mod="AGB" else biomass.mod="LAI"
 
 		data.temp                  <- ecosys[dat.subsets, c("Model", "Model.Order", "Site", "Year")]
 		data.temp$PlotID           <- ecosys[dat.subsets,"Site" ]
 		data.temp$TreeID           <- as.factor(NA)
 		data.temp$Y                <- ecosys[dat.subsets,response]
-		data.temp$Time             <- ecosys[dat.subsets,time.mod]
+		data.temp$Biomass          <- ecosys[dat.subsets,biomass.mod]
+        data.temp$Time             <- ecosys[dat.subsets,time.mod]
 		data.temp[,predictors.all] <- ecosys[dat.subsets, paste0(predictors.all, predictor.suffix)]
 		data.temp$Resolution       <- ecosys[dat.subsets,"Resolution"]
 
 		# Getting rid of NAs in predictors
-		data.temp <- data.temp[complete.cases(data.temp[,c(predictors.all, "Y", "Time")]),]
+		data.temp <- data.temp[complete.cases(data.temp[,c(predictors.all, "Y", "Biomass", "Time")]),]
 
 		# Copy the response variable & some other things for the model
 		paleon.models[[paste(m, ifelse(nchar(y)==3, paste0(0, y), y), sep="_")]] <- data.temp
@@ -155,8 +157,9 @@ for(m in unique(ecosys$Model)){
 # ----------------------------------------
 {
 # Define what our response & time variables will be
-response <- "ABI.area"
-time.mod <- "AB.area"
+response    <- "ABI.area"
+biomass.mod <- "AB.area"
+time.mod    <- "plot.Age"
 
 # Load Tree ring NPP data
 spp.npp <- read.csv(file.path("Data", "TreeRing_NPP_PlotSpecies.csv"))
@@ -169,9 +172,26 @@ summary(pft.npp)
 
 
 # aggregate to total plot NPP (ABI.area)
-plot.npp <- aggregate(spp.npp[,c(response, time.mod)], by=spp.npp[,c("Site", "Site2", "PlotID", "Year")], FUN=sum)
+plot.npp <- aggregate(spp.npp[,c(response, biomass.mod)], by=spp.npp[,c("Site", "Site2", "PlotID", "Year")], FUN=sum)
 plot.npp[,c(paste0(predictors.all, predictor.suffix))] <- aggregate(spp.npp[,c(paste0(predictors.all, predictor.suffix))], by=spp.npp[,c("Site", "Site2", "PlotID", "Year")], FUN=mean)[,c(paste0(predictors.all, predictor.suffix))]
 summary(plot.npp)
+
+
+# -------
+# Loading tree ring data & extracting plot age
+# -------
+tree.rings <- read.csv("Data/TreeRing_RingWidths.csv")
+summary(tree.rings)
+
+plot.age <- aggregate(tree.rings[,c("Age", "DBH")], by=tree.rings[,c("PlotID", "Year")], FUN=mean, na.rm=T)
+plot.age$BA.sum <- aggregate(tree.rings[,c("DBH")], by=tree.rings[,c("PlotID", "Year")], FUN=function(x){sum(pi*((x/2)^2), na.rm=T)})[,3]
+plot.age$BA.mean <- aggregate(tree.rings[,c("DBH")], by=tree.rings[,c("PlotID", "Year")], FUN=function(x){mean(pi*((x/2)^2), na.rm=T)})[,3]
+names(plot.age)[3:ncol(plot.age)] <- paste0("plot.", names(plot.age)[3:ncol(plot.age)])
+summary(plot.age)
+
+plot.npp <- merge(plot.npp, plot.age, all.x=T, all.y=F)
+summary(plot.npp)
+# -------
 
 # Adding in the PFT factor (just for extra info at this point)
 pft.vector <- vector()
@@ -217,12 +237,13 @@ for(y in start.yrs){
 	data.temp$Model.Order      <- as.factor("Tree Ring NPP")
 	data.temp$TreeID           <- as.factor(NA)
 	data.temp$Y                <- plot.npp[dat.subsets,response]
+	data.temp$Biomass          <- plot.npp[dat.subsets,biomass.mod]
 	data.temp$Time             <- plot.npp[dat.subsets,time.mod]
 	data.temp[,predictors.all] <- plot.npp[dat.subsets, paste0(predictors.all, predictor.suffix)]
 	data.temp$Resolution       <- as.factor("t.001")
 
 	# Make sure everything is complete cases
-	data.temp <- data.temp[complete.cases(data.temp[,c(predictors.all, "Y", "Time")]),]
+	data.temp <- data.temp[complete.cases(data.temp[,c(predictors.all, "Y", "Biomass", "Time")]),]
 
 	# Order everything the same way to make life easier
 	data.temp <- data.temp[,names(paleon.models[[1]])]
@@ -237,8 +258,10 @@ for(y in start.yrs){
 # 1.c. Load & set up raw ring widths
 # ----------------------------------------
 {
-response <- "RW"
-time.mod <- "DBH"
+response    <- "RW"
+biomass.mod <- "DBH"
+time.mod    <- "Age"
+
 
 tree.rings <- read.csv("Data/TreeRing_RingWidths.csv")
 summary(tree.rings)
@@ -264,12 +287,13 @@ for(y in start.yrs){
 	data.temp$Model            <- as.factor("TreeRingRW")
 	data.temp$Model.Order      <- as.factor("Tree Ring RW")
 	data.temp$Y                <- tree.rings[dat.subsets,response]
-	data.temp$Time             <- log(tree.rings[dat.subsets,time.mod])
+	data.temp$Biomass          <- tree.rings[dat.subsets,biomass.mod]
+	data.temp$Time             <- tree.rings[dat.subsets,time.mod]
 	data.temp[,predictors.all] <- tree.rings[dat.subsets, paste0(predictors.all, predictor.suffix)]
 	data.temp$Resolution       <- as.factor("t.001")
 
 	# Make sure everything is complete cases
-	data.temp <- data.temp[complete.cases(data.temp[,c(predictors.all, "Y", "Time")]),]
+	data.temp <- data.temp[complete.cases(data.temp[,c(predictors.all, "Y", "Biomass", "Time")]),]
 
 	# Order everything the same way to make life easier
 	data.temp <- data.temp[,names(paleon.models[[1]])]
@@ -333,7 +357,7 @@ pdf(file.path(fig.dir, "GAMM_ModelFit_TempExtent.pdf"))
 {
 for(e in unique(mod.out$data$Extent)){
 print(	
-ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",]) + facet_wrap(~ Model, scales="free") + theme_bw() +
+ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",]) + facet_grid(Site ~ Model, scales="free_x") + theme_bw() +
  	geom_line(data= mod.out$data[mod.out$data$Extent==e & !substr(mod.out$data$Model, 1, 8)=="TreeRing",], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(data=mod.out$ci.response[mod.out$ci.response$Extent==e & !substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",], aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(data=mod.out$ci.response[mod.out$ci.response$Extent==e & !substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",], aes(x=Year, y=mean, color=Model), size=0.35) +
@@ -359,7 +383,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + fa
 trees.subset <- c("30-01", "30-02", "30-03", "30-04", "30-21", "30-22")
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$PlotID=="ME029" & mod.out$ci.response$TreeID %in% trees.subset,]) + 
-	facet_grid(TreeID~ Extent, scales="free") + theme_bw() +
+	facet_grid(TreeID~ Extent, scales="free_x") + theme_bw() +
  	geom_line(data= mod.out$data[mod.out$data$Model=="TreeRingRW" & mod.out$data$PlotID=="ME029" & mod.out$data$TreeID %in% trees.subset,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
@@ -369,6 +393,21 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.ou
 	scale_color_manual(values=paste(col.model)) +		
 	labs(title=paste("TempExtent"), x="Year", y="RW")
 )
+
+trees.subset <- unique(mod.out$data[!is.na(mod.out$data$TreeID) & mod.out$data$PlotID=="LF1", "TreeID"])[1:5]
+print(	
+ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$TreeID %in% trees.subset,]) + 
+	facet_grid(TreeID~ Extent, scales="free_x") + theme_bw() +
+ 	geom_line(data= mod.out$data[mod.out$data$Model=="TreeRingRW" & mod.out$data$TreeID %in% trees.subset,], aes(x=Year, y=Y), alpha=0.5) +
+	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
+	# scale_x_continuous(limits=c(1900,2010)) +
+	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste("TempExtent"), x="Year", y="RW")
+)
+
 }
 dev.off()
 
@@ -380,13 +419,36 @@ pdf(file.path(fig.dir, "GAMM_DriverSensitivity_TempExtent.pdf"))
 m.order <- unique(mod.out$data[,"Model.Order"])
 col.model <- c(paste(model.colors[model.colors$Model.Order %in% m.order,"color"]), "black", "gray30")
 print(
-ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_grid(Extent ~ Effect, scales="free") + theme_bw() +		
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_grid(Extent ~ Effect, scales="free_x") + theme_bw() +		
 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
 	geom_hline(yintercept=0, linetype="dashed") +
+	scale_y_continuous(limits=c(-5,5), expand=c(0,0)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) )
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) 
+)
+
+print(
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("Biomass"),]) + facet_grid(Extent ~ Model, scales="free_x") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Model), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	scale_y_continuous(limits=c(-5,5), expand=c(0,0)) +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) 
+)
+print(
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("Time"),]) + facet_grid(Extent ~ Model, scales="free_x") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Model), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	scale_y_continuous(limits=c(-5,5), expand=c(0,0)) +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) 
+)
 
 }
 dev.off()
