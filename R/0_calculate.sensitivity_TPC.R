@@ -45,7 +45,7 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	if(PFT==T){
 		predictors=c("tair", "precipf", "CO2", "PFT", "Biomass", "Time")
 		# gam1 <- gam(Y ~  s(Time, bs="cr", k=4, by=PFT) + s(Biomass, bs="cr", k=3, by=PFT) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT)   , data=data)
-		gam1 <- gam(Y ~  s(Biomass, bs="cr", k=3, by=PFT) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + PFT, data=data)
+		gam1 <- gam(Y ~  s(Biomass, bs="cr", k=3, by=PFT) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) , data=data)
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
