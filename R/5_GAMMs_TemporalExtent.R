@@ -33,11 +33,11 @@ library(car)
 # Define constants
 # ----------------------------------------
 sec2yr <- 1*60*60*24*365
-start.yrs <- c(1985, 1901, 850)
+start.yrs <- c(1980, 1901, 850)
 predictors.all <- c("tair", "precipf", "CO2")
 predictor.suffix <- c(".gs")
 resolutions <- "t.001"
-k=4
+k=3
 
 # wanted to do PFT, but we don't get even representation,
 # so we're going to restrict it to PHO which has NPP data &
