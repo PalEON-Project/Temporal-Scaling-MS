@@ -1,5 +1,5 @@
 # ----------------------------------------
-# Objective: Create "PlotRF" sensitivity curves for each model/data stream 
+# Objective: Create "PlotRF_BM" sensitivity curves for each model/data stream 
 #            that are based on all sites, all Biomass
 # Christy Rollinson, crollinson@gmail.com
 # Date Created: 28 July 2015
@@ -47,15 +47,15 @@ dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
 # Source the gamm file
-source('R/0_calculate.sensitivity_TPC_PlotRF.R', chdir = TRUE)
+source('R/0_calculate.sensitivity_TPC_PlotRF_BM.R', chdir = TRUE)
 
 # Making sure the appropriate file paths exist
 if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "Sensitivity_PlotRF")
-dat.dir <- file.path(dat.base, "Sensitivity_PlotRF")
+fig.dir <- file.path(fig.base, "Sensitivity_PlotRF_BM")
+dat.dir <- file.path(dat.base, "Sensitivity_PlotRF_BM")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -246,7 +246,7 @@ for(i in 1:length(models.base)){
 		mod.out$sim.response <- models.base[[i]]$sim.response
 		mod.out$ci.terms     <- models.base[[i]]$ci.terms
 		mod.out$sim.terms    <- models.base[[i]]$sim.terms
-		mod.out[[paste("gamm", names(models.base)[i], "PlotRF", sep=".")]] <- models.base[[i]]$gamm
+		mod.out[[paste("gamm", names(models.base)[i], "PlotRF_BM", sep=".")]] <- models.base[[i]]$gamm
 	} else {
 		mod.out$data         <- rbind(mod.out$data,         models.base[[i]]$data)
 		mod.out$weights      <- rbind(mod.out$weights,      models.base[[i]]$weights)
@@ -254,11 +254,11 @@ for(i in 1:length(models.base)){
 		mod.out$sim.response <- rbind(mod.out$sim.response, models.base[[i]]$sim.response)
 		mod.out$ci.terms     <- rbind(mod.out$ci.terms,     models.base[[i]]$ci.terms)
 		mod.out$sim.terms    <- rbind(mod.out$sim.terms,    models.base[[i]]$sim.terms)
-		mod.out[[paste("gamm", names(models.base)[i], "PlotRF", sep=".")]] <- models.base[[i]]$gamm
+		mod.out[[paste("gamm", names(models.base)[i], "PlotRF_BM", sep=".")]] <- models.base[[i]]$gamm
 	}
 }
 
-save(mod.out, file=file.path(dat.dir, "gamm_PlotRF.Rdata"))
+save(mod.out, file=file.path(dat.dir, "gamm_PlotRF_BM.Rdata"))
 }
 # -------------------------------------------------------------------------------
 
@@ -270,7 +270,7 @@ save(mod.out, file=file.path(dat.dir, "gamm_PlotRF.Rdata"))
 m.order <- unique(mod.out$data$Model.Order)
 col.model <- c(paste(model.colors[model.colors$Model.Order %in% m.order,"color"]), "black", "gray30")
 
-pdf(file.path(fig.dir, "GAMM_ModelFit_PlotRF.pdf"))
+pdf(file.path(fig.dir, "GAMM_ModelFit_PlotRF_BM.pdf"))
 {
 print(	
 ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeRing",]) + facet_grid(PlotID~ Model, scales="free") + theme_bw() +
@@ -281,7 +281,7 @@ ggplot(data=mod.out$ci.response[!substr(mod.out$ci.response$Model, 1, 8)=="TreeR
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("PlotRF"), x="Year", y="NPP")
+	labs(title=paste("PlotRF_BM"), x="Year", y="NPP")
 )
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + facet_wrap(~ PlotID, scales="fixed") + theme_bw() +
@@ -292,7 +292,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + fa
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("PlotRF"), x="Year", y="NPP")
+	labs(title=paste("PlotRF_BM"), x="Year", y="NPP")
 )
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$PlotID=="ME029",]) + facet_wrap(~ TreeID, scales="fixed") + theme_bw() +
@@ -303,7 +303,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.ou
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("PlotRF"), x="Year", y="RW")
+	labs(title=paste("PlotRF_BM"), x="Year", y="RW")
 )
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$PlotID=="TP1",]) + facet_wrap(~ TreeID, scales="fixed") + theme_bw() +
@@ -314,7 +314,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.ou
 	# scale_y_continuous(limits=quantile(mod.out$data[mod.out$data$Year>=1900,"response"], c(0.01, 0.99),na.rm=T)) +
 	scale_fill_manual(values=paste(col.model)) +
 	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste("PlotRF"), x="Year", y="RW")
+	labs(title=paste("PlotRF_BM"), x="Year", y="RW")
 )
 
 }
@@ -322,7 +322,7 @@ dev.off()
 
 mod.out$ci.terms$x <- as.numeric(paste(mod.out$ci.terms$x))
 summary(mod.out$ci.terms)
-pdf(file.path(fig.dir, "GAMM_DriverSensitivity_PlotRF.pdf"), height=8.5, width=11)
+pdf(file.path(fig.dir, "GAMM_DriverSensitivity_PlotRF_BM.pdf"), height=8.5, width=11)
 {
 print(
 ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + facet_wrap(~ Effect, scales="free_x") + theme_bw() +		
@@ -334,6 +334,18 @@ ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("tair", "precipf", "
 	scale_color_manual(values=paste(col.model)) +		
 	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) # +
 )
+
+print(
+ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("Biomass"),]) + facet_wrap( ~ Model, scales="free_x") + theme_bw() +		
+	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+	geom_line(aes(x=x, y=mean, color=Model), size=2) +
+	geom_hline(yintercept=0, linetype="dashed") +
+	scale_y_continuous(limits=c(-5, 5)) +
+	scale_fill_manual(values=paste(col.model)) +
+	scale_color_manual(values=paste(col.model)) +		
+	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) 
+)
+
 }
 dev.off()
 }

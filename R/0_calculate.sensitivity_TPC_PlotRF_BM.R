@@ -43,15 +43,15 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	# Note: different model structure based on whether or not we have random sites
 	# ----------------------------------------
 	if(PFT==T){
-		predictors=c("tair", "precipf", "CO2", "PFT", "PlotID")
+		predictors=c("tair", "precipf", "CO2", "PFT", "PlotID", "Biomass")
 		# gam1 <- gam(Y ~  s(Time, bs="cr", k=4, by=PFT) + s(Biomass, bs="cr", k=3, by=PFT) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT)   , data=data)
-		gam1 <- gamm(Y ~  s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT), random=list(PlotID=~1), data=data)
+		gam1 <- gamm(Y ~  s(Biomass, bs="cr", k=3, by=PFT) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT), random=list(PlotID=~1), data=data)
 	# ----------------------------------------
 	} else {
 	# ----------------------------------------
-		predictors=c("tair", "precipf", "CO2", "PlotID")
+		predictors=c("tair", "precipf", "CO2", "PlotID", "Biomass")
 		# gam1 <- gam(Y ~ s(Time, bs="cr", k=4) + s(Biomass, bs="cr", k=3) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k), data=data)
-		gam1 <- gamm(Y ~ s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k), random=list(PlotID=~1), data=data)
+		gam1 <- gamm(Y ~ s(Biomass, bs="cr", k=3) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k), random=list(PlotID=~1), data=data)
 	}
 	# ----------------------------------------
 

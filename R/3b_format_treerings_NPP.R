@@ -33,7 +33,7 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/"
-fig.base="Figures/"
+fig.base="Figures/TreeRings"
 
 # Making sure the appropriate file paths exist
 if(!dir.exists(dat.base)) dir.create(dat.base)
