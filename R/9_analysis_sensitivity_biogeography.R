@@ -62,7 +62,7 @@ ecosys <- ecosys[!ecosys$Model=="linkages",]
 models.use <- unique(ecosys[,"Model.Order"])
 colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% models.use, "color"]), "black", "gray40"))
 
-# Load the statistical model results
+# # Load the statistical model results
 load(file.path(in.base, "gamm_PFT.Rdata"))
 
 dat.ecosys <- cbind(mod.out$data[, ], mod.out$ci.response[,c("mean", "lwr", "upr")])
@@ -291,14 +291,14 @@ summary(ci.terms.graph)
 ci.terms <- merge(ci.terms, models.df, all.x=T, all.y=F)
 summary(ci.terms)
 
-ci.terms.graph$PFT2 <- recode(ci.terms.graph$PFT, "'Deciduous'='1'; 'Mixed'='2'; 'Evergreen'='3'; 'Grass/Savanna'='4'")
-levels(ci.terms.graph$PFT2) <- c("Deciduous", "Mixed", "Evergreen", "Grass/Savanna")
+# ci.terms.graph$PFT2 <- recode(ci.terms.graph$PFT, "'Deciduous'='1'; 'Mixed'='2'; 'Evergreen'='3'; 'Grass/Savanna'='4'")
+# levels(ci.terms.graph$PFT2) <- c("Deciduous", "Mixed", "Evergreen", "Grass/Savanna")
   
 # Plot the relativized
 pdf(file.path(fig.dir, "Fig3_Sensitivity_Models_Rel_PFT.pdf"), height=8.5, width=11)
 {
 print(
-ggplot(data=ci.terms.graph[ci.terms.graph$Effect %in% c("tair", "precipf", "CO2"),]) + facet_grid(PFT2~Effect, scales="free_x") +
+ggplot(data=ci.terms.graph[ci.terms.graph$Effect %in% c("tair", "precipf", "CO2"),]) + facet_grid(PFT~Effect, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
 	geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
 	scale_x_continuous(expand=c(0,0), name="") +
@@ -315,7 +315,7 @@ pdf(file.path(fig.dir, "Sensitivity_Models_Rel_PFT_breakdown.pdf"), height=8.5, 
 for(e in c("tair", "precipf", "CO2")){
 # print(summary(ci.terms[ci.terms$Effect==e,]))
 print(
-ggplot(data= ci.terms.graph[ci.terms.graph$Effect==e,]) + facet_wrap(~PFT2, scales="fixed") +
+ggplot(data= ci.terms.graph[ci.terms.graph$Effect==e,]) + facet_wrap(~PFT, scales="fixed") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
 	geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
 	scale_x_continuous(expand=c(0,0), name=e) +
@@ -326,9 +326,117 @@ ggplot(data= ci.terms.graph[ci.terms.graph$Effect==e,]) + facet_wrap(~PFT2, scal
 	theme_bw()
 )
 }
+for(e in c("Time", "Biomass")){
+# print(summary(ci.terms[ci.terms$Effect==e,]))
+print(
+ggplot(data= ci.terms.graph[ci.terms.graph$Effect==e,]) + facet_wrap(~Model, scales="free_x") +
+	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=PFT), alpha=0.3) +
+	geom_line(aes(x=x, y=mean.rel*100, color=PFT, linetype=PFT), size=1) +
+	scale_x_continuous(expand=c(0,0), name=e) +
+	scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+	# scale_fill_manual(values=colors.use) +
+	# scale_color_manual(values=colors.use) +
+	# scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
+	theme_bw()
+)
+}
 dev.off()
 }
 # -----------------------
+
+
+# -----------------------
+# 6.b. Analysis: 
+# -----------------------
+source("R/0_Calculate_GAMM_Posteriors.R")
+library(mgcv)
+# --------
+# 4.b.0. Adding model-level stats to compare the relative sensitivities
+# --------
+{
+
+# Condensing model variability across space and time to get general model characteristics
+{
+}
+
+# Making the data frame so we can graph & compare the curves quantitatively
+{
+}
+
+
+# Condensing the full sensitivity curves to the values at the 25, 50, and 75% for   
+# analysis of continuous characteristics of models (i.e. NPP, modern change, etc)
+{
+}
+}
+# --------
+
+
+# --------
+# 4.b.1 Ensemble-level coherence in Biome/PFT sensitivity
+#   Hypothesis: Models are more alike when we compare them within a biome classification
+# --------
+{
+# Loading baseline model sensitivity & calculate model deviation from the ensemble sensitivity
+{  
+}
+
+# Calculate ensemble Biome sensitivity & model deviation from the ensemble   
+{
+  
+}
+
+# Statistical test!
+{
+  
+}
+
+}
+# --------
+
+# --------
+# 4.b.1 Coherence of relative Biome sensitivity
+#   Hypothesis: Models have similar relationships among biome sensitivites and so are parameterized 
+#               at least somewhat similarly; i.e. Grass is always less sensitivie than evergreen, etc 
+#               so differences in biogeography are more associated with differences in how models 
+#               represent spatial (site-level) variation
+# --------
+{
+# Loading baseline model sensitivity & calculate PFT deviation from the generic sensitivity
+{  
+}
+
+# Statistical tests!!
+{
+  
+}
+
+}
+# --------
+
+# -----------------------
+# ----------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # -----------------------
 # 4.b. Analysis: Looking at the change in Effect Sensitivity from added site effect
