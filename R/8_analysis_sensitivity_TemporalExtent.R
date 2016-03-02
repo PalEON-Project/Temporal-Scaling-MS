@@ -566,12 +566,6 @@ print(
 ggplot(data=ci.terms.graph[ci.terms.graph$Effect=="Biomass" ,]) + facet_wrap(~Model, scales="free_x") +
 	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Extent), alpha=0.3) +
 	geom_line(aes(x=x, y=mean.rel*100, color=Extent, linetype=Extent), size=1) +
-	# Lower Shaded Region
-	geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
-	geom_vline(aes(xintercept=line.min), linetype="dashed") +
-	# Upper Shaded Region
-	geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
-	geom_vline(aes(xintercept=line.max), linetype="dashed") +
 	scale_x_continuous(expand=c(0,0), name="") +
 	scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
 	# scale_fill_manual(values=colors.use) +
@@ -1063,14 +1057,14 @@ summary(ci.terms)
   ext.post <- rbind(tair.ext.post, precipf.ext.post, co2.ext.post)
   summary(ext.post)
   
-  ext.post <- aggregate(ext.post[,c("mean", "lwr", "upr")], by=ext.post[,c("Effect", "Extent", "x", "Quantile")], FUN=mean)
-  summary(ext.post)
+  ext.post2 <- aggregate(ext.post[,c("mean", "lwr", "upr")], by=ext.post[,c("Effect", "Extent", "x", "Quantile")], FUN=mean)
+  summary(ext.post2)
   
   # Plotting everything out
   pdf(file.path(fig.dir, "Sensitivity_Ensemble_Extent.pdf"))
   {
   print(
-  ggplot(data=ext.post[,]) +
+  ggplot(data=ext.post2[,]) +
     facet_wrap(~Effect, scales="free_x") +
     geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
     geom_line(aes(x=x, y=mean, color=Extent, linetype=Extent), size=2) +
@@ -1151,7 +1145,7 @@ summary(ci.terms)
   summary(ci.terms)
   for(m in unique(ci.terms[ci.terms$data.type=="Model", "Model"])){
     for(v in c("tair", "precipf", "CO2")){
-      for(e in unique(ci.terms$Extent)){
+      for(e in unique(ci.terms[ci.terms$Model==m, "Extent"])){
         ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent==e,"dev.ensemble"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent==e,"mean.rel.cent"] - ext.post[ext.post$Extent==e & ext.post$Effect==v & ext.post$Model==m , "mean"]
       }
     }
@@ -1201,6 +1195,7 @@ summary(ci.terms)
     ci.terms.graph[ci.terms.graph$Extent==e & ci.terms.graph$Effect=="precipf", "line.max"] <- precipf[2]
     ci.terms.graph[ci.terms.graph$Extent==e & ci.terms.graph$Effect=="CO2"    , "line.max"] <- co2    [2]
   }
+
   ci.terms.graph$x.min <- ifelse(ci.terms.graph$x<ci.terms.graph$line.min, ci.terms.graph$x, ci.terms.graph$line.min)
   ci.terms.graph$x.max <- ifelse(ci.terms.graph$x>ci.terms.graph$line.max, ci.terms.graph$x, ci.terms.graph$line.max)
   ci.terms.graph$mask.min <- min(ci.terms.graph$lwr.rel, na.rm=T)
@@ -1288,7 +1283,7 @@ summary(ci.terms)
   print(
   ggplot(data=ci.terms[!is.na(ci.terms$Quantile) & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) + 
     facet_grid(~Effect) +
-    geom_boxplot(aes(x=Extent, y=abs(dev.ensemble), fill=Extent), adjust=2, scale="width") +
+    geom_boxplot(aes(x=Extent, y=abs(dev.ensemble), fill=Extent)) +
     ggtitle("Full Met Range, quantiles") +
     scale_y_continuous(expand=c(0,0)) +
     scale_fill_manual(values=c("blue3", "red3", "green3")) +
@@ -1307,9 +1302,9 @@ summary(ci.terms)
   dev.off()
   
   # Comparing the variation at the quantiles
-  ensemble.co2     <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!is.na(ci.terms$Quantile) & ci.terms$Effect=="CO2"     & ci.terms$data.type=="Model",])
-  ensemble.tair    <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!is.na(ci.terms$Quantile) & ci.terms$Effect=="tair"    & ci.terms$data.type=="Model",])
-  ensemble.precipf <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!is.na(ci.terms$Quantile) & ci.terms$Effect=="precipf" & ci.terms$data.type=="Model",])
+  ensemble.co2     <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!ci.terms$Quantile=="Other" & ci.terms$Effect=="CO2"     & ci.terms$data.type=="Model",])
+  ensemble.tair    <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect=="tair"    & ci.terms$data.type=="Model",])
+  ensemble.precipf <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect=="precipf" & ci.terms$data.type=="Model",])
   summary(ensemble.co2)  
   summary(ensemble.tair)  
   summary(ensemble.precipf)  
@@ -1364,10 +1359,112 @@ CO2.850/(CO2.base.max - CO2.base.min)
 #         ensemble-level patterns
 # --------
 {
+
+  # Making a combo site & Extent factor
+  ci.terms$veg.extent <- as.factor(paste(ci.terms$veg.scheme, ci.terms$Extent, sep="."))
+  summary(ci.terms)
+  
+  df.co2    $veg.extent <- as.factor(paste(df.co2    $veg.scheme, df.co2$Extent, sep="."))
+  df.tair   $veg.extent <- as.factor(paste(df.tair   $veg.scheme, df.co2$Extent, sep="."))
+  df.precipf$veg.extent <- as.factor(paste(df.precipf$veg.scheme, df.co2$Extent, sep="."))
+# ------------  
+# Veg scheme & Sensitivity across scales
+# ------------
+{
+
+  co2.veg.lm1     <- lm(abs(mean.rel.cent) ~ Extent*veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.veg.lm1    <- lm(abs(mean.rel.cent) ~ veg.scheme*Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.veg.lm1 <- lm(abs(mean.rel.cent) ~ Extent*veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  anova(co2.veg.lm1)
+  anova(tair.veg.lm1)
+  anova(precipf.veg.lm1) # Precipf = no veg  or veg x extent interaction 
+  
+  tair.veg.t.veg    <- t.test(abs(mean.rel.cent) ~ veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.veg.lm.ext    <- lm(mean.cent.dev.abs ~ Extent-1, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  summary(tair.veg.lm.veg)
+  summary(tair.veg.lm.ext)
+  
+  co2.veg.lm2     <- lm(abs(mean.rel.cent) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.veg.lm2    <- lm(abs(mean.rel.cent) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.veg.lm2 <- lm(abs(mean.rel.cent) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.veg.lm2)
+  summary(tair.veg.lm2)
+  summary(precipf.veg.lm2) # Precipf = no veg  or veg x extent interaction 
+  
+  
+  co2.veg.lme     <- lme(abs(mean.rel.cent) ~ veg.scheme, random=list(Extent=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.veg.lme    <- lme(abs(mean.rel.cent) ~ veg.scheme, random=list(Extent=~1, x=~1), data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.veg.lme <- lme(abs(mean.rel.cent) ~ veg.scheme, random=list(Extent=~1, x=~1), data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.veg.lme)
+  summary(tair.veg.lme)
+  summary(precipf.veg.lme)
+  
+  
+  
+  
+  co2.veg.ext     <- gam(mean.rel.cent ~ s(x, by=veg.extent), data=ci.terms[ci.terms$Effect=="CO2"     & ci.terms$data.type=="Model",])
+  tair.veg.ext    <- gam(mean.rel.cent ~ s(x, by=veg.extent), data=ci.terms[ci.terms$Effect=="tair"    & ci.terms$data.type=="Model",])
+  precipf.veg.ext <- gam(mean.rel.cent ~ s(x, by=veg.extent), data=ci.terms[ci.terms$Effect=="precipf" & ci.terms$data.type=="Model",])
+  
+  # Plot the different sensitivity curves by characteristic
+  co2.veg.ext.post <- post.distns(model.gam=co2.veg.ext, model.name="CO2", n=50, newdata=df.co2, vars="x", terms=F)$ci
+  co2.veg.ext.post[,factors.agg] <- df.co2[,factors.agg]
+  summary(co2.veg.ext.post)
+  
+  tair.veg.ext.post <- post.distns(model.gam=tair.veg.ext, model.name="tair", n=50, newdata=df.tair, vars="x", terms=F)$ci
+  tair.veg.ext.post[,factors.agg] <- df.tair[,factors.agg]
+  summary(tair.veg.ext.post)
+  
+  precipf.veg.ext.post <- post.distns(model.gam=precipf.veg.ext, model.name="precipf", n=50, newdata=df.precipf, vars="x", terms=F)$ci
+  precipf.veg.ext.post[,factors.agg] <- df.precipf[,factors.agg]  
+  summary(precipf.veg.ext.post)
+  
+  veg.ext.post <- rbind(tair.veg.ext.post, precipf.veg.ext.post, co2.veg.ext.post)
+  summary(veg.ext.post)
+  
+  veg.ext.post2 <- aggregate(veg.ext.post[,c("mean", "lwr", "upr")], by=veg.ext.post[,c("veg.scheme", "Effect", "Extent", "x", "Quantile")], FUN=mean)
+  summary(veg.ext.post2)
+  
+  # Plotting everything out
+  pdf(file.path(fig.dir, "Sensitivity_VegScheme_Extent.pdf"))
+  {
+    print(
+      ggplot(data=veg.ext.post2[,]) +
+        facet_grid(Extent~Effect, scales="free_x") +
+        geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=veg.scheme), alpha=0.5) +
+        geom_line(aes(x=x, y=mean, color=veg.scheme, linetype=veg.scheme), size=2) +
+        ggtitle("Models Ensemble by Temporal Extent") +
+        scale_y_continuous(expand=c(0,0)) +
+        scale_fill_manual(values=c("blue3", "red3", "green3")) +
+        scale_color_manual(values=c("blue3", "red3", "green3")) +
+        theme_bw()  
+    )
+    print(
+      ggplot(data=veg.ext.post2[,]) +
+        facet_grid(veg.scheme~Effect, scales="free_x") +
+        geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
+        geom_line(aes(x=x, y=mean, color=Extent, linetype=Extent), size=2) +
+        ggtitle("Models Ensemble by Temporal Extent") +
+        scale_y_continuous(expand=c(0,0)) +
+        scale_fill_manual(values=c("blue3", "red3", "green3")) +
+        scale_color_manual(values=c("blue3", "red3", "green3")) +
+        theme_bw()  
+    )
+  }
+  dev.off()
+}
+# ------------    
+  
+  
+    
+# ------------
+# Veg scheme & scalability (change in sensitivity) across scales
+# ------------
+{    
   pdf(file.path(fig.dir, "Sensitivity_Change_VegScheme.pdf"))
   {
   print(
-  ggplot(data=ci.terms[!is.na(ci.terms$Quantile) & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+  ggplot(data=ci.terms[!ci.terms$Quantile=="Other" & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
     facet_grid(Effect~Extent, scales="free") +
     geom_violin(aes(x=veg.scheme, y=mean.cent.deriv, fill=veg.scheme), adjust=2) +
     scale_fill_manual(values=c("blue3", "red3")) +
@@ -1397,17 +1494,17 @@ CO2.850/(CO2.base.max - CO2.base.min)
   }
   dev.off()
   
-  # Making a combo site & Extent factor
-  ci.terms$veg.extent <- as.factor(paste(ci.terms$veg.scheme, ci.terms$Extent, sep="."))
-  summary(ci.terms)
 
-
-  co2.veg.lm     <- lm(mean.cent.dev.abs ~ veg.scheme*Extent, data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.veg.lm    <- lm(mean.cent.dev.abs ~ veg.scheme*Extent, data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.veg.lm <- lm(mean.cent.dev.abs ~ veg.scheme*Extent, data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  co2.veg.lm     <- lm(mean.cent.dev.abs ~ veg.scheme*Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & !is.na(ci.terms$mean.rel.cent) & ci.terms$Effect=="CO2",])
+  tair.veg.lm    <- lm(mean.cent.dev.abs ~ veg.scheme*Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & !is.na(ci.terms$mean.rel.cent) & ci.terms$Effect=="tair",])
+  precipf.veg.lm <- lm(mean.cent.dev.abs ~ veg.scheme*Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & !is.na(ci.terms$mean.rel.cent) & ci.terms$Effect=="precipf",])
   anova(co2.veg.lm)
   anova(tair.veg.lm)
   anova(precipf.veg.lm) # Precipf = no veg  or veg x extent interaction 
+
+  precipf.veg.aov <- aov(mean.cent.dev.abs ~ veg.scheme*Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & !is.na(ci.terms$mean.rel.cent) & ci.terms$Effect=="precipf",])
+  
+  TukeyHSD(precipf.veg.aov)
   
   co2.veg.lme     <- lme(mean.cent.dev.abs ~ veg.scheme-1, random=list(Extent=~1,x=~1), data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
   tair.veg.lme    <- lme(mean.cent.dev.abs ~ veg.scheme-1, random=list(Extent=~1,x=~1), data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
@@ -1463,20 +1560,21 @@ CO2.850/(CO2.base.max - CO2.base.min)
                           FUN=mean)
     summary(veg.post)
     
-#     pdf(file.path(fig.dir, "Sensitivity_ExtentDeviation_VegExtent.pdf"))
-      {
+    pdf(file.path(fig.dir, "Sensitivity_ExtentDeviation_VegExtent.pdf"))
+    {
     print(
     ggplot(data=veg.post[!veg.post$Extent==ext.base, ]) +
       facet_grid(Extent~Effect,scales="free_x") +
       geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=veg.scheme), alpha=0.5)+
       geom_line(aes(x=x, y=mean, color=veg.scheme, linetype=veg.scheme), size=2) +
       geom_hline(yintercept=0, linetype="dashed") +
+      scale_y_continuous(name="mean.cent.dev.abs") +
       scale_fill_manual(values=c("red3", "green3")) +
       scale_color_manual(values=c("red3", "green3")) +
       theme_bw()
       )
     }
-#     dev.off()
+    dev.off()
   }
 
   # Looking at overall behavior of veg scheme while taking into account the extent
@@ -1515,6 +1613,16 @@ CO2.850/(CO2.base.max - CO2.base.min)
   pdf(file.path(fig.dir, "Sensitivity_ExtentDeviation_VegScheme.pdf"))
   {
     print(
+      ggplot(data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & !ci.terms$Extent==ext.base,]) +
+        facet_grid(Extent~Effect,scales="free_x") +
+#         geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=veg.scheme), alpha=0.5)+
+        geom_line(aes(x=x, y=mean.deriv.dev, color=Model), size=2) +
+        geom_hline(yintercept=0, linetype="dashed") +
+        scale_fill_manual(values=colors.use) +
+        scale_color_manual(values=colors.use) +
+        theme_bw()
+    )
+    print(
     ggplot(data=veg.post2[veg.post2$Model%in% c("ed2", "clm.bgc") & !veg.post2$Extent==ext.base, ]) +
       facet_wrap(~Effect,scales="free_x") +
       geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=veg.scheme), alpha=0.5)+
@@ -1526,9 +1634,398 @@ CO2.850/(CO2.base.max - CO2.base.min)
     )
   }
   dev.off()
+}
+# --------
 
 }
 # --------
+
+# --------
+# 5.b.4 Slow processes & sensitivity change: Composition (Fraction Evergreen)
+#  Hypothesis: Like Biomass, shifts in composition is a slow process that can mediate
+#              climate sensitivity at more long time scales but has limited influence
+#              at short time scales
+# --------
+{
+  
+  # ------------
+  # Correlation of Composition with sensitivity across scales
+  # ------------
+{  
+  # -----
+  # Evergreen!
+  # -----
+{
+  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
+  pdf(file.path(fig.dir, "Sensitivity_vs_Evergreen.pdf"))
+  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+    facet_wrap(~Effect, scales="fixed") +
+    geom_point(aes(x=Evergreen.mean, y=abs(mean.rel.cent), color=Extent), size=5) +
+    stat_smooth(aes(x=Evergreen.mean, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+    scale_color_manual(values=c("blue", "red3", "green3")) +
+    scale_fill_manual(values=c("blue", "red3", "green3")) +
+    theme_bw()
+  dev.off()
+  
+  co2.evg.lm     <- lm(abs(mean.rel.cent) ~ Evergreen.mean*(Extent-1) - Evergreen.mean , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.evg.lm    <- lm(abs(mean.rel.cent) ~ Evergreen.mean*(Extent-1) - Evergreen.mean , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.evg.lm <- lm(abs(mean.rel.cent) ~ Evergreen.mean*(Extent-1) - Evergreen.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.evg.lm)
+  summary(tair.evg.lm)
+  summary(precipf.evg.lm)
+}
+# -----
+
+# -----
+# Deciduous!
+# -----
+{
+  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
+  pdf(file.path(fig.dir, "Sensitivity_vs_Evergreen.pdf"))
+  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+    facet_wrap(~Effect, scales="fixed") +
+    geom_point(aes(x=Deciduous.mean, y=abs(mean.rel.cent), color=Extent), size=5) +
+    stat_smooth(aes(x=Deciduous.mean, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+    scale_color_manual(values=c("blue", "red3", "green3")) +
+    scale_fill_manual(values=c("blue", "red3", "green3")) +
+    theme_bw()
+  dev.off()
+  
+  co2.dec.lm     <- lm(abs(mean.rel.cent) ~ Deciduous.mean*(Extent-1) - Deciduous.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.dec.lm    <- lm(abs(mean.rel.cent) ~ Deciduous.mean*(Extent-1) - Deciduous.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.dec.lm <- lm(abs(mean.rel.cent) ~ Deciduous.mean*(Extent-1) - Deciduous.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.dec.lm)
+  summary(tair.dec.lm)
+  summary(precipf.dec.lm)
+}
+# -----
+
+# -----
+# Grass!
+# -----
+{
+  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
+  pdf(file.path(fig.dir, "Sensitivity_vs_Evergreen.pdf"))
+  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+    facet_wrap(~Effect, scales="fixed") +
+    geom_point(aes(x=Grass.mean, y=abs(mean.rel.cent), color=Extent), size=5) +
+    stat_smooth(aes(x=Grass.mean, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+    scale_color_manual(values=c("blue", "red3", "green3")) +
+    scale_fill_manual(values=c("blue", "red3", "green3")) +
+    theme_bw()
+  dev.off()
+  
+  co2.grass.lm     <- lm(abs(mean.rel.cent) ~ Grass.mean*(Extent-1) - Grass.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.grass.lm    <- lm(abs(mean.rel.cent) ~ Grass.mean*(Extent-1) - Grass.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.grass.lm <- lm(abs(mean.rel.cent) ~ Grass.mean*(Extent-1) - Grass.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.grass.lm)
+  summary(tair.grass.lm)
+  summary(precipf.grass.lm)
+}
+# -----
+
+summary(co2.evg.lm)
+summary(co2.dec.lm)
+summary(co2.grass.lm)
+
+summary(tair.evg.lm)
+summary(tair.dec.lm)
+summary(tair.grass.lm)
+
+summary(precipf.evg.lm)
+summary(precipf.dec.lm)
+summary(precipf.grass.lm)
+
+}
+# ------------
+
+
+# ------------
+# Correlation of Evergreen *Variability* with sensitivity across scales
+# ------------
+{
+  # Correlation of Evergreen with relative sensitivity across all scales
+  pdf(file.path(fig.dir, "Sensitivity_Slope_vs_EvergreenVar.pdf"))
+  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+    facet_wrap(~Effect, scales="fixed") +
+    geom_point(aes(x=Evergreen.sd, y=abs(mean.cent.deriv), color=Extent), size=5) +
+    stat_smooth(aes(x=Evergreen.sd, y=abs(mean.cent.deriv), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+    scale_color_manual(values=c("blue3", "red3", "green3")) +
+    scale_fill_manual(values=c("blue3", "red3", "green3")) +
+    theme_bw()
+  dev.off()
+  
+
+  co2.bm.lm0     <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent) , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.bm.lm0    <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent) , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.bm.lm0 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  anova(co2.bm.lm0)
+  anova(tair.bm.lm0)
+  anova(precipf.bm.lm0)
+  
+  
+  co2.bm.lm1     <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.bm.lm1    <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.bm.lm1 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.bm.lm1)
+  summary(tair.bm.lm1)
+  summary(precipf.bm.lm1)
+  
+  summary(ci.terms[ci.terms$Model=="ed2",])
+  summary(ci.terms[ci.terms$Model=="ed2",])
+  
+  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
+  pdf(file.path(fig.dir, "Sensitivity_vs_EvergreenVar.pdf"))
+  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+    facet_wrap(~Effect, scales="fixed") +
+    geom_point(aes(x=Evergreen.sd, y=abs(mean.rel.cent), color=Extent), size=5) +
+    stat_smooth(aes(x=Evergreen.sd, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+    scale_color_manual(values=c("blue", "red3", "green3")) +
+    scale_fill_manual(values=c("blue", "red3", "green3")) +
+    theme_bw()
+  dev.off()
+  
+  co2.bm.lm2     <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.bm.lm2    <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.bm.lm2 <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.bm.lm2)
+  summary(tair.bm.lm2)
+  summary(precipf.bm.lm2)
+  
+  
+  #   co2.bm.lme     <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  #   tair.bm.lme    <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  #   precipf.bm.lme <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  #   summary(co2.bm.lme)
+  #   summary(tair.bm.lme)
+  #   summary(precipf.bm.lme)
+}
+# ------------
+
+# ------------
+# Correlation of Evergreen with Scalability of short-term sensitivity
+# ------------
+{
+  # Correlation of Evergreen with relative sensitivity across all scales
+  pdf(file.path(fig.dir, "Sensitivity_Change_Slope_vs_EvergreenVar.pdf"))
+  ggplot(data=ci.terms[!ci.terms$Extent==ext.base & !ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+    facet_wrap(~Effect, scales="fixed") +
+    geom_point(aes(x=Evergreen.sd, y=mean.deriv.dev.abs, color=Extent), size=5) +
+    stat_smooth(aes(x=Evergreen.sd, y=mean.deriv.dev.abs, color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+    scale_color_manual(values=c("red3", "green3")) +
+    scale_fill_manual(values=c("red3", "green3")) +
+    theme_bw()
+  dev.off()
+  
+  co2.bm.lm1     <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.bm.lm1    <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.bm.lm1 <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.bm.lm1)
+  summary(tair.bm.lm1)
+  summary(precipf.bm.lm1)
+  
+  summary(ci.terms[ci.terms$Model=="ed2",])
+  summary(ci.terms[ci.terms$Model=="jules.stat",])
+  summary(ci.terms[ci.terms$Evergreen.sd>=0.55,])
+  summary(ci.terms[ci.terms$Evergreen.sd<=0.35,])
+  summary(ci.terms$Evergreen.sd)
+  
+  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
+  pdf(file.path(fig.dir, "Sensitivity_Change_vs_EvergreenVar.pdf"))
+  ggplot(data=ci.terms[!ci.terms$Extent==ext.base & !ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+    facet_wrap(~Effect, scales="fixed") +
+    geom_point(aes(x=Evergreen.sd, y=mean.cent.dev.abs, color=Extent), size=5) +
+    stat_smooth(aes(x=Evergreen.sd, y=mean.cent.dev.abs, color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+    scale_color_manual(values=c("blue", "red3", "green3")) +
+    scale_fill_manual(values=c("blue", "red3", "green3")) +
+    theme_bw()
+  dev.off()
+  
+  co2.bm.lm2     <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.bm.lm2    <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.bm.lm2 <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.bm.lm2)
+  summary(tair.bm.lm2)
+  summary(precipf.bm.lm2)
+  
+  
+  co2.bm.lme     <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.bm.lme    <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.bm.lme <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.bm.lme)
+  summary(tair.bm.lme)
+  summary(precipf.bm.lme)
+}
+# ------------
+
+
+}
+# --------
+
+# --------
+# 5.b.3 Finding patterns in Model Shifts: presence of fire
+# --------
+{
+  
+  # Making a combo site & Extent factor
+  ci.terms$fire.extent <- as.factor(paste(ci.terms$fire.scheme, ci.terms$Extent, sep="."))
+  summary(ci.terms)
+  
+  df.co2    $fire.extent <- as.factor(paste(df.co2    $fire.scheme, df.co2$Extent, sep="."))
+  df.tair   $fire.extent <- as.factor(paste(df.tair   $fire.scheme, df.co2$Extent, sep="."))
+  df.precipf$fire.extent <- as.factor(paste(df.precipf$fire.scheme, df.co2$Extent, sep="."))
+  # ------------  
+  # fire scheme & Sensitivity across scales
+  # ------------
+{
+  co2.fire.lm1     <- lm(abs(mean.rel.cent) ~ Extent*fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.fire.lm1    <- lm(abs(mean.rel.cent) ~ Extent*fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.fire.lm1 <- lm(abs(mean.rel.cent) ~ Extent*fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  anova(co2.fire.lm1)
+  anova(tair.fire.lm1)
+  anova(precipf.fire.lm1) # Precipf = no veg  or veg x extent interaction 
+  
+  
+  co2.fire.lm2     <- lm(abs(mean.rel.cent) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.fire.lm2    <- lm(abs(mean.rel.cent) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.fire.lm2 <- lm(abs(mean.rel.cent) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.fire.lm2)
+  summary(tair.fire.lm2)
+  summary(precipf.fire.lm2) 
+  
+  
+  
+  co2.fire.ext     <- gam(mean.rel.cent ~ s(x, by=fire.extent), data=ci.terms[ci.terms$Effect=="CO2"     & ci.terms$data.type=="Model",])
+  tair.fire.ext    <- gam(mean.rel.cent ~ s(x, by=fire.extent), data=ci.terms[ci.terms$Effect=="tair"    & ci.terms$data.type=="Model",])
+  precipf.fire.ext <- gam(mean.rel.cent ~ s(x, by=fire.extent), data=ci.terms[ci.terms$Effect=="precipf" & ci.terms$data.type=="Model",])
+  
+  # Plot the different sensitivity curves by characteristic
+  co2.fire.ext.post <- post.distns(model.gam=co2.fire.ext, model.name="CO2", n=50, newdata=df.co2, vars="x", terms=F)$ci
+  co2.fire.ext.post[,factors.agg] <- df.co2[,factors.agg]
+  summary(co2.fire.ext.post)
+  
+  tair.fire.ext.post <- post.distns(model.gam=tair.fire.ext, model.name="tair", n=50, newdata=df.tair, vars="x", terms=F)$ci
+  tair.fire.ext.post[,factors.agg] <- df.tair[,factors.agg]
+  summary(tair.fire.ext.post)
+  
+  precipf.fire.ext.post <- post.distns(model.gam=precipf.fire.ext, model.name="precipf", n=50, newdata=df.precipf, vars="x", terms=F)$ci
+  precipf.fire.ext.post[,factors.agg] <- df.precipf[,factors.agg]  
+  summary(precipf.fire.ext.post)
+  
+  fire.ext.post <- rbind(tair.fire.ext.post, precipf.fire.ext.post, co2.fire.ext.post)
+  summary(fire.ext.post)
+  
+  fire.ext.post2 <- aggregate(fire.ext.post[,c("mean", "lwr", "upr")], by=fire.ext.post[,c("fire.scheme", "Effect", "Extent", "x", "Quantile")], FUN=mean)
+  summary(fire.ext.post2)
+  
+  # Plotting everything out
+  pdf(file.path(fig.dir, "Sensitivity_FireScheme_Extent.pdf"))
+  {
+    print(
+      ggplot(data=fire.ext.post2[,]) +
+        facet_grid(Extent~Effect, scales="free_x") +
+        geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=fire.scheme), alpha=0.5) +
+        geom_line(aes(x=x, y=mean, color=fire.scheme, linetype=fire.scheme), size=2) +
+        ggtitle("Models Ensemble by Temporal Extent") +
+        scale_y_continuous(expand=c(0,0)) +
+        scale_fill_manual(values=c("blue3", "red3", "green3")) +
+        scale_color_manual(values=c("blue3", "red3", "green3")) +
+        theme_bw()  
+    )
+    print(
+      ggplot(data=fire.ext.post2[,]) +
+        facet_grid(fire.scheme~Effect, scales="free_x") +
+        geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Extent), alpha=0.5) +
+        geom_line(aes(x=x, y=mean, color=Extent, linetype=Extent), size=2) +
+        ggtitle("Models Ensemble by Temporal Extent") +
+        scale_y_continuous(expand=c(0,0)) +
+        scale_fill_manual(values=c("blue3", "red3", "green3")) +
+        scale_color_manual(values=c("blue3", "red3", "green3")) +
+        theme_bw()  
+    )
+  }
+  dev.off()
+}
+# ------------    
+
+# ------------    
+# Fire presence & frequencey effect on scalability of observations
+# ------------    
+{
+co2.fire.lm     <- lm(mean.cent.dev.abs ~ fire.scheme*(Extent), data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+tair.fire.lm    <- lm(mean.cent.dev.abs ~ fire.scheme*(Extent), data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+precipf.fire.lm <- lm(mean.cent.dev.abs ~ fire.scheme*(Extent), data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model"& !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model"  & ci.terms$Effect=="precipf",])
+anova(co2.fire.lm)
+anova(tair.fire.lm)
+anova(precipf.fire.lm) # Precipf = no veg  or veg x extent interaction 
+
+summary(co2.fire.lm)
+
+
+# Looking at overall behavior of fire scheme while taking into account the extent
+co2.fire.gam2     <- gam(mean.cent.dev.abs ~ s(x,by=fire.scheme) + Extent-1, data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+tair.fire.gam2    <- gam(mean.cent.dev.abs ~ s(x,by=fire.scheme) + Extent-1, data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+precipf.fire.gam2 <- gam(mean.cent.dev.abs ~ s(x,by=fire.scheme) + Extent-1, data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+#  summary(co2.fire.gam1$lme)  
+summary(co2.fire.gam2); anova(co2.fire.gam2)
+summary(tair.fire.gam2); anova(tair.fire.gam2)
+summary(precipf.fire.gam2); anova(tair.fire.gam2)
+
+co2.fire.post2 <- post.distns(model.gam=co2.fire.gam2, model.name="CO2", n=50, newdata=df.co2[!df.co2$Extent==ext.base, ], vars="x", terms=T)$ci
+co2.fire.post2$fire.scheme <- df.co2[!df.co2$Extent==ext.base, "fire.scheme"]
+co2.fire.post2$fire.extent <- df.co2[!df.co2$Extent==ext.base, "fire.extent"]
+co2.fire.post2$Model      <- df.co2[!df.co2$Extent==ext.base, "Model"     ]  
+co2.fire.post2$Effect <- as.factor("CO2")
+summary(co2.fire.post2)
+
+tair.fire.post2 <- post.distns(model.gam=tair.fire.gam2, model.name="tair", n=50, newdata=df.tair[!df.tair$Extent==ext.base, ], vars="x", terms=T)$ci
+tair.fire.post2$fire.scheme <- df.tair[!df.tair$Extent==ext.base, "fire.scheme"]
+tair.fire.post2$fire.extent <- df.tair[!df.tair$Extent==ext.base, "fire.extent"]
+tair.fire.post2$Model      <- df.tair[!df.tair$Extent==ext.base, "Model"     ]  
+tair.fire.post2$Effect <- as.factor("tair")
+summary(tair.fire.post2)
+
+precipf.fire.post2 <- post.distns(model.gam=precipf.fire.gam2, model.name="precipf", n=50, newdata=df.precipf[!df.precipf$Extent==ext.base, ], vars="x", terms=T)$ci
+precipf.fire.post2$fire.scheme <- df.precipf[!df.precipf$Extent==ext.base, "fire.scheme"]
+precipf.fire.post2$fire.extent <- df.precipf[!df.precipf$Extent==ext.base, "fire.extent"]
+precipf.fire.post2$Model      <- df.precipf[!df.precipf$Extent==ext.base, "Model"     ]  
+precipf.fire.post2$Effect <- as.factor("precipf")
+summary(precipf.fire.post2)
+
+fire.post2 <- rbind(tair.fire.post2, precipf.fire.post2, co2.fire.post2)
+summary(fire.post2)
+
+pdf(file.path(fig.dir, "Sensitivity_ExtentDeviation_FireScheme.pdf"))
+{
+  print(
+    ggplot(data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & !ci.terms$Extent==ext.base,]) +
+      facet_grid(Extent~Effect,scales="free_x") +
+      #         geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=fire.scheme), alpha=0.5)+
+      geom_line(aes(x=x, y=mean.cent.dev.abs, color=Model), size=2) +
+      geom_hline(yintercept=0, linetype="dashed") +
+      scale_fill_manual(values=colors.use) +
+      scale_color_manual(values=colors.use) +
+      theme_bw()
+  )
+  print(
+    ggplot(data=fire.post2[fire.post2$Model%in% c("ed2", "clm.bgc") & !fire.post2$Extent==ext.base, ]) +
+      facet_wrap(~Effect,scales="free_x") +
+      geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=fire.scheme), alpha=0.5)+
+      geom_line(aes(x=x, y=mean, color=fire.scheme, linetype=fire.scheme), size=2) +
+      geom_hline(yintercept=0, linetype="dashed") +
+      scale_fill_manual(values=c("blue3", "red3")) +
+      scale_color_manual(values=c("blue3", "red3")) +
+      theme_bw()
+  )
+}
+dev.off()
+}
+# ------------    
+
+
+}
+# --------
+
 
 # --------
 # 5.b.3 Slow processes & sensitivity change: Biomass
@@ -1589,6 +2086,9 @@ CO2.850/(CO2.base.max - CO2.base.min)
   summary(co2.bm.lme)
   summary(tair.bm.lme)
   summary(precipf.bm.lme)
+
+  # ------------
+
 }
 # ------------
 
@@ -1601,16 +2101,17 @@ CO2.850/(CO2.base.max - CO2.base.min)
 pdf(file.path(fig.dir, "Sensitivity_Slope_vs_BiomassVar.pdf"))
 ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
   facet_wrap(~Effect, scales="fixed") +
-  geom_point(aes(x=Biomass.rel.sd, y=abs(mean.cent.deriv), color=Extent), size=5) +
-  stat_smooth(aes(x=Biomass.rel.sd, y=abs(mean.cent.deriv), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+  geom_point(aes(x=Biomass.rel.sd, y=abs(mean.rel.cent), color=Extent), size=5) +
+  stat_smooth(aes(x=Biomass.rel.sd, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
+  scale_y_continuous(limits=c(0,1)) +
   scale_color_manual(values=c("blue3", "red3", "green3")) +
   scale_fill_manual(values=c("blue3", "red3", "green3")) +
   theme_bw()
 dev.off()
 
-co2.bm.lm1     <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-tair.bm.lm1    <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-precipf.bm.lm1 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+co2.bm.lm1     <- lm(abs(mean.rel.cent) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+tair.bm.lm1    <- lm(abs(mean.rel.cent) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+precipf.bm.lm1 <- lm(abs(mean.rel.cent) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
 summary(co2.bm.lm1)
 summary(tair.bm.lm1)
 summary(precipf.bm.lm1)
@@ -1706,218 +2207,7 @@ summary(precipf.bm.lme)
 }
 # --------
 
-# --------
-# 5.b.3 Slow processes & sensitivity change: Composition (Fraction Evergreen)
-#  Hypothesis: Like Biomass, shifts in composition is a slow process that can mediate
-#              climate sensitivity at more long time scales but has limited influence
-#              at short time scales
-# --------
-{
-  
-  # ------------
-  # Correlation of Composition with sensitivity across scales
-  # ------------
-{  
-  # -----
-  # Evergreen!
-  # -----
-  {
-  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
-  pdf(file.path(fig.dir, "Sensitivity_vs_Evergreen.pdf"))
-  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
-    facet_wrap(~Effect, scales="fixed") +
-    geom_point(aes(x=Evergreen.mean, y=abs(mean.rel.cent), color=Extent), size=5) +
-    stat_smooth(aes(x=Evergreen.mean, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
-    scale_color_manual(values=c("blue", "red3", "green3")) +
-    scale_fill_manual(values=c("blue", "red3", "green3")) +
-    theme_bw()
-  dev.off()
-  
-  co2.evg.lm     <- lm(abs(mean.rel.cent) ~ Evergreen.mean*(Extent-1) - Evergreen.mean , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.evg.lm    <- lm(abs(mean.rel.cent) ~ Evergreen.mean*(Extent-1) - Evergreen.mean , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.evg.lm <- lm(abs(mean.rel.cent) ~ Evergreen.mean*(Extent-1) - Evergreen.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.evg.lm)
-  summary(tair.evg.lm)
-  summary(precipf.evg.lm)
-  }
-  # -----
 
-  # -----
-  # Deciduous!
-  # -----
-  {
-  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
-  pdf(file.path(fig.dir, "Sensitivity_vs_Evergreen.pdf"))
-  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
-    facet_wrap(~Effect, scales="fixed") +
-    geom_point(aes(x=Deciduous.mean, y=abs(mean.rel.cent), color=Extent), size=5) +
-    stat_smooth(aes(x=Deciduous.mean, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
-    scale_color_manual(values=c("blue", "red3", "green3")) +
-    scale_fill_manual(values=c("blue", "red3", "green3")) +
-    theme_bw()
-  dev.off()
-  
-  co2.dec.lm     <- lm(abs(mean.rel.cent) ~ Deciduous.mean*(Extent-1) - Deciduous.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.dec.lm    <- lm(abs(mean.rel.cent) ~ Deciduous.mean*(Extent-1) - Deciduous.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.dec.lm <- lm(abs(mean.rel.cent) ~ Deciduous.mean*(Extent-1) - Deciduous.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.dec.lm)
-  summary(tair.dec.lm)
-  summary(precipf.dec.lm)
-}
-  # -----
-
-  # -----
-  # Grass!
-  # -----
-  {
-  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
-  pdf(file.path(fig.dir, "Sensitivity_vs_Evergreen.pdf"))
-  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
-    facet_wrap(~Effect, scales="fixed") +
-    geom_point(aes(x=Grass.mean, y=abs(mean.rel.cent), color=Extent), size=5) +
-    stat_smooth(aes(x=Grass.mean, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
-    scale_color_manual(values=c("blue", "red3", "green3")) +
-    scale_fill_manual(values=c("blue", "red3", "green3")) +
-    theme_bw()
-  dev.off()
-  
-  co2.grass.lm     <- lm(abs(mean.rel.cent) ~ Grass.mean*(Extent-1) - Grass.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.grass.lm    <- lm(abs(mean.rel.cent) ~ Grass.mean*(Extent-1) - Grass.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.grass.lm <- lm(abs(mean.rel.cent) ~ Grass.mean*(Extent-1) - Grass.mean, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.grass.lm)
-  summary(tair.grass.lm)
-  summary(precipf.grass.lm)
-  }
-  # -----
-  
-  summary(co2.evg.lm)
-  summary(co2.dec.lm)
-  summary(co2.grass.lm)
-  
-  summary(tair.evg.lm)
-  summary(tair.dec.lm)
-  summary(tair.grass.lm)
-  
-  summary(precipf.evg.lm)
-  summary(precipf.dec.lm)
-  summary(precipf.grass.lm)
-
-}
-# ------------
-
-  
-  # ------------
-  # Correlation of Evergreen *Variability* with sensitivity across scales
-  # ------------
-{
-  # Correlation of Evergreen with relative sensitivity across all scales
-  pdf(file.path(fig.dir, "Sensitivity_Slope_vs_EvergreenVar.pdf"))
-  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
-    facet_wrap(~Effect, scales="fixed") +
-    geom_point(aes(x=Evergreen.sd, y=abs(mean.cent.deriv), color=Extent), size=5) +
-    stat_smooth(aes(x=Evergreen.sd, y=abs(mean.cent.deriv), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
-    scale_color_manual(values=c("blue3", "red3", "green3")) +
-    scale_fill_manual(values=c("blue3", "red3", "green3")) +
-    theme_bw()
-  dev.off()
-  
-  co2.bm.lm1     <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm1    <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm1 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lm1)
-  summary(tair.bm.lm1)
-  summary(precipf.bm.lm1)
-  
-  summary(ci.terms[ci.terms$Model=="ed2",])
-  summary(ci.terms[ci.terms$Model=="ed2",])
-  
-  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
-  pdf(file.path(fig.dir, "Sensitivity_vs_EvergreenVar.pdf"))
-  ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
-    facet_wrap(~Effect, scales="fixed") +
-    geom_point(aes(x=Evergreen.sd, y=abs(mean.rel.cent), color=Extent), size=5) +
-    stat_smooth(aes(x=Evergreen.sd, y=abs(mean.rel.cent), color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
-    scale_color_manual(values=c("blue", "red3", "green3")) +
-    scale_fill_manual(values=c("blue", "red3", "green3")) +
-    theme_bw()
-  dev.off()
-  
-  co2.bm.lm2     <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm2    <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm2 <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lm2)
-  summary(tair.bm.lm2)
-  summary(precipf.bm.lm2)
-  
-  
-#   co2.bm.lme     <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-#   tair.bm.lme    <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-#   precipf.bm.lme <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-#   summary(co2.bm.lme)
-#   summary(tair.bm.lme)
-#   summary(precipf.bm.lme)
-}
-# ------------
-
-# ------------
-# Correlation of Evergreen with Scalability of short-term sensitivity
-# ------------
-{
-  # Correlation of Evergreen with relative sensitivity across all scales
-  pdf(file.path(fig.dir, "Sensitivity_Change_Slope_vs_EvergreenVar.pdf"))
-  ggplot(data=ci.terms[!ci.terms$Extent==ext.base & !ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
-    facet_wrap(~Effect, scales="fixed") +
-    geom_point(aes(x=Evergreen.sd, y=mean.deriv.dev.abs, color=Extent), size=5) +
-    stat_smooth(aes(x=Evergreen.sd, y=mean.deriv.dev.abs, color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
-    scale_color_manual(values=c("red3", "green3")) +
-    scale_fill_manual(values=c("red3", "green3")) +
-    theme_bw()
-  dev.off()
-  
-  co2.bm.lm1     <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm1    <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm1 <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lm1)
-  summary(tair.bm.lm1)
-  summary(precipf.bm.lm1)
-  
-  summary(ci.terms[ci.terms$Model=="ed2",])
-  summary(ci.terms[ci.terms$Model=="jules.stat",])
-  summary(ci.terms[ci.terms$Evergreen.sd>=0.55,])
-  summary(ci.terms[ci.terms$Evergreen.sd<=0.35,])
-  summary(ci.terms$Evergreen.sd)
-  
-  # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
-  pdf(file.path(fig.dir, "Sensitivity_Change_vs_EvergreenVar.pdf"))
-  ggplot(data=ci.terms[!ci.terms$Extent==ext.base & !ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
-    facet_wrap(~Effect, scales="fixed") +
-    geom_point(aes(x=Evergreen.sd, y=mean.cent.dev.abs, color=Extent), size=5) +
-    stat_smooth(aes(x=Evergreen.sd, y=mean.cent.dev.abs, color=Extent, fill=Extent, linetype=Extent), method="lm", size=2) +
-    scale_color_manual(values=c("blue", "red3", "green3")) +
-    scale_fill_manual(values=c("blue", "red3", "green3")) +
-    theme_bw()
-  dev.off()
-  
-  co2.bm.lm2     <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm2    <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm2 <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lm2)
-  summary(tair.bm.lm2)
-  summary(precipf.bm.lm2)
-  
-  
-  co2.bm.lme     <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lme    <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lme <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lme)
-  summary(tair.bm.lme)
-  summary(precipf.bm.lme)
-}
-# ------------
-
-
-}
-# --------
 }
 # -----------------------
 }
