@@ -390,21 +390,24 @@ dev.region[is.na(dev.region$weight.CO2.10.adj    ),"weight.CO2.10.adj"    ] <- 0
 plot.npp <- {
 	ggplot(data=dat.region) + 
 	scale_x_continuous(limits=c(1700,2010), expand=c(0,0), name="Year") +
-	scale_y_continuous(expand=c(0,0), name="NPP MgC/HA/yr") +
+	scale_y_continuous(expand=c(0,0), name=expression(bold(paste("NPP MgC HA"^"-1"," yr"^"-1")))) +
 	facet_grid(Y.type~., scales="free_y", space="free") +
 	geom_ribbon(aes(x=Year, ymin=Y.10.lo, ymax=Y.10.hi, fill=Model.Order), alpha=0.5) +
 	geom_line(aes(x=Year, y=Y.10, color=Model.Order, linetype=Model.Order), size=1.5) +
-	scale_fill_manual(values=colors.use) +
+# 	annotate(geom="text", label=c("a)", "b)"), x=1725, y=c(15, 2)) +
+  scale_fill_manual(values=colors.use) +
 	scale_color_manual(values=colors.use) +
 	scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
-	guides(color=guide_legend(nrow=2),
-	       fill =guide_legend(nrow=2)) +
-	theme(legend.title=element_text(size=rel(1), face="bold"),
-	      legend.text=element_text(size=rel(1)),
-	      legend.position=c(0.5, 0.9),
+	guides(color=guide_legend(title="Model", nrow=3),
+	       fill =guide_legend(title="Model", nrow=3),
+	       linetype =guide_legend(title="Model", nrow=3)) +
+	theme(legend.title=element_text(size=8, face="bold"),
+	      legend.text=element_text(size=8),
+	      legend.position=c(0.35, 0.83),
 	      legend.key=element_blank(),
-	      legend.key.size=unit(1.5, "lines")) +
-	theme(strip.text=element_text(size=rel(1.5), face="bold")) + 
+	      legend.key.size=unit(0.75, "lines"),
+        legend.background=element_blank()) +
+	theme(strip.text=element_text(size=12, face="bold")) + 
 	theme(axis.line=element_line(color="black", size=0.5), 
 	      panel.grid.major=element_blank(), 
 	      panel.grid.minor=element_blank(), 
@@ -412,20 +415,12 @@ plot.npp <- {
 	      panel.background=element_blank(),
 	      panel.margin.x=unit(0, "lines"),
 	      panel.margin.y=unit(0, "lines"))  +
-# 	theme(axis.text.x=element_text(color="black", size=rel(1.5)),
-# 		  axis.text.y=element_text(color="black", size=rel(1.5)), 
-# 		  axis.title.x=element_text(size=rel(2), face="bold", vjust=-0.4),  
-# 		  axis.title.y=element_text(size=rel(2), face="bold"),
-# 		  axis.ticks.length=unit(-0.5, "lines"),
-# 	    axis.ticks.margin=unit(1.0, "lines")) +
-# 	theme(plot.margin=unit(c(1.5,1,1.15,1), "lines"))
   theme(axis.text.x=element_blank(),
-        axis.text.y=element_text(color="black", size=rel(1.5)), 
+        axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")), 
         axis.title.x=element_blank(),  
-        axis.title.y=element_text(size=rel(2), face="bold"),
-        axis.ticks.length=unit(-0.5, "lines"),
-        axis.ticks.margin=unit(1.0, "lines")) +
-  theme(plot.margin=unit(c(1.5,1,1,1), "lines"))
+        axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
+        axis.ticks.length=unit(-0.5, "lines")) +
+  theme(plot.margin=unit(c(1.5,1,0.7,0.8), "lines"))
 }
 plot.npp <- ggplotGrob(plot.npp )
 plot.npp $heights[[5]] <- unit(5, "null")
@@ -440,38 +435,39 @@ dat.plot.dev <- dev.region[dev.region$Year >=1700,]
 plot.dev <- {
 ggplot() + 
 	scale_x_continuous(expand=c(0,0), name="Year") +
-	scale_y_continuous(expand=c(0,0), name="frac. NPP") +
+	scale_y_continuous(expand=c(0,0), name="% NPP") +
 	facet_grid(Y.type~., scales="free_y", space="free") +
-	geom_ribbon(data=dat.plot.dev[dat.plot.dev$data.type=="Model",], aes(x=Year, ymin=Y.rel.10.lo, ymax=Y.rel.10.hi), alpha=0.5) +
-	geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Model",], aes(x=Year, y=Y.rel.10), size=2,
+	geom_ribbon(data=dat.plot.dev[dat.plot.dev$data.type=="Model",], aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.5) +
+	geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Model",], aes(x=Year, y=Y.rel.10*100), size=2,
 	          color=rgb(abs(dat.plot.dev[dat.plot.dev$data.type=="Model","weight.tair.10.adj"    ]),
                         abs(dat.plot.dev[dat.plot.dev$data.type=="Model","weight.CO2.10.adj"     ]),
                         abs(dat.plot.dev[dat.plot.dev$data.type=="Model","weight.precipf.10.adj" ])), 
                         size=3) +
 
 	geom_ribbon(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="NPP",],
-	            aes(x=Year, ymin=Y.rel.10.lo, ymax=Y.rel.10.hi), alpha=0.5) +
-	geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings"  & dat.plot.dev$Y.type=="NPP",], aes(x=Year, y=Y.rel.10), size=2,
+	            aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.5) +
+	geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings"  & dat.plot.dev$Y.type=="NPP",], aes(x=Year, y=Y.rel.10*100), size=2,
 	          color=rgb(abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="NPP","weight.tair.10.adj"    ]),
                         abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="NPP","weight.CO2.10.adj"     ]),
                         abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="NPP","weight.precipf.10.adj" ])), 
                         size=3) +
 
 	geom_ribbon(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="RW",],
-	            aes(x=Year, ymin=Y.rel.10.lo, ymax=Y.rel.10.hi), alpha=0.5) +
-	geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings"  & dat.plot.dev$Y.type=="RW",], aes(x=Year, y=Y.rel.10), size=2,
+	            aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.5) +
+	geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings"  & dat.plot.dev$Y.type=="RW",], aes(x=Year, y=Y.rel.10*100), size=2,
 	          color=rgb(abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="RW","weight.tair.10.adj"    ]),
                         abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="RW","weight.CO2.10.adj"     ]),
                         abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="RW","weight.precipf.10.adj" ])), 
                         size=3) +
-	geom_hline(yintercept=1, linetype="dashed") +
+	geom_hline(yintercept=100, linetype="dashed") +
+#   annotate(geom="text", label="b)", x=1725, y=180, size=14) +
   scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
 	theme(legend.title=element_text(size=rel(1), face="bold"),
 	      legend.text=element_text(size=rel(1)),
 	      # legend.position=c(0.2, 0.18),
 	      legend.key=element_blank(),
 	      legend.key.size=unit(1.5, "lines")) +
-	theme(strip.text=element_text(size=rel(1.5), face="bold")) + 
+	theme(strip.text=element_text(size=12, face="bold")) + 
 	theme(axis.line=element_line(color="black", size=0.5), 
 	      panel.grid.major=element_blank(), 
 	      panel.grid.minor=element_blank(), 
@@ -479,23 +475,15 @@ ggplot() +
 	      panel.background=element_blank(),
 	      panel.margin.x=unit(0, "lines"),
 	      panel.margin.y=unit(0, "lines"))  +
-# 	theme(axis.text.x=element_text(color="black", size=rel(1.5)),
-# 		  axis.text.y=element_text(color="black", size=rel(1.5)), 
-# 		  axis.title.x=element_text(size=rel(2), face="bold", vjust=-0.4),  
-# 		  axis.title.y=element_text(size=rel(2), face="bold"),
-# 		  axis.ticks.length=unit(-0.5, "lines"),
-# 	    axis.ticks.margin=unit(1.0, "lines")) +
-# 	theme(plot.margin=unit(c(1.5,1,1.15,1), "lines"))
   theme(axis.text.x=element_blank(),
-        axis.text.y=element_text(color="black", size=rel(1.5)), 
+        axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")), 
         axis.title.x=element_blank(),  
-        axis.title.y=element_text(size=rel(2), face="bold"),
-        axis.ticks.length=unit(-0.5, "lines"),
-        axis.ticks.margin=unit(1.0, "lines")) +
-  theme(plot.margin=unit(c(0,1,1,1), "lines"))
+        axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
+        axis.ticks.length=unit(-0.5, "lines")) +
+  theme(plot.margin=unit(c(0,1,0.7,1.05), "lines"))
 }
 plot.dev <- ggplotGrob(plot.dev )
-plot.dev $heights[[5]] <- unit(0.5, "null")
+plot.dev $heights[[5]] <- unit(50, "null")
 plot(plot.dev)
 # --------
 
@@ -516,25 +504,28 @@ fit.stack[!is.na(fit.stack$ci.hi) & fit.stack$ci.hi>1.95, "ci.hi"] <- 1.95
 fit.stack[!is.na(fit.stack$fit.mean) & (fit.stack$fit.mean<0.44 | fit.stack$fit.mean>1.95),"fit.mean"] <- NA
 summary(fit.stack)
 
+levels(fit.stack$Effect) <- c("CO2", "Precip", "Tair")
+
 
 plot.wts <- {
 ggplot(fit.stack[!(fit.stack$data.type=="Tree Rings" & fit.stack$Y.type=="NPP"),]) + 
   scale_x_continuous(limits=c(1700,2010), expand=c(0,0), name="Year") +
-	scale_y_continuous(expand=c(0,0), name="frac. NPP") +
+	scale_y_continuous(expand=c(0,0), name="% NPP") +
 	facet_grid(Y.type~., scales="free_y", space="free") +
-	geom_ribbon(aes(x=Year, ymin=ci.lo, ymax=ci.hi, fill=Effect), alpha=0.5) +
-	geom_line(aes(x=Year, y=fit.mean, color=Effect), size=2) +
-	geom_hline(yintercept=1, linetype="dashed") +
+	geom_ribbon(aes(x=Year, ymin=ci.lo*100, ymax=ci.hi*100, fill=Effect), alpha=0.5) +
+	geom_line(aes(x=Year, y=fit.mean*100, color=Effect), size=2) +
+	geom_hline(yintercept=100, linetype="dashed") +
+#   annotate("text", label="c)", x=1725, y=180, size=14) +
   scale_color_manual(values=c("green3", "blue", "red2")) +
 	scale_fill_manual(values=c("green3", "blue", "red2")) +
 	guides(color=guide_legend(nrow=1), 
          fill =guide_legend(nrow=1))+
-  theme(legend.title=element_text(size=rel(1), face="bold"),
-	      legend.text=element_text(size=rel(1)),
-	      legend.position=c(0.2, 0.18),
+  theme(legend.title=element_text(size=10, face="bold"),
+	      legend.text=element_text(size=10),
+	      legend.position=c(0.3, 0.8),
 	      legend.key=element_blank(),
-	      legend.key.size=unit(1.5, "lines")) +
-	theme(strip.text=element_text(size=rel(1.5), face="bold")) + 
+	      legend.key.size=unit(1, "lines")) +
+	theme(strip.text=element_text(size=12, face="bold")) + 
 	theme(axis.line=element_line(color="black", size=0.5), 
 	      panel.grid.major=element_blank(), 
 	      panel.grid.minor=element_blank(), 
@@ -542,16 +533,15 @@ ggplot(fit.stack[!(fit.stack$data.type=="Tree Rings" & fit.stack$Y.type=="NPP"),
 	      panel.background=element_blank(),
 	      panel.margin.x=unit(0, "lines"),
 	      panel.margin.y=unit(0, "lines"))  +
-	theme(axis.text.x=element_text(color="black", size=rel(1.5)),
-		  axis.text.y=element_text(color="black", size=rel(1.5)), 
-		  axis.title.x=element_text(size=rel(2), face="bold", vjust=-0.4),  
-		  axis.title.y=element_text(size=rel(2), face="bold"),
-		  axis.ticks.length=unit(-0.5, "lines"),
-	      axis.ticks.margin=unit(1.0, "lines")) +
-	      theme(plot.margin=unit(c(0,1,1.15,1), "lines"))
+	theme(axis.text.x=element_text(color="black", size=12, margin=unit(c(1.5,0,0,0), "lines")),
+		   axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")), 
+		   axis.title.x=element_text(size=12, face="bold"),  
+		   axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
+		   axis.ticks.length=unit(-0.5, "lines")) +
+  theme(plot.margin=unit(c(0,1,0.5,1.05), "lines"))
 }
 plot.wts <- ggplotGrob(plot.wts )
-plot.wts $heights[[5]] <- unit(0.5, "null")
+plot.wts $heights[[5]] <- unit(50, "null")
 plot(plot.wts)
 }
 # --------
@@ -559,9 +549,19 @@ plot(plot.wts)
 # --------
 # Putting NPP & change through time in context
 # --------
-pdf(file.path(fig.dir, "Fig1_NPP_Dev_1700-2010.pdf"), height=11, width=8.5)
+# pdf(file.path(fig.dir, "NPP_Dev_1700-2010_NPP_Rel_Weight.pdf"), height=11, width=8.5)
+# grid.arrange(plot.npp, plot.dev, plot.wts, ncol=1)
+# dev.off()
+
+
+tiff(file.path(fig.dir, "Fig2_NPP_Dev_1700-2010_NPP_Rel_Weight.tiff"), height=8, width=8, units="in", res=120)
 grid.arrange(plot.npp, plot.dev, plot.wts, ncol=1)
 dev.off()
+
+png(file.path(fig.dir, "Fig2_NPP_Dev_1700-2010_NPP_Rel_Weight.png"), height=8, width=8, units="in", res=120)
+grid.arrange(plot.npp, plot.dev, plot.wts, ncol=1)
+dev.off()
+
 
 # --------
 }
@@ -661,7 +661,7 @@ tr.npp.site[,paste0(c("Y", "Y.10"), ".lwr")] <- aggregate(tr.npp[,c("Y", "Y.10")
 tr.npp.site[,paste0(c("Y", "Y.10"), ".upr")] <- aggregate(tr.npp[,c("Y", "Y.10")], by= tr.npp[,c("Model", "Model.Order", "Y.type", "Site", "Year")], FUN=quantile, 0.975, na.rm=T)[,c("Y", "Y.10")]
 summary(tr.npp.site)
 # ---------------------
-
+  
 # ---------------------
 # 5.a. Figures (site-level)
 # ---------------------
@@ -714,34 +714,41 @@ dev.off()
 # --------
 # 5.a.2. Models Only, All Sites 0850-2010 (Supplemental Figure 1)
 # --------
-pdf(file.path(fig.dir, "SuppFig1_NPP_Raw_AllSites_0850-2010_Simple_Models.pdf"), height=8.5, width=11)
+# pdf(file.path(fig.dir, "Fig1_NPP_Raw_AllSites_0850-2010_Simple_Models.pdf"), height=8.5, width=11)
+summary(dat.ecosys$Site)
+dat.ecosys$Site.Order <- recode(dat.ecosys$Site, "'PDL'='1'; 'PBL'='2'; 'PUN'='3'; 'PMB'='4'; 'PHA'='5'; 'PHO'='6'")
+levels(dat.ecosys$Site.Order) <- c("Demming", "Billy's", "UNDERC", "Minden", "Harvard", "Howland")
+
+
+png(file.path(fig.dir, "Fig1_NPP_Raw_AllSites_0850-2010_Simple_Models.png"), height=5, width=8, units="in", res=120)
 {
 print(
-ggplot(data=dat.ecosys[!dat.ecosys$Model %in% c("TreeRingRW", "TreeRingBAI", "TreeRingNPP"),])  + facet_wrap(~Site) +
+ggplot(data=dat.ecosys[!dat.ecosys$Model %in% c("TreeRingRW", "TreeRingBAI", "TreeRingNPP"),])  + 
+  facet_wrap(~Site.Order) +
 	geom_line(aes(x=Year, y=Y, color=Model.Order), size=0.1, alpha=0.3) + 
 	geom_line(aes(x=Year, y=Y.10, color=Model.Order), size=0.75, alpha=1) + 
 	scale_x_continuous(limits=c(0850, 2010), expand=c(0,0), breaks=seq(min(dat.ecosys$Year), max(dat.ecosys$Year), by=250)) +
-	# scale_y_continuous(limits=c(0,25), expand=c(0,0)) +
+	scale_y_continuous(expand=c(0,0)) +
 	scale_fill_manual(values=c("black", "gray50")) +
 	scale_color_manual(values=colors.use) +
 	labs(color="Model", x="Year", y=expression(bold(paste("NPP (Mg C ha"^"-1"," yr"^"-1",")")))) +
-	guides(col=guide_legend(nrow=2), fill=F) +
+	guides(col=guide_legend(nrow=2, title="Model"), fill=F) +
 	theme(legend.position="top") +
-	theme(plot.title=element_text(face="bold", size=rel(3))) + 
-	theme(legend.text=element_text(size=rel(1)), 
-	      legend.title=element_text(size=rel(1.25)),
+# 	theme(plot.title=element_text(face="bold", size=rel(3))) + 
+	theme(legend.text=element_text(size=8), 
+	      legend.title=element_text(size=10),
 	      legend.key=element_blank(),
-	      legend.key.size=unit(1, "lines")) + 
-	      # legend.key.width=unit(2, "lines")) + 
+	      legend.key.size=unit(1, "lines"),
+	      legend.position=c(0.5, 0.9)) + 
 	theme(axis.line=element_line(color="black", size=0.5), 
 	      panel.grid.major=element_blank(), 
 	      panel.grid.minor=element_blank(), 
 	      panel.border=element_blank(), 
 	      panel.background=element_blank(), 
-	      axis.text.x=element_text(angle=0, color="black"), 
-	      axis.text.y=element_text(color="black"), 
-	      axis.title.x=element_text(face="bold", vjust=-0.5),  
-	      axis.title.y=element_text(face="bold", vjust=1))
+	      axis.text.x=element_text(angle=0, color="black", size=10), 
+	      axis.text.y=element_text(color="black", size=10), 
+	      axis.title.x=element_text(face="bold", vjust=-0.5, size=12),  
+	      axis.title.y=element_text(face="bold", vjust=1, size=12))
 )
 }
 dev.off()
@@ -1024,7 +1031,54 @@ mod.agg$Fire <- mod.agg$Fire # changing fire from KgC/m2/s to MgC/HA/yr (same un
 mod.agg$fire.scheme <- as.factor(ifelse(mod.agg$Fire>0, "Yes", "No"))
 
 summary(mod.agg)
+
+
+# --------
+# Need to aggregate to relativize Biomass & Evergreen so that we can get the sd across 
+#   space & time that isn't confounded by baseline differences in model biomass, etc
+# --------
+# First need to get the composition variables in there
+dat.ecosys <- merge(dat.ecosys, ecosys[ecosys$Resolution=="t.001",c("Model", "Site", "Year", "Evergreen", "Deciduous", "Grass")], all.x=T, all.y=F)
+summary(dat.ecosys)
+
+for(m in unique(dat.ecosys$Model)){
+#   biomass.mean <- mean(dat.ecosys[dat.ecosys$Model==m, "Biomass"], na.rm=T)
+#   dat.ecosys[dat.ecosys$Model==m, "Biomass.rel"] <- dat.ecosys[dat.ecosys$Model==m, "Biomass"]/biomass.mean
+  for(p in unique(dat.ecosys$PlotID)){
+    biomass.mean <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$PlotID==p, "Biomass"], na.rm=T)
+    dat.ecosys[dat.ecosys$Model==m & dat.ecosys$PlotID==p, "Biomass.rel"] <- dat.ecosys[dat.ecosys$Model==m & dat.ecosys$PlotID==p, "Biomass"]/biomass.mean  
+  }
+  
+#   evergreen.mean <- mean(dat.ecosys[dat.ecosys$Model==m, "Evergreen"], na.rm=T)
+  if(is.na(mean(dat.ecosys[dat.ecosys$Model==m, "Evergreen"], na.rm=T))) next # Skip things that we don't have composition shift handy for
+  for(p in unique(dat.ecosys$PlotID)){
+    evergreen.mean <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$PlotID==p, "Evergreen"], na.rm=T)
+    dat.ecosys[dat.ecosys$Model==m & dat.ecosys$PlotID==p, "Evergreen.rel"] <- dat.ecosys[dat.ecosys$Model==m & dat.ecosys$PlotID==p, "Evergreen"]/evergreen.mean  
+  }
 }
+summary(dat.ecosys)
+
+for(m in unique(mod.agg[,"Model"])){  
+  mod.agg[mod.agg$Model==m,"Y.sd"]             <- sd(dat.ecosys[dat.ecosys$Model==m, "Y"], na.rm=T)
+  mod.agg[mod.agg$Model==m,"Y.rel.sd"]         <- sd(dat.ecosys[dat.ecosys$Model==m, "Y.rel"], na.rm=T)
+  mod.agg[mod.agg$Model==m,"Biomass.mean"]     <- mean(dat.ecosys[dat.ecosys$Model==m, "Biomass"], na.rm=T)
+  mod.agg[mod.agg$Model==m,"Biomass.rel.sd"]   <- sd(dat.ecosys[dat.ecosys$Model==m, "Biomass.rel"], na.rm=T)
+  
+  if(is.na(mean(dat.ecosys[dat.ecosys$Model==m, "Evergreen"], na.rm=T))) next
+  mod.agg[mod.agg$Model==m,"Evergreen.mean"]   <- mean(dat.ecosys[dat.ecosys$Model==m, "Evergreen"], na.rm=T)
+  mod.agg[mod.agg$Model==m,"Deciduous.mean"]   <- mean(dat.ecosys[dat.ecosys$Model==m, "Deciduous"], na.rm=T)
+  mod.agg[mod.agg$Model==m,"Grass.mean"]       <- mean(dat.ecosys[dat.ecosys$Model==m, "Grass"], na.rm=T)
+  mod.agg[mod.agg$Model==m,"Evergreen.sd"]     <- sd(dat.ecosys[dat.ecosys$Model==m, "Evergreen"], na.rm=T)
+  mod.agg[mod.agg$Model==m,"Evergreen.rel.sd"] <- sd(dat.ecosys[dat.ecosys$Model==m, "Evergreen.rel"], na.rm=T)
+}
+mod.agg
+
+table2 <- mod.agg[mod.agg$data.type=="Model", c("Model.Order", "veg.scheme", "Evergreen.mean", "Evergreen.sd", "fire.scheme", "Fire", "Biomass.rel.sd")]
+table2[,c("Evergreen.mean", "Evergreen.sd", "Fire", "Biomass.rel.sd")] <- round(table2[,c("Evergreen.mean", "Evergreen.sd", "Fire", "Biomass.rel.sd")], 2)
+names(table2) <- c("Model", "Vegetation Scheme", "Mean Fraction Evergreen", "Composition Variability", "Fire Occurrence", "Mean Fire Magnitude", "Biomass Variability")
+
+table2
+write.csv(table2, file.path(out.dir, "Table2_ModelCharacterstics.csv"), row.names=F)
 
 ci.terms <- merge(ci.terms, mod.agg, all.x=T, all.y=F)
 summary(ci.terms)

@@ -581,7 +581,9 @@ dev.off()
 
 # -----------------------
 # 5.b. Analysis: 
+# Table 3 has the Effects of key components across scales
 # -----------------------
+table3 <- data.frame()
 {
   source("R/0_Calculate_GAMM_Posteriors.R")
   library(mgcv)
@@ -744,15 +746,22 @@ dat.ecosys2 <- merge(dat.ecosys2, ecosys[ecosys$Resolution=="t.001",c("Model", "
 summary(dat.ecosys)
 summary(dat.ecosys2)
 
-for(m in unique(dat.ecosys2$Model)){
+for(m in unique(dat.ecosys2[dat.ecosys2$data.type=="Model", "Model"])){
   if(m == "TreeRingNPP") ext.full <- "1980-2010" else if(m=="TreeRingRW") ext.full <- "1901-2010" else ext.full <- "850-2010"
-  biomass.mean <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent==ext.full, "Biomass"], na.rm=T)
-  evergreen.mean <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent==ext.full, "Evergreen"], na.rm=T)
+#   biomass.mean <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent==ext.full, "Biomass"], na.rm=T)
+#   dat.ecosys2[dat.ecosys2$Model==m, "Biomass.rel"] <- dat.ecosys2[dat.ecosys2$Model==m, "Biomass"]/biomass.mean
+  for(p in unique(dat.ecosys$PlotID)){
+    biomass.mean <- mean(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$PlotID==p, "Biomass"], na.rm=T)
+    dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$PlotID==p, "Biomass.rel"] <- dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$PlotID==p, "Biomass"]/biomass.mean  
+  }
   
-  dat.ecosys2[dat.ecosys2$Model==m, "Biomass.rel"] <- dat.ecosys2[dat.ecosys2$Model==m, "Biomass"]/biomass.mean
-  
-  if(is.na(evergreen.mean)) next # Skip things that we don't have composition shift handy for
-  dat.ecosys2[dat.ecosys2$Model==m, "Evergreen.rel"] <- dat.ecosys2[dat.ecosys2$Model==m, "Evergreen"]/evergreen.mean  
+  if(is.na(mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent==ext.full, "Evergreen"], na.rm=T))) next # Skip things that we don't have composition shift handy for
+#   evergreen.mean <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent==ext.full, "Evergreen"], na.rm=T)
+#   dat.ecosys2[dat.ecosys2$Model==m, "Evergreen.rel"] <- dat.ecosys2[dat.ecosys2$Model==m, "Evergreen"]/evergreen.mean  
+  for(p in unique(dat.ecosys$PlotID)){
+    evergreen.mean <- mean(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$PlotID==p, "Evergreen"], na.rm=T)
+    dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$PlotID==p, "Evergreen.rel"] <- dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$PlotID==p, "Evergreen"]/evergreen.mean  
+  } 
 }
 summary(dat.ecosys2)
 
@@ -1391,6 +1400,31 @@ CO2.850/(CO2.base.max - CO2.base.min)
   summary(tair.veg.lm2)
   summary(precipf.veg.lm2) # Precipf = no veg  or veg x extent interaction 
   
+  veg.precip <- data.frame(char="veg.scheme (static)", 
+                           effect="precip", 
+                           extent=c("1980-2010","1901-2010", "850-2010"),
+                           estimate=summary(precipf.veg.lm2)$coefficients[4:6,1],
+                           std.err = summary(precipf.veg.lm2)$coefficients[4:6,2],
+                           t.stat  = summary(precipf.veg.lm2)$coefficients[4:6,3],
+                           p.value = summary(precipf.veg.lm2)$coefficients[4:6,4])
+  veg.tair <- data.frame(char="veg.scheme (static)", 
+                           effect="tair", 
+                           extent=c("1980-2010","1901-2010", "850-2010"),
+                           estimate=summary(tair.veg.lm2)$coefficients[4:6,1],
+                           std.err = summary(tair.veg.lm2)$coefficients[4:6,2],
+                           t.stat  = summary(tair.veg.lm2)$coefficients[4:6,3],
+                           p.value = summary(tair.veg.lm2)$coefficients[4:6,4])
+  veg.co2 <- data.frame(char="veg.scheme (static)", 
+                         effect="co2", 
+                         extent=c("1980-2010","1901-2010", "850-2010"),
+                         estimate=summary(co2.veg.lm2)$coefficients[4:6,1],
+                         std.err = summary(co2.veg.lm2)$coefficients[4:6,2],
+                         t.stat  = summary(co2.veg.lm2)$coefficients[4:6,3],
+                         p.value = summary(co2.veg.lm2)$coefficients[4:6,4])
+  
+  veg.stats <- rbind(veg.tair, veg.precip, veg.co2)
+  
+  
   
   co2.veg.lme     <- lme(abs(mean.rel.cent) ~ veg.scheme, random=list(Extent=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
   tair.veg.lme    <- lme(abs(mean.rel.cent) ~ veg.scheme, random=list(Extent=~1, x=~1), data=ci.terms[!is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
@@ -1756,20 +1790,23 @@ summary(precipf.grass.lm)
   dev.off()
   
 
-  co2.bm.lm0     <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent) , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm0    <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent) , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm0 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  anova(co2.bm.lm0)
-  anova(tair.bm.lm0)
-  anova(precipf.bm.lm0)
+  co2.evg.lm0     <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent) , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.evg.lm0    <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent) , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.evg.lm0 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  anova(co2.evg.lm0)
+  anova(tair.evg.lm0)
+  anova(precipf.evg.lm0)
   
   
-  co2.bm.lm1     <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm1    <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm1 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lm1)
-  summary(tair.bm.lm1)
-  summary(precipf.bm.lm1)
+  co2.evg.lm1     <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.evg.lm1    <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.evg.lm1 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.evg.lm1)
+  summary(tair.evg.lm1)
+  summary(precipf.evg.lm1)
+  
+  
+
   
   summary(ci.terms[ci.terms$Model=="ed2",])
   summary(ci.terms[ci.terms$Model=="ed2",])
@@ -1785,20 +1822,44 @@ summary(precipf.grass.lm)
     theme_bw()
   dev.off()
   
-  co2.bm.lm2     <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm2    <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm2 <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lm2)
-  summary(tair.bm.lm2)
-  summary(precipf.bm.lm2)
+  co2.evg.lm2     <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.evg.lm2    <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.evg.lm2 <- lm(abs(mean.rel.cent) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.evg.lm2)
+  summary(tair.evg.lm2)
+  summary(precipf.evg.lm2)
   
   
-  #   co2.bm.lme     <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  #   tair.bm.lme    <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  #   precipf.bm.lme <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  #   summary(co2.bm.lme)
-  #   summary(tair.bm.lme)
-  #   summary(precipf.bm.lme)
+  evg.precip <- data.frame(char="evg.sd", 
+                           effect="precip", 
+                           extent=c("1980-2010","1901-2010", "850-2010"),
+                           estimate=summary(precipf.evg.lm2)$coefficients[4:6,1],
+                           std.err = summary(precipf.evg.lm2)$coefficients[4:6,2],
+                           t.stat  = summary(precipf.evg.lm2)$coefficients[4:6,3],
+                           p.value = summary(precipf.evg.lm2)$coefficients[4:6,4])
+  evg.tair <- data.frame(char="evg.sd", 
+                         effect="tair", 
+                         extent=c("1980-2010","1901-2010", "850-2010"),
+                         estimate=summary(tair.evg.lm2)$coefficients[4:6,1],
+                         std.err = summary(tair.evg.lm2)$coefficients[4:6,2],
+                         t.stat  = summary(tair.evg.lm2)$coefficients[4:6,3],
+                         p.value = summary(tair.evg.lm2)$coefficients[4:6,4])
+  evg.co2 <- data.frame(char="evg.sd", 
+                        effect="co2", 
+                        extent=c("1980-2010","1901-2010", "850-2010"),
+                        estimate=summary(co2.evg.lm2)$coefficients[4:6,1],
+                        std.err = summary(co2.evg.lm2)$coefficients[4:6,2],
+                        t.stat  = summary(co2.evg.lm2)$coefficients[4:6,3],
+                        p.value = summary(co2.evg.lm2)$coefficients[4:6,4])
+  
+  evg.stats <- rbind(evg.tair, evg.precip, evg.co2)
+  
+  #   co2.evg.lme     <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  #   tair.evg.lme    <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  #   precipf.evg.lme <- lme(abs(mean.rel.cent) ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  #   summary(co2.evg.lme)
+  #   summary(tair.evg.lme)
+  #   summary(precipf.evg.lme)
 }
 # ------------
 
@@ -1817,12 +1878,12 @@ summary(precipf.grass.lm)
     theme_bw()
   dev.off()
   
-  co2.bm.lm1     <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm1    <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm1 <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lm1)
-  summary(tair.bm.lm1)
-  summary(precipf.bm.lm1)
+  co2.evg.lm1     <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.evg.lm1    <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.evg.lm1 <- lm(abs(mean.deriv.dev.abs) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.cent.deriv) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.evg.lm1)
+  summary(tair.evg.lm1)
+  summary(precipf.evg.lm1)
   
   summary(ci.terms[ci.terms$Model=="ed2",])
   summary(ci.terms[ci.terms$Model=="jules.stat",])
@@ -1841,20 +1902,20 @@ summary(precipf.grass.lm)
     theme_bw()
   dev.off()
   
-  co2.bm.lm2     <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lm2    <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lm2 <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lm2)
-  summary(tair.bm.lm2)
-  summary(precipf.bm.lm2)
+  co2.evg.lm2     <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.evg.lm2    <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd , data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.evg.lm2 <- lm(mean.cent.dev.abs ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.evg.lm2)
+  summary(tair.evg.lm2)
+  summary(precipf.evg.lm2)
   
   
-  co2.bm.lme     <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  tair.bm.lme    <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  precipf.bm.lme <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-  summary(co2.bm.lme)
-  summary(tair.bm.lme)
-  summary(precipf.bm.lme)
+  co2.evg.lme     <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  tair.evg.lme    <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  precipf.evg.lme <- lme(mean.rel.cent ~ Evergreen.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+  summary(co2.evg.lme)
+  summary(tair.evg.lme)
+  summary(precipf.evg.lme)
 }
 # ------------
 
@@ -1892,6 +1953,30 @@ summary(precipf.grass.lm)
   summary(co2.fire.lm2)
   summary(tair.fire.lm2)
   summary(precipf.fire.lm2) 
+  
+  fire.precip <- data.frame(char="fire (yes)", 
+                           effect="precip", 
+                           extent=c("1980-2010","1901-2010", "850-2010"),
+                           estimate=summary(precipf.fire.lm2)$coefficients[4:6,1],
+                           std.err = summary(precipf.fire.lm2)$coefficients[4:6,2],
+                           t.stat  = summary(precipf.fire.lm2)$coefficients[4:6,3],
+                           p.value = summary(precipf.fire.lm2)$coefficients[4:6,4])
+  fire.tair <- data.frame(char="fire (yes)", 
+                         effect="tair", 
+                         extent=c("1980-2010","1901-2010", "850-2010"),
+                         estimate=summary(tair.fire.lm2)$coefficients[4:6,1],
+                         std.err = summary(tair.fire.lm2)$coefficients[4:6,2],
+                         t.stat  = summary(tair.fire.lm2)$coefficients[4:6,3],
+                         p.value = summary(tair.fire.lm2)$coefficients[4:6,4])
+  fire.co2 <- data.frame(char="fire (yes)", 
+                        effect="co2", 
+                        extent=c("1980-2010","1901-2010", "850-2010"),
+                        estimate=summary(co2.fire.lm2)$coefficients[4:6,1],
+                        std.err = summary(co2.fire.lm2)$coefficients[4:6,2],
+                        t.stat  = summary(co2.fire.lm2)$coefficients[4:6,3],
+                        p.value = summary(co2.fire.lm2)$coefficients[4:6,4])
+  
+  fire.stats <- rbind(fire.tair, fire.precip, fire.co2)
   
   
   
@@ -2137,6 +2222,31 @@ summary(co2.bm.lm2)
 summary(tair.bm.lm2)
 summary(precipf.bm.lm2)
 
+bm.precip <- data.frame(char="bm.sd", 
+                          effect="precip", 
+                          extent=c("1980-2010","1901-2010", "850-2010"),
+                          estimate=summary(precipf.bm.lm2)$coefficients[4:6,1],
+                          std.err = summary(precipf.bm.lm2)$coefficients[4:6,2],
+                          t.stat  = summary(precipf.bm.lm2)$coefficients[4:6,3],
+                          p.value = summary(precipf.bm.lm2)$coefficients[4:6,4])
+bm.tair <- data.frame(char="bm.sd", 
+                        effect="tair", 
+                        extent=c("1980-2010","1901-2010", "850-2010"),
+                        estimate=summary(tair.bm.lm2)$coefficients[4:6,1],
+                        std.err = summary(tair.bm.lm2)$coefficients[4:6,2],
+                        t.stat  = summary(tair.bm.lm2)$coefficients[4:6,3],
+                        p.value = summary(tair.bm.lm2)$coefficients[4:6,4])
+bm.co2 <- data.frame(char="bm.sd", 
+                       effect="co2", 
+                       extent=c("1980-2010","1901-2010", "850-2010"),
+                       estimate=summary(co2.bm.lm2)$coefficients[4:6,1],
+                       std.err = summary(co2.bm.lm2)$coefficients[4:6,2],
+                       t.stat  = summary(co2.bm.lm2)$coefficients[4:6,3],
+                       p.value = summary(co2.bm.lm2)$coefficients[4:6,4])
+
+bm.stats <- rbind(bm.tair, bm.precip, bm.co2)
+
+
 
 co2.bm.lme     <- lme(mean.rel.cent ~ Biomass.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
 tair.bm.lme    <- lme(mean.rel.cent ~ Biomass.sd, random=list(Extent=~1, x=~1), data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.deriv.dev.abs) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
@@ -2213,3 +2323,34 @@ summary(precipf.bm.lme)
 }
 # ----------------------------------------
 
+veg.stats
+evg.stats
+fire.stats
+bm.stats
+
+model.stats <- rbind(veg.stats, evg.stats, fire.stats, bm.stats)
+model.stats$effect.ext <- as.factor(paste(model.stats$effect, model.stats$extent, sep="."))
+model.stats[,c("estimate", "std.err", "t.stat", "p.value")] <- round(model.stats[,c("estimate", "std.err", "t.stat", "p.value")], 2)
+model.stats$std.err <- round(model.stats[,c("std.err")], 2)
+model.stats$sig     <- ifelse(model.stats$p.value<0.05, "*", "")
+model.stats$est.err <- paste(model.stats$estimate, "+/-", model.stats$std.err, " ", model.stats$sig)
+model.stats
+write.csv(model.stats, file.path(out.dir, "ModelCharStats_full.csv"), row.names=F)
+
+
+library(reshape2)
+table3 <- merge(unique(model.stats$char), unique(model.stats$effect))
+names(table3) <- c("Character", "Effect")
+table3 <- table3[,c(2,1)]
+table3
+
+for(i in unique(table3$Character)){
+  for(j in unique(table3$Effect)){
+    for(e in unique(model.stats$extent)){
+      table3[table3$Character==i & table3$Effect==j, e] <- model.stats[model.stats$char==i & model.stats$effect==j & model.stats$extent==e, "est.err"]
+    }
+  }
+}
+table3
+
+write.csv(table3, file.path(out.dir, "Table3_ModelCharStats.csv"), row.names=F)
