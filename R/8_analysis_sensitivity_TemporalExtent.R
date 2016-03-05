@@ -530,13 +530,14 @@ summary(tree.rings.npp)
 
 ci.terms.graph <- rbind(ci.terms.graph, tree.rings.1901, tree.rings.npp)
 ci.terms.graph$Extent3 <- recode(ci.terms.graph$Extent2, "'All Data'='0'; '1901-2010'='1'; '1980-2010'='2'")
-levels(ci.terms.graph$Extent3) <- c("All Data", "1901-2010", "1980-2010")
+levels(ci.terms.graph$Extent3) <- c("0850-2010", "1901-2010", "1980-2010")
 summary(ci.terms.graph)
 
+ci.terms.graph <- ci.terms.graph[!(ci.terms.graph$Extent3=="0850-2010" & ci.terms.graph$data.type=="Tree Rings"),]
+levels(ci.terms.graph$Effect) <- c("Temperature", "Precipitation", "CO2", "Biomass")
+summary(ci.terms.graph)
 
-
-
-pdf(file.path(fig.dir, "Fig2_Sensitivity_Rel_Extent_AllExtents.pdf"), height=8.5, width=11)
+pdf(file.path(fig.dir, "Sensitivity_Rel_Extent_AllExtents.pdf"), height=8.5, width=11)
 {
 models.df <- data.frame(Model=unique(dat.ecosys[,"Model"]), Model.Order=unique(dat.ecosys[,"Model.Order"]))
 colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% models.df$Model.Order, "color"]), "black", "gray30"))
@@ -576,6 +577,123 @@ ggplot(data=ci.terms.graph[ci.terms.graph$Effect=="Biomass" ,]) + facet_wrap(~Mo
 }
 dev.off()
 
+fig3.tair <- {
+  ggplot(data=ci.terms.graph[ci.terms.graph$Effect == "Temperature",]) + 
+  facet_grid(Extent3~Effect, scales="free_x") +
+  geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
+  geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
+  # Lower Shaded Region
+  geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+  geom_vline(aes(xintercept=line.min), linetype="dashed") +
+  # Upper Shaded Region
+  geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+  geom_vline(aes(xintercept=line.max), linetype="dashed") +
+  scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Temperature ("^"o", "C)"))), breaks=c(10, 12.5, 15.0, 17.5)) +
+  scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+  guides(fill=F, color=F, linetype=F) +
+  scale_fill_manual(values=colors.use) +
+  scale_color_manual(values=colors.use) +
+  scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
+  theme(strip.text.x=element_text(size=12, face="bold"),
+        strip.text.y=element_blank()) + 
+  theme(axis.line=element_line(color="black", size=0.5), 
+        panel.grid.major=element_blank(), 
+        panel.grid.minor=element_blank(), 
+        panel.border=element_rect(fill=NA, color="black", size=0.5), 
+        panel.background=element_blank(),
+        panel.margin.x=unit(0, "lines"),
+        panel.margin.y=unit(0, "lines"))  +
+  theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+        axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+        axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+        axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.65,0,0,0), "lines")),
+        axis.ticks.length=unit(-0.5, "lines")) +
+    theme(plot.margin=unit(c(0.5,0,0.5,0.5), "lines"))
+  
+}
+fig3.precip <- {
+  ggplot(data=ci.terms.graph[ci.terms.graph$Effect == "Precipitation",]) + 
+    facet_grid(Extent3~Effect, scales="free_x") +
+    geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
+    geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
+    # Lower Shaded Region
+    geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+    geom_vline(aes(xintercept=line.min), linetype="dashed") +
+    # Upper Shaded Region
+    geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+    geom_vline(aes(xintercept=line.max), linetype="dashed") +
+    scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Precipitation (mm yr"^"-1", ")")))) +
+    scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+    guides(fill=F, color=F, linetype=F) +
+    scale_fill_manual(values=colors.use) +
+    scale_color_manual(values=colors.use) +
+    scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
+    theme(strip.text.x=element_text(size=12, face="bold"),
+          strip.text.y=element_blank()) + 
+    theme(axis.line=element_line(color="black", size=0.5), 
+          panel.grid.major=element_blank(), 
+          panel.grid.minor=element_blank(), 
+          panel.border=element_rect(fill=NA, color="black", size=0.5), 
+          panel.background=element_blank(),
+          panel.margin.x=unit(0, "lines"),
+          panel.margin.y=unit(0, "lines"))  +
+    theme(axis.text.y=element_blank(),
+          axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+          axis.title.y=element_blank(),  
+          axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+          axis.ticks.length=unit(-0.5, "lines")) +
+    theme(plot.margin=unit(c(0.5,0.0,0.5,0.5), "lines"))
+  
+}
+fig3.co2 <- {
+  ggplot(data=ci.terms.graph[ci.terms.graph$Effect == "CO2",]) + 
+    facet_grid(Extent3~Effect, scales="free_x") +
+    geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
+    geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
+    # Lower Shaded Region
+    geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+    geom_vline(aes(xintercept=line.min), linetype="dashed") +
+    # Upper Shaded Region
+    geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+    geom_vline(aes(xintercept=line.max), linetype="dashed") +
+    scale_x_continuous(expand=c(0,0), name=expression(bold(paste("CO" ["2"], " (ppm)")))) +
+    scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+    guides(fill=guide_legend(title="Model"), 
+           color=guide_legend(title="Model"), 
+           linetype=guide_legend(title="Model")) +
+    scale_fill_manual(values=colors.use) +
+    scale_color_manual(values=colors.use) +
+    scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
+    theme(legend.title=element_text(size=12, face="bold"),
+          legend.text=element_text(size=10),
+          legend.key=element_blank(),
+          legend.key.size=unit(1.5, "lines"),
+          legend.background=element_blank()) +
+    theme(strip.text.x=element_text(size=12, face="bold"),
+          strip.text.y=element_text(size=12, face="bold")) + 
+    theme(axis.line=element_line(color="black", size=0.5), 
+          panel.grid.major=element_blank(), 
+          panel.grid.minor=element_blank(), 
+          panel.border=element_rect(fill=NA, color="black", size=0.5), 
+          panel.background=element_blank(),
+          panel.margin.x=unit(0, "lines"),
+          panel.margin.y=unit(0, "lines"))  +
+    theme(axis.text.y=element_blank(),
+          axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+          axis.title.y=element_blank(),  
+          axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.79,0,0,0), "lines")),
+          axis.ticks.length=unit(-0.5, "lines")) +
+    theme(plot.margin=unit(c(0.5,0,0.5,0.5), "lines"))
+  
+}
+
+png(file.path(fig.dir, "Fig3_Sensitivity_Rel_extent.png"), width=8, height=6, units="in", res=120)
+grid.newpage()
+pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.3,1,2))))
+print(fig3.tair  , vp = viewport(layout.pos.row = 1, layout.pos.col=1))
+print(fig3.precip, vp = viewport(layout.pos.row = 1, layout.pos.col=2))
+print(fig3.co2   , vp = viewport(layout.pos.row = 1, layout.pos.col=3))
+dev.off()
 }
 # -----------------------
 
