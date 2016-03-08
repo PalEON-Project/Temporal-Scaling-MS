@@ -955,19 +955,50 @@ ggplot(data=ci.terms.graph[ci.terms.graph$Effect %in% c("Biomass"),]) + facet_wr
 	scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
 	theme_bw()
 )
-print(
-ggplot(data=ci.terms.graph[ci.terms.graph$Effect %in% c("Time"),]) + facet_wrap(~Model, scales="free_x") +
-	geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
-	geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
-	scale_x_continuous(expand=c(0,0), name="") +
-	scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
-	scale_fill_manual(values=colors.use) +
-	scale_color_manual(values=colors.use) +
-	scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
-	theme_bw()
-)
 }
 dev.off()
+
+
+levels(ci.terms.graph$Effect) <- c("Temperature", "Precipitation", "CO2", "Biomass", "Time")
+png(file.path(fig.dir, "Sensitivity_Models_Rel_Baseline_Climate.png"), height=8, width=10, units="in", res=180)
+{
+  print(
+    ggplot(data=ci.terms.graph[ci.terms.graph$Effect %in% c("Temperature", "Precipitation", "CO2"),]) + facet_wrap(~Effect, scales="free_x") +
+      geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
+      geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1) +
+      scale_x_continuous(expand=c(0,0), name="") +
+      scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+      scale_fill_manual(values=colors.use) +
+      scale_color_manual(values=colors.use) +
+      scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
+      guides(fill=guide_legend(title="Model"),
+             color=guide_legend(title="Model"),
+             linetype=guide_legend(title="Model"))+
+      theme(legend.title=element_text(size=18, face="bold"),
+            legend.text=element_text(size=14),
+            legend.key=element_blank(),
+            legend.key.size=unit(1.5, "lines"),
+            legend.background=element_blank()) +
+      theme(strip.text.x=element_text(size=14, face="bold"),
+            strip.text.y=element_blank()) + 
+      theme(axis.line=element_line(color="black", size=0.5), 
+            panel.grid.major=element_blank(), 
+            panel.grid.minor=element_blank(), 
+            panel.border=element_rect(fill=NA, color="black", size=0.5), 
+            panel.background=element_blank(),
+            panel.margin.x=unit(0, "lines"),
+            panel.margin.y=unit(0, "lines"))  +
+      theme(axis.text.y=element_text(color="black", size=14, margin=unit(c(0,1.5,0,0), "lines")),
+            axis.text.x=element_text(color="black", size=14, margin=unit(c(1.5,0,0,0), "lines")), 
+            axis.title.y=element_text(size=18, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+            axis.title.x=element_text(size=18, face="bold", margin=unit(c(0,0,0,0), "lines")),
+            axis.ticks.length=unit(-0.5, "lines")) +
+      theme(plot.margin=unit(c(1,1,1,1), "lines"))
+    
+  )
+}
+dev.off()
+
 
 } # End graphing section
 # -----------------------

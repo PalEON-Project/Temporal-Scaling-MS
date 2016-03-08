@@ -955,7 +955,109 @@ summary(ci.terms)
     )
   }
   dev.off()
-  
+
+  png(file.path(fig.dir, "SuppFig1_Sensitivity_byModel_tair.png"), height=8, width=8, units="in", res=120)
+  {
+    ggplot(data=ci.terms[ci.terms$Effect=="tair",]) +
+      facet_wrap(~Model.Order, scales="free_x") +
+      geom_ribbon(aes(x=x-273.15, ymin=lwr.rel.cent*100, ymax=upr.rel.cent*100, fill=Extent),alpha=0.5) +
+      geom_line(aes(x=x-273.15, y=mean.rel.cent*100, color=Extent, linetype=Extent), size=2) +
+      scale_x_continuous(name=expression(bold(paste("Temperature, May-Sep ("^"o","C)"))), expand=c(0,0), breaks=c(10, 12.5, 15, 17.5)) +
+      scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
+      scale_fill_manual(values=c("blue3", "red3", "green3")) +
+      scale_color_manual(values=c("blue3", "red3", "green3")) +
+      theme(legend.title=element_text(size=12, face="bold"),
+            legend.text=element_text(size=10),
+            legend.key=element_blank(),
+            legend.key.size=unit(1.5, "lines"),
+            legend.background=element_blank(), 
+            legend.position=c(0.85, 0.2)) +
+      theme(strip.text.x=element_text(size=12, face="bold"),
+            strip.text.y=element_text(size=12, face="bold")) + 
+      theme(axis.line=element_line(color="black", size=0.5), 
+            panel.grid.major=element_blank(), 
+            panel.grid.minor=element_blank(), 
+            panel.border=element_rect(fill=NA, color="black", size=0.5), 
+            panel.background=element_blank(),
+            panel.margin.x=unit(0, "lines"),
+            panel.margin.y=unit(0.25, "lines"))  +
+      theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+            axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+            axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+            axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+            axis.ticks.length=unit(-0.5, "lines")) +
+      theme(plot.margin=unit(c(0.5,0.5,0.5,0.5), "lines"))
+    }
+  dev.off()
+
+  png(file.path(fig.dir, "SuppFig2_Sensitivity_byModel_precipf.png"), height=8, width=8, units="in", res=120)
+  {
+    ggplot(data=ci.terms[ci.terms$Effect=="precipf",]) +
+      facet_wrap(~Model.Order, scales="free_x") +
+      geom_ribbon(aes(x=x, ymin=lwr.rel.cent*100, ymax=upr.rel.cent*100, fill=Extent),alpha=0.5) +
+      geom_line(aes(x=x, y=mean.rel.cent*100, color=Extent, linetype=Extent), size=2) +
+      scale_x_continuous(name=expression(bold(paste("Precipitation, May-Sep (mm yr"^"-1",")"))), expand=c(0,0)) +
+      scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
+      scale_fill_manual(values=c("blue3", "red3", "green3")) +
+      scale_color_manual(values=c("blue3", "red3", "green3")) +
+      theme(legend.title=element_text(size=12, face="bold"),
+            legend.text=element_text(size=10),
+            legend.key=element_blank(),
+            legend.key.size=unit(1.5, "lines"),
+            legend.background=element_blank(), 
+            legend.position=c(0.85, 0.2)) +
+      theme(strip.text.x=element_text(size=12, face="bold"),
+            strip.text.y=element_text(size=12, face="bold")) + 
+      theme(axis.line=element_line(color="black", size=0.5), 
+            panel.grid.major=element_blank(), 
+            panel.grid.minor=element_blank(), 
+            panel.border=element_rect(fill=NA, color="black", size=0.5), 
+            panel.background=element_blank(),
+            panel.margin.x=unit(0, "lines"),
+            panel.margin.y=unit(0.25, "lines"))  +
+      theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+            axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+            axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+            axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+            axis.ticks.length=unit(-0.5, "lines")) +
+      theme(plot.margin=unit(c(0.5,0.5,0.5,0.5), "lines"))
+  }
+  dev.off()
+
+  png(file.path(fig.dir, "SuppFig3_Sensitivity_byModel_CO2.png"), height=8, width=8, units="in", res=120)
+  {
+    ggplot(data=ci.terms[ci.terms$Effect=="CO2",]) +
+      facet_wrap(~Model.Order, scales="free_x") +
+      geom_ribbon(aes(x=x, ymin=lwr.rel.cent*100, ymax=upr.rel.cent*100, fill=Extent),alpha=0.5) +
+      geom_line(aes(x=x, y=mean.rel.cent*100, color=Extent, linetype=Extent), size=2) +
+      scale_x_continuous(name=expression(bold(paste("CO"["2"], " (ppm)"))), expand=c(0,0)) +
+      scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
+      scale_fill_manual(values=c("blue3", "red3", "green3")) +
+      scale_color_manual(values=c("blue3", "red3", "green3")) +
+      theme(legend.title=element_text(size=12, face="bold"),
+            legend.text=element_text(size=10),
+            legend.key=element_blank(),
+            legend.key.size=unit(1.5, "lines"),
+            legend.background=element_blank(), 
+            legend.position=c(0.85, 0.2)) +
+      theme(strip.text.x=element_text(size=12, face="bold"),
+            strip.text.y=element_text(size=12, face="bold")) + 
+      theme(axis.line=element_line(color="black", size=0.5), 
+            panel.grid.major=element_blank(), 
+            panel.grid.minor=element_blank(), 
+            panel.border=element_rect(fill=NA, color="black", size=0.5), 
+            panel.background=element_blank(),
+            panel.margin.x=unit(0, "lines"),
+            panel.margin.y=unit(0.25, "lines"))  +
+      theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+            axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+            axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+            axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+            axis.ticks.length=unit(-0.5, "lines")) +
+      theme(plot.margin=unit(c(0.5,0.5,0.5,0.5), "lines"))
+  }
+  dev.off()
+
   # Trying to relativize the sensitivity to look at the change from the base extent
   # Using absolute value so that positive indicates more extreme even though this 
   #   leads to some very weird shapes
