@@ -75,11 +75,11 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars, limitin
   df.weights[,paste("weight", vars, sep=".")] <- NA
   for(i in 1:nrow(df.weights)){
     if(limiting==T){
+      var.min <- min(df.weights[i,paste0("fit.", vars)], na.rm=T)
       var.max <- max(df.weights[i,paste0("fit.", vars)], na.rm=T)
-      vars.rel <- 1-gam.fits[i,vars]/var.max
-      weights.vars <- vars.rel/sum(vars.rel)
-      df.weights[i,paste("weight", vars, sep=".")] <- weights.vars
-      
+      vars.rel <- (var.max-gam.fits[i,vars])/(var.max-var.min) # Basically using distance from max as the relativizer
+      weights.vars <- vars.rel/sum(vars.rel) # Finding the proportion of the distance from max of each factor from the total limtiation (dev. from max)
+      df.weights[i,paste("weight", vars, sep=".")] <- weights.vars      
     } else {
       # summing the absolute values to get the weights for each fixed effect
       fit.spline2 <- rowSums(abs(gam.fits[,vars]), na.rm=T)      

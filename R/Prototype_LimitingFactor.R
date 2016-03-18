@@ -92,13 +92,16 @@ df.weights[,paste("weight", vars, 2, sep=".")] <- NA
 for(i in 1:nrow(df.weights)){
 #   var.min <- min(df.weights[i,paste0("fit.", c("tair", "precipf", "CO2"))])
   var.min <- min(df.weights[i,paste0("fit.", vars)], na.rm=T)
-  var.max <- max(df.weights[i,paste0("fit.", vars)], na.rm=T)
-  vars.rel <- 1-gam.fits[i,vars]/var.max
-  weights.vars <- vars.rel/sum(vars.rel)
+  var.max <- max(df.weights[i,paste0("fit.", vars)], na.rm=T) 
+  vars.rel1 <- (var.max-gam.fits[i,vars])/(var.max-var.min)
+  vars.rel2 <- 1-gam.fits[i,vars]/var.max
+  weights.vars1 <- vars.rel1/sum(vars.rel1)
+  weights.vars2 <- vars.rel2/sum(abs(vars.rel2))
   df.weights[i,paste("weight", vars, 2, sep=".")] <- weights.vars
 }
 summary(df.weights)
-row.bad <- which(df.weights$weight.Biomass.2 < (-200))
+row.bad <- which(df.weights$fit.tair < (-0.7))
+row.bad
 
 df.weights2 <- df.weights
 
