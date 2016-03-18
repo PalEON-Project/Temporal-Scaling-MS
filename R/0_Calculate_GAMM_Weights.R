@@ -1,6 +1,8 @@
-factor.weights <- function(model.gam, model.name, newdata, extent, vars){
-	# If the model.gam is a mixed model.gam (gamm) rather than a normal gam, extract just the gam portion
-	if(class(model.gam)[[1]]=="gamm") model.gam <- model.gam$gam
+factor.weights <- function(model.gam, model.name, newdata, extent, vars, limiting=F){
+  # Limiting = T/F; if true, our weights are based on what is most limiting.  If false (default), based on what is is most influential
+
+  # If the model.gam is a mixed model.gam (gamm) rather than a normal gam, extract just the gam portion
+  if(class(model.gam)[[1]]=="gamm") model.gam <- model.gam$gam
 	# -----------
 	# calculating the weights for each of the factors
 	# -----------
@@ -52,10 +54,6 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	fit.spline <- rowSums(gam.fits[,2:ncol(gam.fits)], na.rm=T)
 	if(max(abs(fit - fit.sum),na.rm=T)>1e-4) print("***** WARNING: sum of fixed effects not equal to predicted value *****")
 
-	# summing the absolute values to get the weights for each fixed effect
-	fit.sum2 <- rowSums(abs(gam.fits[,]), na.rm=T)
-	fit.spline2 <- rowSums(abs(gam.fits[,2:ncol(gam.fits)]), na.rm=T)
-
 	# Factor weights are determined by the relative strength of Temp, Precip, & CO2
 	df.weights <- data.frame(Model=model.name, 
 	                         Site=newdata$Site, 
@@ -71,7 +69,22 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars){
 	for(v in vars){
 		df.weights[,paste("fit", v, sep=".")   ] <- gam.fits[,v]
 		df.weights[,paste( "sd", v, sep=".")   ] <- gam.sd[,v]
-		df.weights[,paste("weight", v, sep=".")] <- gam.fits[,v]/fit.spline2
+	}
+  
+  
+  df.weights[,paste("weight", vars, sep=".")] <- NA
+  for(i in 1:nrow(df.weights)){
+    if(limiting==T){
+      var.max <- max(df.weights[i,paste0("fit.", vars)], na.rm=T)
+      vars.rel <- 1-gam.fits[i,vars]/var.max
+      weights.vars <- vars.rel/sum(vars.rel)
+      df.weights[i,paste("weight", vars, sep=".")] <- weights.vars
+      
+    } else {
+      # summing the absolute values to get the weights for each fixed effect
+      fit.spline2 <- rowSums(abs(gam.fits[,vars]), na.rm=T)      
+      df.weights[i,paste("weight", vars, sep=".")] <- gam.fits[i,vars]/fit.spline2[i]
+    }
 	}
 	
 	# doing a little bit of handy-dandy calculation to give a flag as to which factor is given the greatest weight in a given year
