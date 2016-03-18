@@ -54,8 +54,8 @@ if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "Sensitivity_Baseline")
-dat.dir <- file.path(dat.base, "Sensitivity_Baseline")
+fig.dir <- file.path(fig.base, "Sensitivity_Baseline_BAI")
+dat.dir <- file.path(dat.base, "Sensitivity_Baseline_BAI")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -149,7 +149,7 @@ summary(plot.npp)
 # -------
 
 # Subset a period where we're not worried about 
-plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=1980,]
+plot.npp <- plot.npp[complete.cases(plot.npp) & plot.npp$Year>=(2010-30),]
 summary(plot.npp)
 
 # Add the data to paleon.models
@@ -176,7 +176,7 @@ summary(paleon.models$TreeRingNPP)
 # 1.c. Load & set up raw ring widths
 # ----------------------------------------
 {
-response    <- "RW"
+response    <- "BAI"
 biomass.mod <- "DBH"
 time.mod    <- "Age"
 

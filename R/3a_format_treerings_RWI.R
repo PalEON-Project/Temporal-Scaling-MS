@@ -65,9 +65,9 @@ co2.dir = "~/Dropbox/PalEON_CR/phase1a_env_drivers/phase1a_env_drivers_v5/paleon
 
 # Tree Ring Directories:
 in.base = "raw_inputs"
-dir.lyford  <- file.path(in.base, "Lyford_Data_20m_Final")
-dir.harvard <- file.path(in.base, "HarvardForest")
-dir.howland <- file.path(in.base, "HowlandTreeRings")
+dir.lyford  <- file.path(in.base, "PalEON_TreeRings", "Lyford_Data_20m_Final")
+dir.harvard <- file.path(in.base, "PalEON_TreeRings", "HarvardForest")
+dir.howland <- file.path(in.base, "PalEON_TreeRings", "HowlandTreeRings")
 dir.itrdb   <- file.path(in.base, "ITRDB")
 
 
@@ -86,7 +86,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 
 
-# # Below commented out because saved as .csv file so we don't have to redo it every time
+# Below commented out because saved as .csv file so we don't have to redo it every time
 # # ----------------------------------------
 # # 1. Extract Met data for the plot locations
 # # ----------------------------------------
@@ -96,10 +96,10 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # file.co2 <- nc_open(file.path(co2.dir, "paleon_annual_co2.nc"))
 # co2 <- data.frame(Year=850:2010, CO2=ncvar_get(file.co2, "co2"))
 # nc_close(file.co2)
-
+# 
 # summary(co2)
 # # ---------------
-
+# 
 # # ---------------
 # # 1.b. Load PRISM Data
 # # ---------------
@@ -107,31 +107,31 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ppt.files <- dir(file.path(met.dir, "ppt"))
 # ppt.yrs  <- substr(ppt.files, nchar(ppt.files)-8, nchar(ppt.files)-5)
 # ppt.mos  <- substr(ppt.files, nchar(ppt.files)-4, nchar(ppt.files)-3)
-
+# 
 # ppt <- stack(file.path(met.dir, "ppt", ppt.files))
 # names(ppt) <- paste0(ppt.yrs, ".", ppt.mos)
 # ppt
-
+# 
 # # Temperature
 # tmean.files <- dir(file.path(met.dir, "tmean"))
 # tmean.yrs <- substr(tmean.files, nchar(tmean.files)-8, nchar(tmean.files)-5)
 # tmean.mos <- substr(tmean.files, nchar(tmean.files)-4, nchar(tmean.files)-3)
-
+# 
 # tmean <- stack(file.path(met.dir, "tmean", tmean.files))
 # names(tmean) <- paste0(tmean.yrs, ".", tmean.mos)
 # tmean
 # # ---------------
-
+# 
 # # ---------------
 # # 1.c. Load plot locations and extract info
 # # ---------------
 # plots <- read.csv(file.path(in.base, "TreeRing_Locations.csv"))
 # coordinates(plots) <- c("Lon..W.", "Lat..N.")
 # summary(plots)
-
+# 
 # # plot(tmean[[1]])
 # # plot(plots, add=T, pch=19)
-
+# 
 # plots.clim.mo        <- stack(data.frame(extract(ppt, plots)))
 # names(plots.clim.mo) <- c("ppt", "Year.Mo")
 # plots.clim.mo$tmean  <- stack(data.frame(extract(tmean, plots)))[,1] + 273.15 # convert to Kelvin
@@ -141,24 +141,24 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # plots.clim.mo        <- merge(plots.clim.mo, co2, all.x=T, all.y=F)
 # summary(plots.clim.mo)
 # # ---------------
-
+# 
 # # ---------------
 # # 1.d. Aggregate up to the Year
 # # ---------------
 # plots.clim <- aggregate(plots.clim.mo[,c("tmean", "ppt", "CO2")], by=list(plots.clim.mo$PlotID, plots.clim.mo$Year), FUN=mean)
 # names(plots.clim) <- c("PlotID", "Year", "tair.yr", "precipf.yr", "CO2.yr")
-
+# 
 # plots.clim[,c("tair.gs", "precipf.gs", "CO2.gs")] <- aggregate(plots.clim.mo[plots.clim.mo$Month>=5 & plots.clim.mo$Month<=9,c("tmean", "ppt", "CO2")], by=list(plots.clim.mo[plots.clim.mo$Month>=5 & plots.clim.mo$Month<=9,"PlotID"], plots.clim.mo[plots.clim.mo$Month>=5 & plots.clim.mo$Month<=9,"Year"]), FUN=mean)[,c(3:5)]
-
+# 
 # # Converting annual and growing season precip
 # plots.clim$precipf.yr <- plots.clim$precipf.yr*12
 # plots.clim$precipf.gs <- plots.clim$precipf.gs*5
-
+# 
 # summary(plots.clim)
 # write.csv(plots.clim, file="Data/TreeRing_PRISM_Climate.csv", row.names=F)
 # # ---------------
-
-# ----------------------------------------
+# 
+# # ----------------------------------------
 
 
 # -------------------------------------------------
@@ -266,6 +266,7 @@ mn019 <- read.rwl(file.path(dir.itrdb, "PDL", "mn019.rwl.txt"))
 # PHO
 dir(file.path(dir.itrdb, "PHO"), ".rwl")
 me029 <- read.rwl(file.path(dir.itrdb, "PHO", "me029.rwl.txt"))
+me020 <- read.rwl(file.path(dir.itrdb, "PHO", "me020.rwl.txt"))
 
 # PUN
 dir(file.path(dir.itrdb, "PUN"), ".rwl")
@@ -291,6 +292,7 @@ mn019.detrend   <- detrend(mn019, method="Spline")
 
 ## PHO
 me029.detrend   <- detrend(me029, method="Spline")
+me020.detrend   <- detrend(me020, method="Spline")
 
 # PUN
 mi006.detrend   <- detrend(mi006, method="Spline")
@@ -392,7 +394,16 @@ me029.stack$PlotID <- as.factor("ME029")
 me029.stack$Site   <- as.factor("PHO")
 summary(me029.stack)
 
-pho.rwl <- rbind(howland.stack, me029.stack)
+me020.stack <- stack(me020.detrend)[,c(2,1)]
+names(me020.stack) <- c("CoreID", "RWI")
+me020.stack$RW     <- stack(me020)[,1]
+me020.stack$Year   <- as.numeric(row.names(me020.detrend))
+me020.stack$TreeID <- as.factor(substr(me020.stack$CoreID, 1, 5))
+me020.stack$PlotID <- as.factor("ME020")
+me020.stack$Site   <- as.factor("PHO")
+summary(me020.stack)
+
+pho.rwl <- rbind(howland.stack, me029.stack, me020.stack)
 
 # PMB
 
