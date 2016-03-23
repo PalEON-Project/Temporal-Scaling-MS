@@ -359,6 +359,12 @@ dev.region[,paste0(factors.agg, ".lo")] <- aggregate(dat.region[dat.region$data.
 dev.region[,paste0(factors.agg, ".hi")] <- aggregate(dat.region[dat.region$data.type=="Model",factors.agg],
                                                     by= dat.region[dat.region$data.type=="Model",c("Y.type", "data.type", "Year")], 
                                                     FUN=quantile, 0.975, na.rm=T)[,factors.agg]
+# dev.region[,paste0(factors.agg, ".min")] <- aggregate(dat.region[dat.region$data.type=="Model",factors.agg], 
+#                                                      by= dat.region[dat.region$data.type=="Model",c("Y.type", "data.type", "Year")], 
+#                                                      FUN=min, na.rm=T)[,factors.agg]
+# dev.region[,paste0(factors.agg, ".max")] <- aggregate(dat.region[dat.region$data.type=="Model",factors.agg],
+#                                                      by= dat.region[dat.region$data.type=="Model",c("Y.type", "data.type", "Year")], 
+#                                                      FUN=max, na.rm=T)[,factors.agg]
 
 
 # Adding in the standard deviation for a few other variables we want to use to describe the models through time
@@ -585,6 +591,11 @@ mean(dev.region[dev.region$Year<1900 & dev.region$data.type=="Model", "Y.rel.sd"
 summary(dev.region[dev.region$Year>=1980 & dev.region$data.type=="Model", "Y.rel.sd"])
 mean(dev.region[dev.region$Year>=1980 & dev.region$data.type=="Model", "Y.rel.sd"]); sd(dev.region[dev.region$Year>=1980 & dev.region$data.type=="Model", "Y.rel.sd"])
 
+# 1900-2010
+summary(dev.region[dev.region$Year>=1900 & dev.region$data.type=="Model", "Y.rel.sd"])
+mean(dev.region[dev.region$Year>=1901 & dev.region$data.type=="Model", "Y.rel.sd"]); sd(dev.region[dev.region$Year>=1901 & dev.region$data.type=="Model", "Y.rel.sd"])
+
+
 t.test(dev.region[dev.region$Year<1900 & dev.region$data.type=="Model", "Y.rel.sd"], dev.region[dev.region$Year>1900 & dev.region$data.type=="Model", "Y.rel.sd"])
 }
 # --------
@@ -610,6 +621,11 @@ t.test(dev.region[dev.region$Year<1900 & dev.region$data.type=="Model", "fit.CO2
 summary(dev.region[dev.region$Year<1900 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"])
 mean(dev.region[dev.region$Year<1900 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"]); sd(dev.region[dev.region$Year<1900 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"])
 mean(dev.region[dev.region$Year>1900 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"]); sd(dev.region[dev.region$Year>1900 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"])
+mean(dev.region[dev.region$Year>=1980 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"]); sd(dev.region[dev.region$Year>1980 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"])
+summary(dat.region[dat.region$Year>=1980 & dat.region$data.type=="Model", c("Model", "Year", "fit.CO2.rel.adj")])
+summary(wt.terms)
+summary(wt.terms2)
+
 apply(dev.region[dev.region$Year>=1980 & dev.region$data.type=="Model", c("fit.CO2.rel.adj.lo", "fit.CO2.rel.adj.hi", "fit.CO2.rel.adj")],2, mean)
 }
 # --------
@@ -1239,6 +1255,7 @@ summary(ci.terms.agg)
 }
 
 }
+}
 # --------
 
 
@@ -1351,7 +1368,7 @@ co2.fire.post$fire.scheme <- df.co2$fire.scheme
 co2.fire.post$Effect <- as.factor("CO2")
 summary(co2.fire.post)
 
-co2.fire.post <- aggregate(co2.fire.post[,c("mean", "lwr", "upr")], by=co2.fire.post[,c("fire.scheme", "Effect", "x")], FUN=mean)
+# co2.fire.post <- aggregate(co2.fire.post[,c("mean", "lwr", "upr")], by=co2.fire.post[,c("fire.scheme", "Effect", "x")], FUN=mean)
 
 tair.fire.post <- post.distns(model.gam=tair.fire, model.name="Tair", n=50, newdata=df.tair, vars="x", terms=F)$ci
 tair.fire.post$fire.scheme <- df.tair$fire.scheme
