@@ -73,7 +73,7 @@ factor.weights <- function(model.gam, model.name, newdata, extent, vars, limitin
 	}
   
   
-  df.weights[,paste("weight", vars, sep=".")] <- NA
+  df.weights[,paste("weight", vars.num, sep=".")] <- NA
   for(i in 1:nrow(df.weights)){
     if(limiting==T){
       var.min <- min(df.weights[i,paste0("fit.", vars.num)], na.rm=T)
