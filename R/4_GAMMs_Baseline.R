@@ -78,8 +78,8 @@ time.mod <- "Year"
 #	generated with 1_generate_ecosys.R
 load(file.path("Data", "EcosysData.Rdata"))
 
-# Get rid of LINKAGES because it's weird & hasn't been updated
-ecosys <- ecosys[!ecosys$Model=="linkages",]
+# # Get rid of LINKAGES because it's weird & hasn't been updated
+# ecosys <- ecosys[!ecosys$Model=="linkages",]
 summary(ecosys)
 
 for(m in unique(ecosys$Model)){
@@ -92,7 +92,7 @@ for(m in unique(ecosys$Model)){
 		           ecosys$Model      == m
 
 	# What will our spatio-temporal explanatory factor ("Biomass") be?
-	if(!is.na(mean(ecosys[dat.subsets,"AGB"]))) biomass.mod="AGB" else biomass.mod="LAI"
+	if(max(ecosys[dat.subsets,"AGB"], na.rm=T)>0) biomass.mod="AGB" else biomass.mod="LAI"
 
 	data.temp                  <- ecosys[dat.subsets, c("Model", "Model.Order", "Site", "Year")]
 	data.temp$PlotID           <- ecosys[dat.subsets,"Site" ]

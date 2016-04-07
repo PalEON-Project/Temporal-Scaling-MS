@@ -66,15 +66,15 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 {
 load(file.path(path.data, "EcosysData.Rdata"))
-ecosys <- ecosys[!ecosys$Model=="linkages",]
+# ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 # Colors for the rest of the script
 models.use <- unique(ecosys[,"Model.Order"])
 colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% models.use, "color"]), "black", "gray40"))
-# 
-# # Load the statistical model results
-# load(file.path(in.base, "gamm_TempExtent.Rdata"))
-# 
+
+# Load the statistical model results
+load(file.path(in.base, "gamm_TempExtent.Rdata"))
+
 # dat.ecosys <- cbind(mod.out$data[, ], mod.out$ci.response[,c("mean", "lwr", "upr")])
 # # wt.terms   <- mod.out$weights[,]
 # # ci.terms   <- mod.out$ci.terms[,]
@@ -158,8 +158,8 @@ colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% model
 # 		yr <- strsplit(paste(e), "-")[[1]][1]
 # 		if(nchar(yr)<4) yr = paste0(0, yr)
 # 
-#    		# Setting up some stuff
-#    		dat.subset <- dat.ecosys$Model==m & dat.ecosys$Extent==e & dat.ecosys$Resolution=="t.001"
+#    	# Setting up some stuff
+#    	dat.subset <- dat.ecosys$Model==m & dat.ecosys$Extent==e & dat.ecosys$Resolution=="t.001"
 # 		gam.now    <- mod.out[[paste0("gamm.", m, "_", yr, ".TempExtent")]]
 # 
 # 		# A new blank list for everything to go in
@@ -188,7 +188,7 @@ colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% model
 # 		terms.out   <- post.distns(model.gam=gam.now, model.name=m, n=n, newdata=ci.dat, 
 # 		                           vars=c("tair", "precipf", "CO2", "Biomass"), terms=T)
 # 
-# 		 # Adding the new sims to the list
+# 		# Adding the new sims to the list
 # 		out.new[[paste(m, yr, sep="_")]][["ci.terms"    ]] <- terms.out$ci
 # 		out.new[[paste(m, yr, sep="_")]][["sim.terms"   ]] <- terms.out$sims
 # 		# -----------------------
@@ -216,7 +216,7 @@ colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% model
 # 		 ts.dat <- merge(ts.dat, var.ts, all.x=T, all.y=T)	
 # 
 # 		 #NOTE: Jules is missing 2010, so we're just going to pretend it's exactly the same as 2009
-# 		 if(substr(m, 1, 5)=="jules"){
+# 		 if(substr(m, 1, 5) %in% c("jules", "linka") ){
 # 		 	ts.dat[ts.dat$Year==2010,c("Y", "Time", "Biomass")] <- ts.dat[ts.dat$Year==2009,c("Y", "Time", "Biomass")]
 # 		 }
 # 
@@ -471,12 +471,12 @@ colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% model
 
 # Creating a cheat data frame that lets values go off the graph
 ci.terms.graph <- ci.terms
-ci.terms.graph[ci.terms.graph$mean.rel<(-0.65),"mean.rel"] <- NA 
-ci.terms.graph[ci.terms.graph$lwr.rel<(-0.65),"lwr.rel"] <- -0.65 
-ci.terms.graph[ci.terms.graph$upr.rel<(-0.65),"upr.rel"] <- -0.65 
+ci.terms.graph[!is.na(ci.terms.graph$mean.rel) & ci.terms.graph$mean.rel<(-0.65),"mean.rel"] <- NA 
+ci.terms.graph[!is.na(ci.terms.graph$lwr.rel) & ci.terms.graph$lwr.rel<(-0.65),"lwr.rel"] <- -0.65 
+ci.terms.graph[!is.na(ci.terms.graph$upr.rel) & ci.terms.graph$upr.rel<(-0.65),"upr.rel"] <- -0.65 
 ci.terms.graph[which(ci.terms.graph$mean.rel>1.00),"mean.rel"] <- NA 
-ci.terms.graph[ci.terms.graph$lwr.rel>(1.00),"lwr.rel"] <- 1.00
-ci.terms.graph[ci.terms.graph$upr.rel>(1.00),"upr.rel"] <- 1.00 
+ci.terms.graph[!is.na(ci.terms.graph$upr.rel) & ci.terms.graph$lwr.rel>(1.00),"lwr.rel"] <- 1.00
+ci.terms.graph[!is.na(ci.terms.graph$upr.rel) & ci.terms.graph$upr.rel>(1.00),"upr.rel"] <- 1.00 
 ci.terms.graph[ci.terms.graph$Effect=="tair", "x"] <- ci.terms.graph[ci.terms.graph$Effect=="tair", "x"]-273.15
 
 ci.terms.graph <- merge(ci.terms.graph, models.df, all.x=T, all.y=F)
@@ -486,7 +486,7 @@ summary(ci.terms.graph)
 ci.terms.graph$Y.type <- as.factor(ifelse(ci.terms.graph$Model=="TreeRingRW", "RW", "NPP"))
 ci.terms.graph$data.type <- as.factor(ifelse(substr(ci.terms.graph$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
 summary(ci.terms.graph)
-
+# summary(ci.terms.graph[ci.terms.graph$Model=="linkages",])
 
 # Creating a mask for values outside of the model drivers for that time period
 for(e in unique(ci.terms.graph$Extent)){
@@ -687,7 +687,7 @@ fig3.co2 <- {
   
 }
 
-png(file.path(fig.dir, "Fig3_Sensitivity_Rel_extent.png"), width=8, height=6, units="in", res=120)
+png(file.path(fig.dir, "Fig3_Sensitivity_Rel_extent.png"), width=8, height=6, units="in", res=180)
 grid.newpage()
 pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.3,1,2))))
 print(fig3.tair  , vp = viewport(layout.pos.row = 1, layout.pos.col=1))
@@ -968,12 +968,12 @@ summary(ci.terms)
       scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
       scale_fill_manual(values=c("blue3", "red3", "green3")) +
       scale_color_manual(values=c("blue3", "red3", "green3")) +
-      theme(legend.title=element_text(size=12, face="bold"),
-            legend.text=element_text(size=10),
+      theme(legend.title=element_text(size=10, face="bold"),
+            legend.text=element_text(size=9),
             legend.key=element_blank(),
             legend.key.size=unit(1.5, "lines"),
             legend.background=element_blank(), 
-            legend.position=c(0.85, 0.2)) +
+            legend.position=c(0.83, 0.2)) +
       theme(strip.text.x=element_text(size=12, face="bold"),
             strip.text.y=element_text(size=12, face="bold")) + 
       theme(axis.line=element_line(color="black", size=0.5), 
@@ -1002,12 +1002,12 @@ summary(ci.terms)
       scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
       scale_fill_manual(values=c("blue3", "red3", "green3")) +
       scale_color_manual(values=c("blue3", "red3", "green3")) +
-      theme(legend.title=element_text(size=12, face="bold"),
-            legend.text=element_text(size=10),
+      theme(legend.title=element_text(size=10, face="bold"),
+            legend.text=element_text(size=9),
             legend.key=element_blank(),
             legend.key.size=unit(1.5, "lines"),
             legend.background=element_blank(), 
-            legend.position=c(0.85, 0.2)) +
+            legend.position=c(0.92, 0.09)) +
       theme(strip.text.x=element_text(size=12, face="bold"),
             strip.text.y=element_text(size=12, face="bold")) + 
       theme(axis.line=element_line(color="black", size=0.5), 
@@ -1032,6 +1032,7 @@ summary(ci.terms)
       facet_wrap(~Model.Order, scales="free_x") +
       geom_ribbon(aes(x=x, ymin=lwr.rel.cent*100, ymax=upr.rel.cent*100, fill=Extent),alpha=0.5) +
       geom_line(aes(x=x, y=mean.rel.cent*100, color=Extent, linetype=Extent), size=2) +
+#       geom_hline(yintercept=0, linetype="dashed", size=0.5) +
       scale_x_continuous(name=expression(bold(paste("CO"["2"], " (ppm)"))), expand=c(0,0)) +
       scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
       scale_fill_manual(values=c("blue3", "red3", "green3")) +
@@ -1041,7 +1042,7 @@ summary(ci.terms)
             legend.key=element_blank(),
             legend.key.size=unit(1.5, "lines"),
             legend.background=element_blank(), 
-            legend.position=c(0.85, 0.2)) +
+            legend.position=c(0.85, 0.1)) +
       theme(strip.text.x=element_text(size=12, face="bold"),
             strip.text.y=element_text(size=12, face="bold")) + 
       theme(axis.line=element_line(color="black", size=0.5), 
@@ -1059,6 +1060,41 @@ summary(ci.terms)
       theme(plot.margin=unit(c(0.5,0.5,0.5,0.5), "lines"))
   }
   dev.off()
+
+png(file.path(fig.dir, "SuppFig3_Sensitivity_byModel_CO2_1980-2010.png"), height=8, width=8, units="in", res=120)
+{
+    ggplot(data=ci.terms[ci.terms$Effect=="CO2" & ci.terms$Extent=="1980-2010",]) +
+      facet_wrap(~Model.Order, scales="free_x") +
+      geom_ribbon(aes(x=x, ymin=lwr.rel.cent*100, ymax=upr.rel.cent*100, fill=Extent),alpha=0.5) +
+      geom_line(aes(x=x, y=mean.rel.cent*100, color=Extent, linetype=Extent), size=2) +
+      geom_hline(yintercept=0, linetype="dashed", size=0.5) +
+      scale_x_continuous(name=expression(bold(paste("CO"["2"], " (ppm)"))), expand=c(0,0)) +
+      scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
+      scale_fill_manual(values=c("blue3", "red3", "green3")) +
+      scale_color_manual(values=c("blue3", "red3", "green3")) +
+      theme(legend.title=element_text(size=12, face="bold"),
+            legend.text=element_text(size=10),
+            legend.key=element_blank(),
+            legend.key.size=unit(1.5, "lines"),
+            legend.background=element_blank(), 
+            legend.position=c(0.85, 0.1)) +
+      theme(strip.text.x=element_text(size=12, face="bold"),
+            strip.text.y=element_text(size=12, face="bold")) + 
+      theme(axis.line=element_line(color="black", size=0.5), 
+            panel.grid.major=element_blank(), 
+            panel.grid.minor=element_blank(), 
+            panel.border=element_rect(fill=NA, color="black", size=0.5), 
+            panel.background=element_blank(),
+            panel.margin.x=unit(0, "lines"),
+            panel.margin.y=unit(0.25, "lines"))  +
+      theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+            axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+            axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+            axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+            axis.ticks.length=unit(-0.5, "lines")) +
+      theme(plot.margin=unit(c(0.5,0.5,0.5,0.5), "lines"))
+  }
+dev.off()
 
   # Trying to relativize the sensitivity to look at the change from the base extent
   # Using absolute value so that positive indicates more extreme even though this 
@@ -1219,7 +1255,7 @@ summary(ci.terms)
   summary(df.precipf)
 }
 
-# 5. setting up some null models for the full sensitivity curves
+# 7. setting up some null models for the full sensitivity curves
 {
   co2.null     <- gam(mean.rel ~ s(x), data=ci.terms[ci.terms$Effect=="CO2"     & ci.terms$data.type=="Model",])
   tair.null    <- gam(mean.rel ~ s(x), data=ci.terms[ci.terms$Effect=="tair"    & ci.terms$data.type=="Model",])
@@ -1337,6 +1373,9 @@ mean(ci.terms[!ci.terms$Effect=="Biomass" & !ci.terms$Extent=="1980-2010" & ci.t
     # tair 
     tair.mod <- lm(abs(mean.dev) ~ Extent-1, data=ext.post[ext.post$Effect=="tair" & !ext.post$Quantile=="Other",] )
     summary(tair.mod)
+
+    tair.mod2 <- lme(abs(mean.dev) ~ Extent-1, random=list(Quantile=~1), data=ext.post[ext.post$Effect=="tair" & !ext.post$Quantile=="Other",] )
+    summary(tair.mod2)
     
     mean(abs(ext.post[ext.post$Effect=="tair" & ext.post$Extent=="1901-2010","mean.dev"])); sd(abs(ext.post[ext.post$Effect=="tair" & ext.post$Extent=="1901-2010","mean.dev"]))
     mean(abs(ext.post[ext.post$Effect=="tair" & ext.post$Extent=="850-2010","mean.dev"])); sd(abs(ext.post[ext.post$Effect=="tair" & ext.post$Extent=="850-2010","mean.dev"]))
@@ -1618,7 +1657,7 @@ CO2.850/(CO2.base.max - CO2.base.min)
   
   tair.veg.t.veg    <- t.test(abs(mean.rel.cent) ~ veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
   tair.veg.lm.ext    <- lm(mean.cent.dev.abs ~ Extent-1, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  summary(tair.veg.lm.veg)
+  tair.veg.t.veg
   summary(tair.veg.lm.ext)
   
   co2.veg.lm2     <- lm(abs(mean.rel.cent) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
@@ -1967,7 +2006,7 @@ CO2.850/(CO2.base.max - CO2.base.min)
 # -----
 {
   # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
-  pdf(file.path(fig.dir, "Sensitivity_vs_Evergreen.pdf"))
+  pdf(file.path(fig.dir, "Sensitivity_vs_Grass.pdf"))
   ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
     facet_wrap(~Effect, scales="fixed") +
     geom_point(aes(x=Grass.mean, y=abs(mean.rel.cent), color=Extent), size=5) +

@@ -68,7 +68,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 {
 load(file.path(path.data, "EcosysData.Rdata"))
-ecosys <- ecosys[!ecosys$Model=="linkages",]
+# ecosys <- ecosys[!ecosys$Model=="linkages",]
 
 # Colors for the rest of the script
 models.use <- unique(ecosys[,"Model.Order"])
@@ -409,7 +409,7 @@ plot.npp <- {
 	       linetype =guide_legend(title="Model", nrow=3)) +
 	theme(legend.title=element_text(size=8, face="bold"),
 	      legend.text=element_text(size=8),
-	      legend.position=c(0.35, 0.83),
+	      legend.position=c(0.3, 0.83),
 	      legend.key=element_blank(),
 	      legend.key.size=unit(0.75, "lines"),
         legend.background=element_blank()) +
@@ -623,6 +623,8 @@ mean(dev.region[dev.region$Year<1900 & dev.region$data.type=="Model", "fit.CO2.r
 mean(dev.region[dev.region$Year>1900 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"]); sd(dev.region[dev.region$Year>1900 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"])
 mean(dev.region[dev.region$Year>=1980 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"]); sd(dev.region[dev.region$Year>1980 & dev.region$data.type=="Model", "fit.CO2.rel.adj.sd"])
 summary(dat.region[dat.region$Year>=1980 & dat.region$data.type=="Model", c("Model", "Year", "fit.CO2.rel.adj")])
+summary(dat.region[!dat.region$Model=="linkages" & dat.region$Year>=1980 & dat.region$data.type=="Model", c("Model", "Year", "fit.CO2.rel.adj")])
+summary(dat.region[dat.region$Model=="linkages" & dat.region$Year>=1980 & dat.region$data.type=="Model", c("Model", "Year", "fit.CO2.rel.adj")])
 summary(wt.terms)
 summary(wt.terms2)
 

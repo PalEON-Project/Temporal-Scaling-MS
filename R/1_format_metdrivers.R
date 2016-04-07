@@ -30,7 +30,7 @@ library(ncdf4)
 # Set Directories
 # ----------------------------------------
 # setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 path.data <- "Data"
 model.dir <- "~/Dropbox/PalEON_CR/paleon_mip_site/phase1a_model_output"
 dat.dir <- "Data/analysis_met_drivers"
@@ -178,4 +178,110 @@ for(v in 1:length(cor.met$var)){
 }
 cor.met
 write.csv(cor.met, file.path(dat.dir, "Drivers_Year_GrowingSeason_Stats.csv"), row.names=F)
+# ----------------------------------------
+
+# ----------------------------------------
+# Making a supplemental figure that graphs tair, precip, & CO2 in a similar manner as the NPP figure
+# ----------------------------------------
+sec2yr <- 1*60*60*24*365.25
+
+# Read in met data
+met.mod <- read.csv(file.path(dat.dir, "Drivers_Year_GrowingSeason.csv"))
+met.mod$Data <- as.factor("PalEON")
+met.mod[,c("tair.yr", "tair.gs")] <- met.mod[,c("tair.yr", "tair.gs")] - 273.15
+met.mod$precipf.yr <- met.mod$precipf.yr*sec2yr
+met.mod$precipf.gs <- met.mod$precipf.gs*sec2yr*5/12
+summary(met.mod)
+
+# Read in PRISM met data from tree rings
+met.tr <- read.csv("Data/TreeRing_PRISM_Climate.csv")
+met.tr$Site <- ifelse(substr(met.tr$PlotID,1,2) %in% c("LF", "TP"), "PHA",
+                      ifelse(substr(met.tr$PlotID,1,2) %in% c("HO", "ME"), "PHO",
+                             ifelse(substr(met.tr$PlotID,1,2)=="MN", "PDL", "PUN")))
+met.tr$Site <- as.factor(met.tr$Site)
+met.tr$Data <- as.factor("PRISM")
+met.tr[,c("tair.yr", "tair.gs")] <- met.tr[,c("tair.yr", "tair.gs")] - 273.15
+summary(met.tr)
+unique(met.tr$PlotID)
+
+# Merge the two-sites together
+met.all <- merge(met.mod, met.tr, all.x=T, all.y=T)
+summary(met.all)
+
+summary(met.all[,paste0(vars.agg, ".gs")])
+summary(met.all[,c("Site", "Data", "Year")])
+
+# Aggregate to get region-level stats
+vars.agg <- c("tair", "precipf", "CO2")
+met.all.agg <- aggregate(met.all[,paste0(vars.agg, ".gs")], by=met.all[,c("Site", "Data", "Year")], FUN=mean, na.rm=T )
+names(met.all.agg)[4:ncol(met.all.agg)] <- paste0(vars.agg, ".mean")
+met.all.agg[,paste0(vars.agg, ".lo")] <- aggregate(met.all[,paste0(vars.agg, ".gs")], by=met.all[,c("Site", "Data", "Year")], FUN=quantile, 0.025, na.rm=T)[,paste0(vars.agg, ".gs")]
+met.all.agg[,paste0(vars.agg, ".hi")] <- aggregate(met.all[,paste0(vars.agg, ".gs")], by=met.all[,c("Site", "Data", "Year")], FUN=quantile, 0.975, na.rm=T)[,paste0(vars.agg, ".gs")]
+summary(met.all.agg)
+
+png(file.path(fig.dir, "SuppFig1_Temperature_GrowingSeason.png"), width=8, height=6, units="in", res=120)
+{
+ggplot(data=met.all.agg) + facet_wrap(~Site) +
+  geom_ribbon(aes(x=Year, ymin=tair.lo, ymax=tair.hi, fill=Data), alpha=0.5) +
+  geom_line(aes(x=Year, y=tair.mean, color=Data), alpha=0.8) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(name=expression(bold(paste("Growing Season Temperature ("^"o", "C)"))), expand=c(0,0)) + 
+  scale_color_manual(values=c("black", "red3")) +
+  scale_fill_manual(values=c("black", "red3")) +
+  theme(legend.position=c(0.1, 0.37),
+        legend.title=element_text(size=12, face="bold"),
+        legend.text=element_text(size=10),
+        legend.key=element_blank(),
+        legend.key.size=unit(1.5, "lines"),
+        legend.background=element_blank()) +
+  theme(strip.text.x=element_text(size=12, face="bold"),
+        strip.text.y=element_text(size=12, face="bold")) + 
+  theme(axis.line=element_line(color="black", size=0.5), 
+        panel.grid.major=element_blank(), 
+        panel.grid.minor=element_blank(), 
+        panel.border=element_rect(fill=NA, color="black", size=0.5), 
+        panel.background=element_blank(),
+        panel.margin.x=unit(0.5, "lines"),
+        panel.margin.y=unit(0.5, "lines"))  +
+  theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+        axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+        axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+        axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+        axis.ticks.length=unit(-0.5, "lines"))
+}
+dev.off()
+
+
+png(file.path(fig.dir, "SuppFig2_Precipitation_GrowingSeason.png"), width=8, height=6, units="in", res=120)
+{
+ggplot(data=met.all.agg) + facet_wrap(~Site) +
+  geom_ribbon(aes(x=Year, ymin=precipf.lo, ymax=precipf.hi, fill=Data), alpha=0.5) +
+  geom_line(aes(x=Year, y=precipf.mean, color=Data), alpha=0.8) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(name=expression(bold(paste("Precipitation (mm yr"^"-1", ")"))), expand=c(0,0)) +
+  scale_color_manual(values=c("black", "red3")) +
+  scale_fill_manual(values=c("black", "red3")) +
+  theme(legend.position=c(0.5, 0.37),
+        legend.title=element_text(size=12, face="bold"),
+        legend.text=element_text(size=10),
+        legend.key=element_blank(),
+        legend.key.size=unit(1.5, "lines"),
+        legend.background=element_blank()) +
+  theme(strip.text.x=element_text(size=12, face="bold"),
+        strip.text.y=element_text(size=12, face="bold")) + 
+  theme(axis.line=element_line(color="black", size=0.5), 
+        panel.grid.major=element_blank(), 
+        panel.grid.minor=element_blank(), 
+        panel.border=element_rect(fill=NA, color="black", size=0.5), 
+        panel.background=element_blank(),
+        panel.margin.x=unit(0.5, "lines"),
+        panel.margin.y=unit(0.5, "lines"))  +
+  theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+        axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+        axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+        axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+        axis.ticks.length=unit(-0.5, "lines"))
+}
+dev.off()
+
 # ----------------------------------------

@@ -467,7 +467,7 @@ summary(wt.terms)
 # -----------------------
 {
 models.df <- data.frame(Model=unique(dat.ecosys[,"Model"]), Model.Order=unique(dat.ecosys[,"Model.Order"]))
-colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% models.df$Model.Order, "color"]), "black", "gray30"))
+colors.use <- as.vector(c(paste(model.colors[model.colors$Model.Order %in% models.df$Model.Order, "color"]), "gray30", "black"))
 
 # Creating a cheat data frame that lets values go off the graph
 ci.terms.graph <- ci.terms
@@ -480,6 +480,8 @@ ci.terms.graph[ci.terms.graph$upr.rel>(1.00),"upr.rel"] <- 1.00
 ci.terms.graph[ci.terms.graph$Effect=="tair", "x"] <- ci.terms.graph[ci.terms.graph$Effect=="tair", "x"]-273.15
 
 ci.terms.graph <- merge(ci.terms.graph, models.df, all.x=T, all.y=F)
+ci.terms.graph[,"Model.Order"] <- as.factor(ifelse(ci.terms.graph$Model=="TreeRingRW", "Tree Ring BAI", paste(ci.terms.graph$Model.Order)))
+unique(ci.terms.graph$Model.Order)
 summary(ci.terms.graph)
 
 # Grouping the kind and source of the data
@@ -593,7 +595,7 @@ fig3.tair <- {
   guides(fill=F, color=F, linetype=F) +
   scale_fill_manual(values=colors.use) +
   scale_color_manual(values=colors.use) +
-  scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
+  scale_linetype_manual(values=c(rep("solid", length(colors.use)-2), "dashed", "solid")) +
   theme(strip.text.x=element_text(size=12, face="bold"),
         strip.text.y=element_blank()) + 
   theme(axis.line=element_line(color="black", size=0.5), 
@@ -627,7 +629,7 @@ fig3.precip <- {
     guides(fill=F, color=F, linetype=F) +
     scale_fill_manual(values=colors.use) +
     scale_color_manual(values=colors.use) +
-    scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
+    scale_linetype_manual(values=c(rep("solid", length(colors.use)-2), "dashed", "solid")) +
     theme(strip.text.x=element_text(size=12, face="bold"),
           strip.text.y=element_blank()) + 
     theme(axis.line=element_line(color="black", size=0.5), 
@@ -663,7 +665,7 @@ fig3.co2 <- {
            linetype=guide_legend(title="Model")) +
     scale_fill_manual(values=colors.use) +
     scale_color_manual(values=colors.use) +
-    scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
+    scale_linetype_manual(values=c(rep("solid", length(colors.use)-2), "dashed", "solid")) +
     theme(legend.title=element_text(size=12, face="bold"),
           legend.text=element_text(size=10),
           legend.key=element_blank(),

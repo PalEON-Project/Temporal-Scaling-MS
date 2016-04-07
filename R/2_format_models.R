@@ -215,9 +215,11 @@ save(ecosys, model.colors, file=file.path(path.data, "EcosysData.Rdata"))
 # ----------------------------------------
 load(file.path(path.data, "EcosysData.Rdata"))
 
-# Note: Linkages hasn't been updates, so we're going to ignore it
-ecosys <- ecosys[!ecosys$Model=="linkages",]
+# # Note: Linkages hasn't been updates, so we're going to ignore it
+# ecosys <- ecosys[!ecosys$Model=="linkages",]
 col.model <- paste(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order),"color"])
+col.model2 <- paste(model.colors[model.colors$Model.Order %in% unique(ecosys$Model.Order) & !model.colors$Model.Order=="LINKAGES","color"])
+
 # col.model <- paste(model.colors[,"color"])
 
 # ---------------------------
@@ -249,7 +251,7 @@ pdf(file.path(fig.dir, "NPP_Annual_Century_AllSites_NoLINKAGES.pdf"))
 ggplot(data=ecosys[!ecosys$Model=="linkages",]) + facet_wrap(~Site) +
 	geom_line(data=ecosys[ecosys$Resolution=="t.001" & !ecosys$Model=="linkages",], aes(x=Year, y=NPP, color=Model), size=0.25, alpha=0.3) +
 	geom_line(data=ecosys[ecosys$Resolution=="t.100" & !ecosys$Model=="linkages",], aes(x=Year, y=NPP, color=Model), size=1.5) +
-	scale_color_manual(values=col.model) + labs(y="NPP MgC ha-1 yr-1") +
+	scale_color_manual(values=col.model2) + labs(y="NPP MgC ha-1 yr-1") +
 	theme_bw()
 dev.off()
 
