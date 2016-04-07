@@ -1982,7 +1982,7 @@ CO2.850/(CO2.base.max - CO2.base.min)
 # -----
 {
   # Looking at the asbolute value of the sensitivity (closer to 0 = less sensitivite)
-  pdf(file.path(fig.dir, "Sensitivity_vs_Evergreen.pdf"))
+  pdf(file.path(fig.dir, "Sensitivity_vs_Deciduous.pdf"))
   ggplot(data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
     facet_wrap(~Effect, scales="fixed") +
     geom_point(aes(x=Deciduous.mean, y=abs(mean.rel.cent), color=Extent), size=5) +
@@ -2211,7 +2211,7 @@ summary(precipf.grass.lm)
   precipf.fire.lm1 <- lm(abs(mean.rel.cent) ~ Extent*fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
   anova(co2.fire.lm1)
   anova(tair.fire.lm1)
-  anova(precipf.fire.lm1) # Precipf = no veg  or veg x extent interaction 
+  anova(precipf.fire.lm1) 
   
   
   co2.fire.lm2     <- lm(abs(mean.rel.cent) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
