@@ -9,7 +9,8 @@
 # ----------------------------------------
 rm(list=ls())
 
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+load("Data/EcosysData.Rdata")
 
 
 # ----------------------------------------
@@ -25,7 +26,6 @@ library(nlme)
 # ----------------------------------------
 {
 load("Data/analyses/analysis_baseline/post-process_baseline.RData")
-load("Data/EcosysData.Rdata")
 
 summary(dat.ecosys)
 
@@ -529,7 +529,28 @@ mod.deriv[which(mod.deriv$Extent=="850-2010" & mod.deriv$Effect=="CO2" &mod.deri
 # -----------
 {
   source("R/0_Calculate_GAMM_Posteriors.R")
-  
+
+  # 6. Making the data frame so we can graph & compare the curves quantitatively
+  {
+    factors.analy <- c("Y.sd", "Y.rel.sd","Biomass.sd", "Evergreen.sd")
+    factors.agg <- c("Effect", "Extent", "veg.scheme", "fire.scheme", "Model", "x", "Quantile")
+    df.co2 <- aggregate(ci.terms[ci.terms$Effect=="CO2" & ci.terms$data.type=="Model",factors.analy], 
+                        by=ci.terms[ci.terms$Effect=="CO2" & ci.terms$data.type=="Model",factors.agg],
+                        FUN=mean, na.rm=T)
+    summary(df.co2)
+    
+    
+    df.tair <- aggregate(ci.terms[ci.terms$Effect=="tair" & ci.terms$data.type=="Model",factors.analy], 
+                         by=ci.terms[ci.terms$Effect=="tair" & ci.terms$data.type=="Model",factors.agg],
+                         FUN=mean, na.rm=T)
+    summary(df.tair)
+    
+    df.precipf <- aggregate(ci.terms[ci.terms$Effect=="precipf" & ci.terms$data.type=="Model",factors.analy], 
+                            by=ci.terms[ci.terms$Effect=="precipf" & ci.terms$data.type=="Model",factors.agg],
+                            FUN=mean, na.rm=T)
+    summary(df.precipf)
+  }
+
   co2.ext     <- gam(mean.cent.deriv ~ s(x, by=Extent), data=ci.terms[ci.terms$Effect=="CO2"     & ci.terms$data.type=="Model",])
   tair.ext    <- gam(mean.cent.deriv ~ s(x, by=Extent), data=ci.terms[ci.terms$Effect=="tair"    & ci.terms$data.type=="Model",])
   precipf.ext <- gam(mean.cent.deriv ~ s(x, by=Extent), data=ci.terms[ci.terms$Effect=="precipf" & ci.terms$data.type=="Model",])
