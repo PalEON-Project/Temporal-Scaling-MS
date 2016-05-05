@@ -19,6 +19,23 @@ library(mgcv); library(ggplot2)
 library(nlme)
 # ----------------------------------------
 
+# ----------------------------------------
+# Evaluating correlation between biomasss and LAI for validity of using
+# LAI as a biomass proxy in JULES
+# ----------------------------------------
+{
+agb.lai <- data.frame(Model=unique(ecosys$Model))
+for(m in agb.lai$Model){
+  if(!max(ecosys[ecosys$Model==m & ecosys$Resolution=="t.001", "LAI"], na.rm=T)>0 | 
+     !max(ecosys[ecosys$Model==m & ecosys$Resolution=="t.001", "AGB"], na.rm=T)>0 ) next
+  agb.lai[agb.lai$Model==m, "corr"] <- cor(ecosys[!is.na(ecosys[ecosys$Model==m, "AGB"]) & ecosys$Model==m & ecosys$Resolution=="t.001", "LAI"], ecosys[!is.na(ecosys[ecosys$Model==m, "AGB"]) & ecosys$Model==m & ecosys$Resolution=="t.001", "AGB"])
+}
+mean(agb.lai$corr, na.rm=T); sd(agb.lai$corr, na.rm=T)
+agb.lai
+}
+# ----------------------------------------
+
+
 
 # ----------------------------------------
 # Comparing raw NPP & model stats (Results Paragraph 1)
@@ -42,10 +59,25 @@ dat.ecosys2[,paste0(fac.ecosys, ".sd")] <- aggregate(dat.ecosys[,fac.ecosys],
                                                      FUN=sd, na.rm=T)[,fac.ecosys]
 summary(dat.ecosys2[dat.ecosys2$data.type=="Model",])
 
+
 sites.stat <- aggregate(dat.ecosys2[,c("Y", "Y.rel", "Y.sd", "Y.rel.sd")],
                         by=dat.ecosys2[,c("Y.type","data.type", "Site")],
                         FUN=mean, na.rm=T)
 sites.stat <- sites.stat[sites.stat$data.type=="Model",]
+
+# Comparison between models & Tree rings at Havard and Howland
+sites.stat2 <- aggregate(dat.ecosys2[dat.ecosys2$Year>=1980, c("Y", "Y.rel", "Y.sd", "Y.rel.sd")],
+                         by=dat.ecosys2[dat.ecosys2$Year>=1980,c("Y.type", "data.type", "Site")],
+                         FUN=mean, na.rm=T)
+
+sites.stat2[sites.stat2$data.typ=="Model",]
+mean(dat.ecosys[dat.ecosys$Year>=1980 & dat.ecosys$Model=="jules.stat" & dat.ecosys$Site=="PHA", "Y"]); sd(dat.ecosys[dat.ecosys$Year>=1980 & dat.ecosys$Model=="jules.stat" & dat.ecosys$Site=="PHA", "Y"])
+mean(dat.ecosys[dat.ecosys$Year>=1980 & dat.ecosys$Model=="jules.stat" & dat.ecosys$Site=="PHO", "Y"]); sd(dat.ecosys[dat.ecosys$Year>=1980 & dat.ecosys$Model=="jules.stat" & dat.ecosys$Site=="PHO", "Y"])
+
+mean(dat.ecosys2[dat.ecosys2$Year>=1980 & dat.ecosys2$data.type=="Tree Rings" & dat.ecosys2$Y.type=="NPP" & dat.ecosys2$Site=="PHA", "Y"]); sd(dat.ecosys2[dat.ecosys2$Year>=1980 & dat.ecosys2$data.type=="Tree Rings" & dat.ecosys2$Y.type=="NPP" & dat.ecosys2$Site=="PHA", "Y"])
+mean(dat.ecosys2[dat.ecosys2$Year>=1980 & dat.ecosys2$data.type=="Tree Rings" & dat.ecosys2$Y.type=="NPP" & dat.ecosys2$Site=="PHO", "Y"]); sd(dat.ecosys2[dat.ecosys2$Year>=1980 & dat.ecosys2$data.type=="Tree Rings" & dat.ecosys2$Y.type=="NPP" & dat.ecosys2$Site=="PHO", "Y"])
+
+
 
 # Mean and SD for site with lowest NPP
 sites.stat[which(sites.stat$Y==min(sites.stat$Y)), c("Site", "Y", "Y.sd")]
@@ -648,25 +680,45 @@ ens.deriv2[ens.deriv2$Extent=="1980-2010" & ens.deriv2$Effect=="CO2",]
 # -----------
 
 
+ci.terms.agg <- aggregate(ci.terms[,c("mean.cent.deriv", "mean.rel.cent", "Y", "Evergreen.sd", "Biomass.rel.sd")], 
+                          by=ci.terms[,c("Effect", "Extent", "Model", "veg.scheme", "fire.scheme", "data.type", "Y.type")],
+                          FUN=mean, na.rm=T)
+summary(ci.terms.agg)
 # -----------
 # Analyzing Precipitation Sensitivity
 # Note: looking at the absolute value of the slope so that smaller numebrs are closer to 0
 # -----------
 {
 # Correlation with Vegetation Scheme
-precipf.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+precipf.veg.lme <- lme(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",], na.action=na.omit)
+summary(precipf.veg.lme)
+
+# precipf.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+precipf.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
 summary(precipf.veg.lm2)
 
 # Correlation with Composition Variability
-precipf.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+precipf.evg.lme <- lme(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",], na.action=na.omit)
+summary(precipf.evg.lme)
+
+# precipf.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+precipf.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
 summary(precipf.evg.lm2)
 
 # Correlation with Fire 
-precipf.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+precipf.fire.lme <- lme(abs(mean.cent.deriv) ~ fire.scheme*(Extent-1) - fire.scheme, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",], na.action=na.omit)
+summary(precipf.fire.lme)
+
+# precipf.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+precipf.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
 summary(precipf.fire.lm2) 
 
 # Correlation with Biomass
-precipf.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+precipf.bm.lme <- lme(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",], na.action=na.omit)
+summary(precipf.bm.lme)
+
+# precipf.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
+precipf.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
 summary(precipf.bm.lm2)
 }
 # -----------
@@ -677,22 +729,35 @@ summary(precipf.bm.lm2)
 # -----------
 {
   # Correlation with Vegetation Scheme
-  co2.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  co2.veg.lme <- lme(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",], na.action=na.omit)
+  summary(co2.veg.lme)
+  
+  #   co2.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  co2.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
   summary(co2.veg.lm2)
   
   # Correlation with Composition Variability
-  co2.evg.lm <- lm(abs(mean.cent.deriv) ~ Evergreen.sd, data=ci.terms[ci.terms$Extent=="850-2010" &!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  summary(co2.evg.lm)
-  
-  co2.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  co2.evg.lme <- lme(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",], na.action=na.omit)
+  summary(co2.evg.lme)
+
+#   co2.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  co2.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
   summary(co2.evg.lm2)
   
   # Correlation with Fire 
-  co2.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  co2.fire.lme <- lme(abs(mean.cent.deriv) ~ fire.scheme*(Extent-1) - fire.scheme, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",], na.action=na.omit)
+  summary(co2.fire.lme)
+  
+  #   co2.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  co2.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
   summary(co2.fire.lm2) 
   
   # Correlation with Biomass
-  co2.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  co2.bm.lme <- lme(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",], na.action=na.omit)
+  summary(co2.bm.lme)
+  
+  #   co2.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
+  co2.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
   summary(co2.bm.lm2)
 }
 # -----------
@@ -704,19 +769,35 @@ summary(precipf.bm.lm2)
 # -----------
 { 
   # Correlation with Vegetation Scheme
-  tair.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.veg.lme <- lme(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="tair",], na.action=na.omit)
+  summary(tair.veg.lme)
+  
+  #   tair.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
   summary(tair.veg.lm2)
   
   # Correlation with Composition Variability
-  tair.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.evg.lme <- lme(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="tair",], na.action=na.omit)
+  summary(tair.evg.lme)
+  
+  #   tair.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
   summary(tair.evg.lm2)
   
   # Correlation with Fire 
-  tair.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.fire.lme <- lme(abs(mean.cent.deriv) ~ fire.scheme*(Extent-1) - fire.scheme, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="tair",], na.action=na.omit)
+  summary(tair.fire.lme)
+  
+  #   tair.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
   summary(tair.fire.lm2) 
   
   # Correlation with Biomass
-  tair.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.bm.lme <- lme(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="tair",], na.action=na.omit)
+  summary(tair.bm.lme)
+  
+  #   tair.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
+  tair.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])  
   summary(tair.bm.lm2)
 }
 # -----------
