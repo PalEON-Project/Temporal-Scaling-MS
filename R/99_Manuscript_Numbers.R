@@ -9,7 +9,7 @@
 # ----------------------------------------
 rm(list=ls())
 
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 load("Data/EcosysData.Rdata")
 
 
@@ -119,14 +119,14 @@ models.stat2[which(models.stat2$Y==min(models.stat2$Y)), c("Model", "Y", "Y.sd")
 models.stat2[which(models.stat2$Y==max(models.stat2$Y)), c("Model", "Y", "Y.sd")]
 
 # Comparing model variability through time
-models.stat3a <- aggregate(dat.ecosys[dat.ecosys$data.type=="Model",c("Y", "Y.rel")],  
-                          by=dat.ecosys[dat.ecosys$data.type=="Model",c("Model", "Model.Order", "Year")],
+models.stat3a <- aggregate(dat.ecosys[,c("Y", "Y.rel")],  
+                          by=dat.ecosys[,c("data.type", "Model", "Model.Order", "Year")],
                           FUN=mean, na.rm=T)
 models.stat3 <- aggregate(models.stat3a[,c("Y", "Y.rel")],  
-                           by=models.stat3a[,c("Model", "Model.Order")],
+                           by=models.stat3a[,c("data.type", "Model", "Model.Order")],
                            FUN=mean, na.rm=T)
 models.stat3[,paste0(c("Y", "Y.rel"),".sd")] <- aggregate(models.stat3a[,c("Y", "Y.rel")],  
-                                                          by=models.stat3a[,c("Model", "Model.Order")],
+                                                          by=models.stat3a[,c("data.type", "Model", "Model.Order")],
                                                           FUN=sd, na.rm=T)[,c("Y", "Y.rel")]
 models.stat3
 
@@ -141,6 +141,10 @@ models.stat3[which(models.stat3$Y.sd==min(models.stat3$Y.sd)), c("Model", "Y.sd"
 
 # Mean & SD for model with lowest relative NPP variability
 models.stat3[which(models.stat3$Y.rel.sd==min(models.stat3$Y.rel.sd)), c("Model", "Y.sd", "Y.rel.sd")]
+
+# Getting the mean & sd for models alone
+mean(models.stat3[models.stat3$data.type=="Model", "Y.rel.sd"]); sd(models.stat3[models.stat3$data.type=="Model", "Y.rel.sd"])
+
 }
 # ------------------------
 
@@ -511,18 +515,22 @@ summary(ci.terms)
 # --------
 summary(ci.terms)
 {  
+# Putting "NONE" in for veg scheme & fire scheme for tree rings
+ci.terms$veg.scheme <- as.factor(ifelse(ci.terms$data.type=="Tree Rings", "NONE", ci.terms$veg.scheme))
+ci.terms$fire.scheme <- as.factor(ifelse(ci.terms$data.type=="Tree Rings", "NONE", ci.terms$fire.scheme))
+
 # calculating the model and ensemble average derivative for each factor
-mod.deriv <- aggregate(ci.terms[ci.terms$data.type=="Model", c("mean.rel.cent", "mean.cent.deriv")],
-                       by=ci.terms[ci.terms$data.type=="Model", c("Effect", "Extent", "Model", "Model.Order", "veg.scheme", "fire.scheme"),],
+mod.deriv <- aggregate(ci.terms[, c("mean.rel.cent", "mean.cent.deriv")],
+                       by=ci.terms[, c("Effect", "Extent", "data.type", "Model", "Model.Order", "veg.scheme", "fire.scheme")],
                        FUN=mean, na.rm=T)
-mod.deriv[,paste0(c("mean.rel.cent", "mean.cent.deriv"), ".sd")] <- aggregate(ci.terms[ci.terms$data.type=="Model", c("mean.rel.cent", "mean.cent.deriv")],
-                                                                              by=ci.terms[ci.terms$data.type=="Model", c("Effect", "Extent", "Model", "Model.Order", "veg.scheme", "fire.scheme"),],
+mod.deriv[,paste0(c("mean.rel.cent", "mean.cent.deriv"), ".sd")] <- aggregate(ci.terms[, c("mean.rel.cent", "mean.cent.deriv")],
+                                                                              by=ci.terms[, c("Effect", "Extent", "data.type", "Model", "Model.Order", "veg.scheme", "fire.scheme")],
                                                                               FUN=sd, na.rm=T)[,c("mean.rel.cent", "mean.cent.deriv")]
 mod.deriv <- mod.deriv[!mod.deriv$Effect=="Biomass",]
 summary(mod.deriv)
 
-ens.deriv <- aggregate(mod.deriv[,c("mean.rel.cent", "mean.cent.deriv")], 
-                       by=mod.deriv[,c("Effect", "Extent")],
+ens.deriv <- aggregate(mod.deriv[mod.deriv$data.type=="Model",c("mean.rel.cent", "mean.cent.deriv")], 
+                       by=mod.deriv[mod.deriv$data.type=="Model",c("Effect", "Extent")],
                        FUN=mean, na.rm=T)
 ens.deriv[,paste0(c("mean.rel.cent", "mean.cent.deriv"), ".sd")] <- aggregate(mod.deriv[,c("mean.rel.cent", "mean.cent.deriv")], 
                                                                               by=mod.deriv[,c("Effect", "Extent")],
@@ -530,6 +538,9 @@ ens.deriv[,paste0(c("mean.rel.cent", "mean.cent.deriv"), ".sd")] <- aggregate(mo
 
 ens.deriv
 round(ens.deriv$mean.cent.deriv.sd*100, 2)
+round(mod.deriv[mod.deriv$data.type=="Tree Rings", "mean.cent.deriv.sd"]*100, 2)
+
+mod.deriv[mod.deriv$data.type=="Tree Rings", ]
 }
 # -----------
 
