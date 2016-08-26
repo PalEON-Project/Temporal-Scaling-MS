@@ -31,7 +31,7 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/"
 fig.base="Figures/TreeRings"
 
@@ -155,13 +155,18 @@ dev.off()
 # 2. Load plot metadata & merge with NPP
 # -------------------------------------------------
 # -------------------------
-# 2.a. Climate (from PRISM)
+# 2.a. Climate (from CRU/met drivers)
 # -------------------------
-climate <- read.csv(file.path("Data", "TreeRing_PRISM_Climate.csv"))
-summary(climate)
+sec2yr <- 1*60*60*24*365.25 # 1 sec * 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/yr
+
+# Read in the climate data -- NOTE: based on reviews, we're now using the CRU-based met from our model drivers
+plots.clim <- read.csv("Data/analysis_met_drivers/Drivers_Year_GrowingSeason.csv")
+plots.clim[,c("precipf.yr", "precipf.gs")] <- plots.clim[,c("precipf.yr", "precipf.gs")]*sec2yr # convert to total annual precip
+plots.clim$precipf.gs <- plots.clim$precipf.gs/12*5 # Convert from year to growing season
+summary(plots.clim)
 
 # merge the data sets together, not taking any climate we don't actually need
-spp.npp <- merge(spp.npp, climate, all.x=T, all.y=F)
+spp.npp <- merge(spp.npp, plots.clim, all.x=T, all.y=F)
 summary(spp.npp)
 # -------------------------
 

@@ -54,14 +54,14 @@ sec2yr <- 1*60*60*24*365
 # ----------------------------------------
 # Set Directories
 # ----------------------------------------
-setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/"
 fig.base="Figures/"
 
 # Directory for PRISM meterorology
 # met.dir = "~/Dropbox/PalEON_CR/PRISM_PalEON/annual"
-met.dir = "~/Desktop/PRISM/paleon_domain/month"
-co2.dir = "~/Dropbox/PalEON_CR/phase1a_env_drivers/phase1a_env_drivers_v5/paleon_co2"
+# met.dir = "~/Desktop/PRISM/paleon_domain/month"
+co2.dir = "~/Desktop/Research/PalEON_CR/phase1a_env_drivers/phase1a_env_drivers_v5/paleon_co2"
 
 # Tree Ring Directories:
 in.base = "raw_inputs"
@@ -86,80 +86,7 @@ if(!dir.exists(fig.dir)) dir.create(fig.dir)
 # ----------------------------------------
 
 
-# Below commented out because saved as .csv file so we don't have to redo it every time
-# # ----------------------------------------
-# # 1. Extract Met data for the plot locations
-# # ----------------------------------------
-# # ---------------
-# # 1.a. Extract CO2
-# # ---------------
-# file.co2 <- nc_open(file.path(co2.dir, "paleon_annual_co2.nc"))
-# co2 <- data.frame(Year=850:2010, CO2=ncvar_get(file.co2, "co2"))
-# nc_close(file.co2)
-# 
-# summary(co2)
-# # ---------------
-# 
-# # ---------------
-# # 1.b. Load PRISM Data
-# # ---------------
-# # Precipitation
-# ppt.files <- dir(file.path(met.dir, "ppt"))
-# ppt.yrs  <- substr(ppt.files, nchar(ppt.files)-8, nchar(ppt.files)-5)
-# ppt.mos  <- substr(ppt.files, nchar(ppt.files)-4, nchar(ppt.files)-3)
-# 
-# ppt <- stack(file.path(met.dir, "ppt", ppt.files))
-# names(ppt) <- paste0(ppt.yrs, ".", ppt.mos)
-# ppt
-# 
-# # Temperature
-# tmean.files <- dir(file.path(met.dir, "tmean"))
-# tmean.yrs <- substr(tmean.files, nchar(tmean.files)-8, nchar(tmean.files)-5)
-# tmean.mos <- substr(tmean.files, nchar(tmean.files)-4, nchar(tmean.files)-3)
-# 
-# tmean <- stack(file.path(met.dir, "tmean", tmean.files))
-# names(tmean) <- paste0(tmean.yrs, ".", tmean.mos)
-# tmean
-# # ---------------
-# 
-# # ---------------
-# # 1.c. Load plot locations and extract info
-# # ---------------
-# plots <- read.csv(file.path(in.base, "TreeRing_Locations.csv"))
-# coordinates(plots) <- c("Lon..W.", "Lat..N.")
-# summary(plots)
-# 
-# # plot(tmean[[1]])
-# # plot(plots, add=T, pch=19)
-# 
-# plots.clim.mo        <- stack(data.frame(extract(ppt, plots)))
-# names(plots.clim.mo) <- c("ppt", "Year.Mo")
-# plots.clim.mo$tmean  <- stack(data.frame(extract(tmean, plots)))[,1] + 273.15 # convert to Kelvin
-# plots.clim.mo$Year   <- as.numeric(substr(plots.clim.mo$Year.Mo, 2, 5))
-# plots.clim.mo$Month  <- as.numeric(substr(plots.clim.mo$Year.Mo, 7, 8))
-# plots.clim.mo$PlotID <- plots$Plot
-# plots.clim.mo        <- merge(plots.clim.mo, co2, all.x=T, all.y=F)
-# summary(plots.clim.mo)
-# # ---------------
-# 
-# # ---------------
-# # 1.d. Aggregate up to the Year
-# # ---------------
-# plots.clim <- aggregate(plots.clim.mo[,c("tmean", "ppt", "CO2")], by=list(plots.clim.mo$PlotID, plots.clim.mo$Year), FUN=mean)
-# names(plots.clim) <- c("PlotID", "Year", "tair.yr", "precipf.yr", "CO2.yr")
-# 
-# plots.clim[,c("tair.gs", "precipf.gs", "CO2.gs")] <- aggregate(plots.clim.mo[plots.clim.mo$Month>=5 & plots.clim.mo$Month<=9,c("tmean", "ppt", "CO2")], by=list(plots.clim.mo[plots.clim.mo$Month>=5 & plots.clim.mo$Month<=9,"PlotID"], plots.clim.mo[plots.clim.mo$Month>=5 & plots.clim.mo$Month<=9,"Year"]), FUN=mean)[,c(3:5)]
-# 
-# # Converting annual and growing season precip
-# plots.clim$precipf.yr <- plots.clim$precipf.yr*12
-# plots.clim$precipf.gs <- plots.clim$precipf.gs*5
-# 
-# summary(plots.clim)
-# write.csv(plots.clim, file="Data/TreeRing_PRISM_Climate.csv", row.names=F)
-# # ---------------
-# 
-# # ----------------------------------------
-
+# # Met Now from CRUNCEP (model drivers) -- see script 1_format_metdrivers.R
 
 # -------------------------------------------------
 # 2. Formatting the tree data for the plot-based sampling
@@ -572,11 +499,15 @@ tree.rings3$Species <- as.factor(ifelse(tree.rings3$PlotID=="ME029","FRNI", past
 tree.rings3$PFT     <- as.factor(ifelse(tree.rings3$Species %in% evergreen, "Evergreen", "Deciduous"))
 summary(tree.rings3)
 
-# Read in the climate data
-plots.clim <- read.csv("Data/TreeRing_PRISM_Climate.csv")
+# Read in the climate data -- NOTE: based on reviews, we're now using the CRU-based met from our model drivers
+sec2yr <- 1*60*60*24*365.25 # 1 sec * 60 sec/min * 60 min/hr * 24 hr/day * 365.25 days/yr
+plots.clim <- read.csv("Data/analysis_met_drivers/Drivers_Year_GrowingSeason.csv")
+plots.clim[,c("precipf.yr", "precipf.gs")] <- plots.clim[,c("precipf.yr", "precipf.gs")]*sec2yr # convert to total annual precip
+plots.clim$precipf.gs <- plots.clim$precipf.gs/12*5 # Convert from year to growing season
 summary(plots.clim)
 
-ring.data <- merge(tree.rings3, plots.clim, all.x=T, all.y=F)
+# Make sure we only merge in the data from CRU, which begins in 1901
+ring.data <- merge(tree.rings3, plots.clim[plots.clim$Year>=1901,], all.x=T, all.y=F)
 summary(ring.data)
 # -----------------
 

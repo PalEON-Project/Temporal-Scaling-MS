@@ -219,7 +219,7 @@ met.all.agg[,paste0(vars.agg, ".lo")] <- aggregate(met.all[,paste0(vars.agg, ".g
 met.all.agg[,paste0(vars.agg, ".hi")] <- aggregate(met.all[,paste0(vars.agg, ".gs")], by=met.all[,c("Site", "Data", "Year")], FUN=quantile, 0.975, na.rm=T)[,paste0(vars.agg, ".gs")]
 summary(met.all.agg)
 
-png(file.path(fig.dir, "SuppFig1_Temperature_GrowingSeason.png"), width=8, height=6, units="in", res=120)
+png(file.path(fig.dir, "Temperature_GrowingSeason_withPRISM.png"), width=8, height=6, units="in", res=120)
 {
 ggplot(data=met.all.agg) + facet_wrap(~Site) +
   geom_ribbon(aes(x=Year, ymin=tair.lo, ymax=tair.hi, fill=Data), alpha=0.5) +
@@ -252,7 +252,7 @@ ggplot(data=met.all.agg) + facet_wrap(~Site) +
 dev.off()
 
 
-png(file.path(fig.dir, "SuppFig2_Precipitation_GrowingSeason.png"), width=8, height=6, units="in", res=120)
+png(file.path(fig.dir, "Precipitation_GrowingSeason_withPRISM.png"), width=8, height=6, units="in", res=120)
 {
 ggplot(data=met.all.agg) + facet_wrap(~Site) +
   geom_ribbon(aes(x=Year, ymin=precipf.lo, ymax=precipf.hi, fill=Data), alpha=0.5) +
