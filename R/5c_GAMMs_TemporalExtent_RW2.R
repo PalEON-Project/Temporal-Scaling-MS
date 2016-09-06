@@ -55,15 +55,15 @@ dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
 # Source the gamm file
-source('R/0_calculate.sensitivity_TPC.R', chdir = TRUE)
+source('R/0_calculate.sensitivity_TPC3.R', chdir = TRUE)
 
 # Making sure the appropriate file paths exist
 if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "Sensitivity_TempExtent_RWI")
-dat.dir <- file.path(dat.base, "Sensitivity_TempExtent_RWI")
+fig.dir <- file.path(fig.base, "Sensitivity_TempExtent_RW2")
+dat.dir <- file.path(dat.base, "Sensitivity_TempExtent_RW2")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -259,7 +259,7 @@ for(y in start.yrs){
 # 1.c. Load & set up raw ring widths
 # ----------------------------------------
 {
-response    <- "RWI"
+response    <- "RW"
 biomass.mod <- "DBH"
 time.mod    <- "Age"
 
@@ -285,11 +285,11 @@ for(y in start.yrs){
 
 	# Add the data to paleon.models
 	data.temp                  <- tree.rings[dat.subsets,c("Site", "PlotID", "TreeID", "Year", "PFT")]
-	data.temp$Model            <- as.factor("TreeRingRWI")
-	data.temp$Model.Order      <- as.factor("Tree Ring RWI")
+	data.temp$Model            <- as.factor("TreeRingRW")
+	data.temp$Model.Order      <- as.factor("Tree Ring RW")
 	data.temp$Y                <- tree.rings[dat.subsets,response]
-	# data.temp$Biomass          <- tree.rings[dat.subsets,biomass.mod]
-	data.temp$Biomass          <- 0
+	data.temp$Biomass          <- tree.rings[dat.subsets,biomass.mod]
+# 	data.temp$Biomass          <- 0
 	data.temp$Time             <- tree.rings[dat.subsets,time.mod]
 	data.temp[,predictors.all] <- tree.rings[dat.subsets, paste0(predictors.all, predictor.suffix)]
 	data.temp$Resolution       <- as.factor("t.001")
@@ -300,7 +300,7 @@ for(y in start.yrs){
 	# Order everything the same way to make life easier
 	data.temp <- data.temp[,names(paleon.models[[1]])]
 
-	paleon.models[[paste("TreeRingRWI", ifelse(nchar(y)==3, paste0(0, y), y), sep="_")]] <- data.temp
+	paleon.models[[paste("TreeRingRW", ifelse(nchar(y)==3, paste0(0, y), y), sep="_")]] <- data.temp
 } # End year loop
 
 } # End Ring Width setups
@@ -318,12 +318,14 @@ cores.use <- min(12, length(paleon.models))
 models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, k=k, predictors.all=predictors.all, PFT=F)
 # -------------------------------------------------------------------------------
 
+test <- paleon.gams.models(data=paleon.models$TreeRingRW_1980, k=k, predictors.all=predictors.all, PFT=F)
+
 # -------------------------------------------------------------------------------
 # 3. Bind Models together to put them in a single object to make them easier to work with
 # -------------------------------------------------------------------------------
 {
 for(i in 1:length(models.base)){
-	if(unique(models.base[[i]]$data$Model)=="TreeRingRWI"){
+	if(unique(models.base[[i]]$data$Model)=="TreeRingRW"){
     # weights
 	  models.base[[i]]$weights$fit.Biomass <- NA
 	  models.base[[i]]$weights$sd.Biomass <- NA

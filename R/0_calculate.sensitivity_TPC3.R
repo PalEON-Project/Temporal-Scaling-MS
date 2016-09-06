@@ -47,9 +47,9 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 		# gam1 <- gam(Y ~  s(Time, bs="cr", k=4, by=PFT) + s(Biomass, bs="cr", k=3, by=PFT) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT)   , data=data)
 
 		# If for some reason we're missing a biomass term, remove it
-		if(max(data$Biomass, na.rm=T) - min(data$Biomass, na.rm=T) == 0){
-		  predictors=c("tair", "precipf", "CO2", "PFT")
-		  gam1 <- gam(Y ~  s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + Site, data=data)
+		if(model.name=="TreeRingRW"){
+		  predictors=c("tair", "precipf", "CO2", "PFT", "Biomass")
+		  gam1 <- gam(Y ~ s(Biomass, bs="cr", k=3, by=TreeID) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + Site, data=data)
 		} else {
 		  predictors=c("tair", "precipf", "CO2", "Biomass", "PFT")
 		  gam1 <- gam(Y ~  s(Biomass, bs="cr", k=3, by=PFT) + s(tair, k=k, by=PFT) + s(precipf, k=k, by=PFT) + s(CO2, k=k, by=PFT) + Site, data=data)
@@ -59,9 +59,9 @@ paleon.gams.models <- function(data, k, predictors.all, PFT=F){
 	# ----------------------------------------
 		
 		# gam1 <- gam(Y ~ s(Time, bs="cr", k=4) + s(Biomass, bs="cr", k=3) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k), data=data)
-		if(max(data$Biomass, na.rm=T) - min(data$Biomass, na.rm=T) == 0){
-		  predictors=c("tair", "precipf", "CO2")
-		  gam1 <- gam(Y ~ s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site, data=data)
+		if(model.name=="TreeRingRW"){
+		  predictors=c("tair", "precipf", "CO2", "Biomass")
+		  gam1 <- gam(Y ~ s(Biomass, bs="cr", k=3, by=TreeID) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site, data=data)
 		} else {
 		  predictors=c("tair", "precipf", "CO2", "Biomass")
 		  gam1 <- gam(Y ~ s(Biomass, bs="cr", k=3) + s(tair, k=k) + s(precipf, k=k) + s(CO2, k=k) + Site, data=data)

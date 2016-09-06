@@ -53,9 +53,9 @@ library(nlme)
 setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 # setwd("..")
 path.data <- "Data"
-in.base <- "Data/gamms/Sensitivity_TempExtent_RWI"
-out.dir <- "Data/analyses/analysis_TempExtent_RWI"
-fig.dir <- "Figures/analyses/analysis_TempExtent_RWI"
+in.base <- "Data/gamms/Sensitivity_TempExtent_RW2"
+out.dir <- "Data/analyses/analysis_TempExtent_RW2"
+fig.dir <- "Figures/analyses/analysis_TempExtent_RW2"
 
 if(!dir.exists(out.dir)) dir.create(out.dir)
 if(!dir.exists(fig.dir)) dir.create(fig.dir)
