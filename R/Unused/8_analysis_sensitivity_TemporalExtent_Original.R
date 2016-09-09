@@ -50,12 +50,14 @@ library(nlme)
 # ----------------------------------------
 # 1. Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+# setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+
 # setwd("..")
 path.data <- "Data"
-in.base <- "Data/gamms/Sensitivity_TempExtent_RW2"
-out.dir <- "Data/analyses/analysis_TempExtent_RW2"
-fig.dir <- "Figures/analyses/analysis_TempExtent_RW2"
+in.base <- "Data/gamms/Sensitivity_TempExtent"
+out.dir <- "Data/analyses/analysis_TempExtent"
+fig.dir <- "Figures/analyses/analysis_TempExtent"
 
 if(!dir.exists(out.dir)) dir.create(out.dir)
 if(!dir.exists(fig.dir)) dir.create(fig.dir)
@@ -82,10 +84,10 @@ load(file.path(in.base, "gamm_TempExtent.Rdata"))
 # # sim.terms$Effect <- as.factor(sim.terms$Effect)
 # 
 # # Grouping the kind and source of the data
-# dat.ecosys$Y.type <- as.factor(ifelse(dat.ecosys$Model=="TreeRingRWI", "RW", "NPP"))
-# # wt.terms  $Y.type <- as.factor(ifelse(wt.terms  $Model=="TreeRingRWI", "RW", "NPP"))
-# # ci.terms  $Y.type <- as.factor(ifelse(ci.terms  $Model=="TreeRingRWI", "RW", "NPP"))
-# # sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRWI", "RW", "NPP"))
+# dat.ecosys$Y.type <- as.factor(ifelse(dat.ecosys$Model=="TreeRingRW", "RW", "NPP"))
+# # wt.terms  $Y.type <- as.factor(ifelse(wt.terms  $Model=="TreeRingRW", "RW", "NPP"))
+# # ci.terms  $Y.type <- as.factor(ifelse(ci.terms  $Model=="TreeRingRW", "RW", "NPP"))
+# # sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRW", "RW", "NPP"))
 # 
 # dat.ecosys$data.type <- as.factor(ifelse(substr(dat.ecosys$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
 # # wt.terms  $data.type <- as.factor(ifelse(substr(wt.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
@@ -112,46 +114,46 @@ load(file.path(in.base, "gamm_TempExtent.Rdata"))
 # 
 # # set up and re-run the terms posterior distribution calclations
 # {
-extents <- paste(unique(dat.ecosys$Extent))
-
-out.new <- list()
-
-n=250
-var.ci <- data.frame(tair    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "tair"   ], na.rm=T),
-                                   max(dat.ecosys[dat.ecosys$data.type=="Model", "tair"   ], na.rm=T),
-                                   length.out=n),
-                     precipf = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "precipf"], na.rm=T),
-                                   max(dat.ecosys[dat.ecosys$data.type=="Model", "precipf"], na.rm=T),
-                                   length.out=n),
-                     CO2     = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "CO2"    ], na.rm=T),
-                                   max(dat.ecosys[dat.ecosys$data.type=="Model", "CO2"    ], na.rm=T),
-                                   length.out=n),
-                     Year    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
-                                   max(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
-                                   length.out=n)
-                     # Time    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
-                                   # max(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
-                                   # length.out=n)
-                     # Biomass = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "AGB"   ], na.rm=T),
-                                   # max(dat.ecosys[dat.ecosys$data.type=="Model", "AGB"   ], na.rm=T),
-                                   # length.out=n)
-                     )
-summary(var.ci)
-
-# Making a climate series so we can emulate the ecosystem dynamics using a base series
-#  Note: this will assume the same AGB trajectories; just changing the NPP
-clim.subset <- (dat.ecosys$Model=="ed2" & dat.ecosys$Extent=="850-2010" & dat.ecosys$Resolution=="t.001")
-var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ], 
-                          PlotID  = dat.ecosys[clim.subset,"PlotID" ], 
-                          Year    = dat.ecosys[clim.subset,"Year"   ], 
-                          # Time    = dat.ecosys[clim.subset,"Year"   ], 
-                          # Biomass = dat.ecosys[clim.subset,"AGB"    ], 
-                          tair    = dat.ecosys[clim.subset,"tair"   ],
-                          precipf = dat.ecosys[clim.subset,"precipf"],
-                          CO2     = dat.ecosys[clim.subset,"CO2"    ]
-                          )
-
-# basically going through process.gamm here
+# extents <- paste(unique(dat.ecosys$Extent))
+# 
+# out.new <- list()
+# 
+# n=250
+# var.ci <- data.frame(tair    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "tair"   ], na.rm=T),
+#                                    max(dat.ecosys[dat.ecosys$data.type=="Model", "tair"   ], na.rm=T),
+#                                    length.out=n),
+#                      precipf = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "precipf"], na.rm=T),
+#                                    max(dat.ecosys[dat.ecosys$data.type=="Model", "precipf"], na.rm=T),
+#                                    length.out=n),
+#                      CO2     = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "CO2"    ], na.rm=T),
+#                                    max(dat.ecosys[dat.ecosys$data.type=="Model", "CO2"    ], na.rm=T),
+#                                    length.out=n),
+#                      Year    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
+#                                    max(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
+#                                    length.out=n)
+#                      # Time    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
+#                                    # max(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
+#                                    # length.out=n)
+#                      # Biomass = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "AGB"   ], na.rm=T),
+#                                    # max(dat.ecosys[dat.ecosys$data.type=="Model", "AGB"   ], na.rm=T),
+#                                    # length.out=n)
+#                      )
+# summary(var.ci)
+# 
+# # Making a climate series so we can emulate the ecosystem dynamics using a base series
+# #  Note: this will assume the same AGB trajectories; just changing the NPP
+# clim.subset <- (dat.ecosys$Model=="ed2" & dat.ecosys$Extent=="850-2010" & dat.ecosys$Resolution=="t.001")
+# var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ], 
+#                           PlotID  = dat.ecosys[clim.subset,"PlotID" ], 
+#                           Year    = dat.ecosys[clim.subset,"Year"   ], 
+#                           # Time    = dat.ecosys[clim.subset,"Year"   ], 
+#                           # Biomass = dat.ecosys[clim.subset,"AGB"    ], 
+#                           tair    = dat.ecosys[clim.subset,"tair"   ],
+#                           precipf = dat.ecosys[clim.subset,"precipf"],
+#                           CO2     = dat.ecosys[clim.subset,"CO2"    ]
+#                           )
+# 
+# # basically going through process.gamm here
 # for(m in unique(dat.ecosys$Model)){
 # 	for(e in unique(dat.ecosys[dat.ecosys$Model==m, "Extent"])){
 # 		# The year index for the gams
@@ -267,7 +269,7 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 
 # 
 # dat.ecosys2a <- merge(mod.resp, dat.ecosys2[dat.ecosys2$data.type=="Model" & dat.ecosys2$Extent=="850-2010", ecosys.vars], all.x=F, all.y=F)
-# dat.ecosys2b <- merge(dat.ecosys2a, dat.ecosys2[dat.ecosys2$Model=="TreeRingRWI" & dat.ecosys2$Extent=="1901-2010", c(ecosys.vars, "tair", "precipf", "CO2", "Extent", "Resolution")], all.x=T, all.y=T)
+# dat.ecosys2b <- merge(dat.ecosys2a, dat.ecosys2[dat.ecosys2$Model=="TreeRingRW" & dat.ecosys2$Extent=="1901-2010", c(ecosys.vars, "tair", "precipf", "CO2", "Extent", "Resolution")], all.x=T, all.y=T)
 # dat.ecosys2c <- merge(dat.ecosys2b, dat.ecosys2[dat.ecosys2$Model=="TreeRingNPP" & dat.ecosys2$Extent=="1980-2010", c(ecosys.vars, "tair", "precipf", "CO2", "Extent", "Resolution")], all.x=T, all.y=T)
 # summary(dat.ecosys2c)
 # 
@@ -296,11 +298,11 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # wt.terms <- wt.terms[order(wt.terms$Model, wt.terms$PlotID, wt.terms$TreeID, wt.terms$Year),]
 # 
 # # Double Check to make sure things are sorted by year so rollapply works
-# dat.ecosys2[which(dat.ecosys2$Model=="TreeRingRWI")[1:20],]
-# # wt.terms  [which(wt.terms  $Model=="TreeRingRWI")[1:20],]
+# dat.ecosys2[which(dat.ecosys2$Model=="TreeRingRW")[1:20],]
+# # wt.terms  [which(wt.terms  $Model=="TreeRingRW")[1:20],]
 # 
 # wt.terms <- wt.terms[!is.na(wt.terms$Resolution),]
-
+# 
 # {
 # for(m in unique(ci.terms$Model)){
 # 		for(e in unique(ci.terms[ci.terms$Model==m, "Extent"])){
@@ -312,7 +314,7 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 		#       runs
 # 		# -----------------------
 # 		# Find the appropriate reference extent for the model type
-# 		if(m=="TreeRingRWI") ext="1901-2010" else if(m=="TreeRingNPP") ext="1980-2010" else ext="850-2010"
+# 		if(m=="TreeRingRW") ext="1901-2010" else if(m=="TreeRingNPP") ext="1980-2010" else ext="850-2010"
 # 		# ext="1980-2010"
 # 		yr <- as.numeric(strsplit(paste(e), "-")[[1]][1])
 # 
@@ -350,7 +352,7 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 					# Relativized NPP (to have generalized patterns for figures)
 # 					dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s & dat.ecosys2$PlotID==p,paste0(y.rel, ".rel", ".10" )] <- rollapply(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s  & dat.ecosys2$PlotID==p, paste0(y.rel, ".rel")], FUN=mean, width=10, align="center", fill=NA, by.column=T)
 # 				}
-# 			} else if(m=="TreeRingRWI") {
+# 			} else if(m=="TreeRingRW") {
 # 				for(t in unique(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s, "TreeID"])){
 # 					# If we have too few data points, we need to skip that tree 
 # 					if(length(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s & dat.ecosys2$TreeID==t, y.rel[1]]) < 10) next
@@ -422,7 +424,7 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 					# Relativized NPP (to have generalized patterns for figures)
 # 					wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$PlotID==p,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$PlotID==p, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)			
 # 				}
-# 			} else if(m=="TreeRingRWI"){
+# 			} else if(m=="TreeRingRW"){
 # 				for(t in unique(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s, "TreeID"])){
 # 
 # 					# If we have too few data points, we need to skip that tree 
@@ -483,7 +485,7 @@ ci.terms.graph <- merge(ci.terms.graph, models.df, all.x=T, all.y=F)
 summary(ci.terms.graph)
 
 # Grouping the kind and source of the data
-ci.terms.graph$Y.type <- as.factor(ifelse(ci.terms.graph$Model=="TreeRingRWI", "RWI", "NPP"))
+ci.terms.graph$Y.type <- as.factor(ifelse(ci.terms.graph$Model=="TreeRingRW", "RW", "NPP"))
 ci.terms.graph$data.type <- as.factor(ifelse(substr(ci.terms.graph$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
 summary(ci.terms.graph)
 # summary(ci.terms.graph[ci.terms.graph$Model=="linkages",])
@@ -512,14 +514,14 @@ ci.terms.graph$mask.max <- max(ci.terms.graph$upr.rel, na.rm=T)
 # Playing with the extent labels a bit so that "850-2010" is "all data" and "1901-2010" is left alone
 ci.terms.graph$Extent2 <- as.factor(ifelse(ci.terms.graph$Extent=="850-2010" | 
                                              (ci.terms.graph$Extent=="1980-2010" & ci.terms.graph$Model=="TreeRingNPP") |
-                                             (ci.terms.graph$Extent=="1901-2010" & ci.terms.graph$Model=="TreeRingRWI")
+                                             (ci.terms.graph$Extent=="1901-2010" & ci.terms.graph$Model=="TreeRingRW")
                                            , "All Data", paste(ci.terms.graph$Extent)))
 
 ci.terms.graph[ci.terms.graph$Extent2=="All Data", c("x.min", "x.max", "mask.min", "mask.max", "line.min", "line.max")] <- NA
 summary(ci.terms.graph)
 
 
-tree.rings.1901 <- ci.terms.graph[ci.terms.graph$Model=="TreeRingRWI" & ci.terms.graph$Extent=="1901-2010",]
+tree.rings.1901 <- ci.terms.graph[ci.terms.graph$Model=="TreeRingRW" & ci.terms.graph$Extent=="1901-2010",]
 tree.rings.1901$Extent2 <- as.factor("1901-2010")
 summary(tree.rings.1901)
 
@@ -867,7 +869,7 @@ summary(dat.ecosys)
 summary(dat.ecosys2)
 
 for(m in unique(dat.ecosys2[dat.ecosys2$data.type=="Model", "Model"])){
-  if(m == "TreeRingNPP") ext.full <- "1980-2010" else if(m=="TreeRingRWI") ext.full <- "1901-2010" else ext.full <- "850-2010"
+  if(m == "TreeRingNPP") ext.full <- "1980-2010" else if(m=="TreeRingRW") ext.full <- "1901-2010" else ext.full <- "850-2010"
 #   biomass.mean <- mean(dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent==ext.full, "Biomass"], na.rm=T)
 #   dat.ecosys2[dat.ecosys2$Model==m, "Biomass.rel"] <- dat.ecosys2[dat.ecosys2$Model==m, "Biomass"]/biomass.mean
   for(p in unique(dat.ecosys$PlotID)){
@@ -1220,13 +1222,13 @@ dev.off()
   mean(ci.terms[ci.terms$Effect=="CO2", "mean.cent.dev.abs"], na.rm=T); sd(ci.terms[ci.terms$Effect=="CO2", "mean.cent.dev.abs"], na.rm=T)
   
   # Difference in climate effect on Ring Width
-  mean(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="tair", "mean.cent.dev.abs"], na.rm=T); sd(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="tair", "mean.cent.dev.abs"], na.rm=T)
-  mean(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="precipf", "mean.cent.dev.abs"], na.rm=T); sd(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="precipf", "mean.cent.dev.abs"], na.rm=T)
-  mean(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="CO2", "mean.cent.dev.abs"], na.rm=T); sd(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="CO2", "mean.cent.dev.abs"], na.rm=T)
+  mean(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="tair", "mean.cent.dev.abs"], na.rm=T); sd(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="tair", "mean.cent.dev.abs"], na.rm=T)
+  mean(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="precipf", "mean.cent.dev.abs"], na.rm=T); sd(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="precipf", "mean.cent.dev.abs"], na.rm=T)
+  mean(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="CO2", "mean.cent.dev.abs"], na.rm=T); sd(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="CO2", "mean.cent.dev.abs"], na.rm=T)
   
-  tair.rw <- lm(mean.cent.dev.abs ~ 1 ,data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="tair",])
-  precipf.rw <- lm(mean.cent.dev.abs ~ 1 ,data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="precipf",])
-  CO2.rw <- lm(mean.cent.dev.abs ~ 1 ,data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="CO2",])
+  tair.rw <- lm(mean.cent.dev.abs ~ 1 ,data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="tair",])
+  precipf.rw <- lm(mean.cent.dev.abs ~ 1 ,data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="precipf",])
+  CO2.rw <- lm(mean.cent.dev.abs ~ 1 ,data=ci.terms[!is.na(ci.terms$mean.cent.dev.abs) & ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="CO2",])
   summary(tair.rw)
   summary(precipf.rw)
   summary(CO2.rw)
@@ -1348,7 +1350,7 @@ mean(ci.terms[!ci.terms$Effect=="Biomass" & !ci.terms$Extent=="1980-2010" & ci.t
     theme_bw()  
   )
   print(
-  ggplot(data=ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
+  ggplot(data=ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect %in% c("tair", "precipf", "CO2"),]) +
     facet_wrap(~Effect, scales="free_x") +
     geom_ribbon(aes(x=x, ymin=lwr.rel.cent, ymax=upr.rel.cent, fill=Extent), alpha=0.5) +
     geom_line(aes(x=x, y=mean.rel.cent, color=Extent, linetype=Extent), size=2) +
@@ -1398,19 +1400,19 @@ mean(ci.terms[!ci.terms$Effect=="Biomass" & !ci.terms$Extent=="1980-2010" & ci.t
   # Tree Rings
   {
     # tair
-    tair.rw <- lm(abs(mean.cent.dev) ~ 1, data=ci.terms[ci.terms$Extent=="1901-2010" & ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="tair" & !ci.terms$Quantile=="Other",])
+    tair.rw <- lm(abs(mean.cent.dev) ~ 1, data=ci.terms[ci.terms$Extent=="1901-2010" & ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="tair" & !ci.terms$Quantile=="Other",])
     summary(tair.rw)
-    mean(abs(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="tair" & ci.terms$Extent=="1901-2010","mean.cent.dev"])); sd(abs(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="tair" & ci.terms$Extent=="1901-2010","mean.cent.dev"]))
+    mean(abs(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="tair" & ci.terms$Extent=="1901-2010","mean.cent.dev"])); sd(abs(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="tair" & ci.terms$Extent=="1901-2010","mean.cent.dev"]))
 
     # precipf
-    precipf.rw <- lm(abs(mean.cent.dev) ~ 1, data=ci.terms[ci.terms$Extent=="1901-2010" & ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="precipf" & !ci.terms$Quantile=="Other",])
+    precipf.rw <- lm(abs(mean.cent.dev) ~ 1, data=ci.terms[ci.terms$Extent=="1901-2010" & ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="precipf" & !ci.terms$Quantile=="Other",])
     summary(precipf.rw)
-    mean(abs(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="precipf" & ci.terms$Extent=="1901-2010","mean.cent.dev"])); sd(abs(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="precipf" & ci.terms$Extent=="1901-2010","mean.cent.dev"]))
+    mean(abs(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="precipf" & ci.terms$Extent=="1901-2010","mean.cent.dev"])); sd(abs(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="precipf" & ci.terms$Extent=="1901-2010","mean.cent.dev"]))
     
     # CO2
-    CO2.rw <- lm(abs(mean.cent.dev) ~ 1, data=ci.terms[ci.terms$Extent=="1901-2010" & ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="CO2" & !ci.terms$Quantile=="Other",])
+    CO2.rw <- lm(abs(mean.cent.dev) ~ 1, data=ci.terms[ci.terms$Extent=="1901-2010" & ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="CO2" & !ci.terms$Quantile=="Other",])
     summary(CO2.rw)
-    mean(abs(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="CO2" & ci.terms$Extent=="1901-2010","mean.cent.dev"])); sd(abs(ci.terms[ci.terms$Model=="TreeRingRWI" & ci.terms$Effect=="CO2" & ci.terms$Extent=="1901-2010","mean.cent.dev"]))
+    mean(abs(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="CO2" & ci.terms$Extent=="1901-2010","mean.cent.dev"])); sd(abs(ci.terms[ci.terms$Model=="TreeRingRW" & ci.terms$Effect=="CO2" & ci.terms$Extent=="1901-2010","mean.cent.dev"]))
     
   }
 }
@@ -1450,7 +1452,7 @@ mean(ci.terms[!ci.terms$Effect=="Biomass" & !ci.terms$Extent=="1980-2010" & ci.t
   summary(ci.terms.graph)
   
   # Grouping the kind and source of the data
-  ci.terms.graph$Y.type <- as.factor(ifelse(ci.terms.graph$Model=="TreeRingRWI", "RW", "NPP"))
+  ci.terms.graph$Y.type <- as.factor(ifelse(ci.terms.graph$Model=="TreeRingRW", "RW", "NPP"))
   ci.terms.graph$data.type <- as.factor(ifelse(substr(ci.terms.graph$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
   summary(ci.terms.graph)
   
@@ -1480,14 +1482,14 @@ mean(ci.terms[!ci.terms$Effect=="Biomass" & !ci.terms$Extent=="1980-2010" & ci.t
   # Playing with the extent labels a bit so that "850-2010" is "all data" and "1901-2010" is left alone
   ci.terms.graph$Extent2 <- as.factor(ifelse(ci.terms.graph$Extent=="850-2010" | 
                                                (ci.terms.graph$Extent=="1980-2010" & ci.terms.graph$Model=="TreeRingNPP") |
-                                               (ci.terms.graph$Extent=="1901-2010" & ci.terms.graph$Model=="TreeRingRWI")
+                                               (ci.terms.graph$Extent=="1901-2010" & ci.terms.graph$Model=="TreeRingRW")
                                              , "All Data", paste(ci.terms.graph$Extent)))
   
   ci.terms.graph[ci.terms.graph$Extent2=="All Data", c("x.min", "x.max", "mask.min", "mask.max", "line.min", "line.max")] <- NA
   summary(ci.terms.graph)
   
   
-  tree.rings.1901 <- ci.terms.graph[ci.terms.graph$Model=="TreeRingRWI" & ci.terms.graph$Extent=="1901-2010",]
+  tree.rings.1901 <- ci.terms.graph[ci.terms.graph$Model=="TreeRingRW" & ci.terms.graph$Extent=="1901-2010",]
   tree.rings.1901$Extent2 <- as.factor("1901-2010")
   summary(tree.rings.1901)
   

@@ -50,20 +50,19 @@ sites <- c("PHO", "PHA", "PUN", "PBL", "PDL", "PMB")
 # Set Directories & file paths
 # ----------------------------------------
 setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-# setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
 # Source the gamm file
-source('R/0_calculate.sensitivity_TPC3.R', chdir = TRUE)
+source('R/0_calculate.sensitivity_TPC.R', chdir = TRUE)
 
 # Making sure the appropriate file paths exist
 if(!dir.exists(dat.base)) dir.create(dat.base)
 if(!dir.exists(fig.base)) dir.create(fig.base)
 
 # Setting the data & figure directories
-fig.dir <- file.path(fig.base, "Sensitivity_TempExtent_RW2")
-dat.dir <- file.path(dat.base, "Sensitivity_TempExtent_RW2")
+fig.dir <- file.path(fig.base, "Sensitivity_TempExtent")
+dat.dir <- file.path(dat.base, "Sensitivity_TempExtent")
 
 # Make sure the appropriate file paths are in place
 if(!dir.exists(dat.dir)) dir.create(dat.dir)
@@ -88,7 +87,7 @@ time.mod <- "Year"
 load(file.path("Data", "EcosysData.Rdata"))
 
 # # Get rid of LINKAGES because it's weird & hasn't been updated
-# # ecosys <- ecosys[!ecosys$Model=="linkages",]
+# ecosys <- ecosys[!ecosys$Model=="linkages",]
 summary(ecosys)
 
 
@@ -131,7 +130,7 @@ for(m in unique(ecosys$Model)){
 		if(!length(which(dat.subsets)==TRUE)>0) next 
 
 		# What will our spatio-temporal explanatory factor ("Biomass") be?
-		if(!is.na(mean(ecosys[dat.subsets,"AGB"]))) biomass.mod="AGB" else biomass.mod="LAI"
+		if(max(ecosys[dat.subsets,"AGB"], na.rm=T)>0) biomass.mod="AGB" else biomass.mod="LAI"
 
 		data.temp                  <- ecosys[dat.subsets, c("Model", "Model.Order", "Site", "Year")]
 		data.temp$PlotID           <- ecosys[dat.subsets,"Site" ]
@@ -289,7 +288,6 @@ for(y in start.yrs){
 	data.temp$Model.Order      <- as.factor("Tree Ring RW")
 	data.temp$Y                <- tree.rings[dat.subsets,response]
 	data.temp$Biomass          <- tree.rings[dat.subsets,biomass.mod]
-# 	data.temp$Biomass          <- 0
 	data.temp$Time             <- tree.rings[dat.subsets,time.mod]
 	data.temp[,predictors.all] <- tree.rings[dat.subsets, paste0(predictors.all, predictor.suffix)]
 	data.temp$Resolution       <- as.factor("t.001")
@@ -318,32 +316,12 @@ cores.use <- min(12, length(paleon.models))
 models.base <- mclapply(paleon.models, paleon.gams.models, mc.cores=cores.use, k=k, predictors.all=predictors.all, PFT=F)
 # -------------------------------------------------------------------------------
 
-test <- paleon.gams.models(data=paleon.models$TreeRingRW_1980, k=k, predictors.all=predictors.all, PFT=F)
-
 # -------------------------------------------------------------------------------
 # 3. Bind Models together to put them in a single object to make them easier to work with
 # -------------------------------------------------------------------------------
 {
 for(i in 1:length(models.base)){
-	if(unique(models.base[[i]]$data$Model)=="TreeRingRW"){
-    # weights
-	  models.base[[i]]$weights$fit.Biomass <- NA
-	  models.base[[i]]$weights$sd.Biomass <- NA
-	  models.base[[i]]$weights$weight.Biomass <- NA
-	  models.base[[i]]$weights <- models.base[[i]]$weights[,names(mod.out$weights)]
-
-    # ci.response
-	  models.base[[i]]$ci.response$Biomass <- NA
-	  models.base[[i]]$ci.response <- models.base[[i]]$ci.response[,names(mod.out$ci.response)]
-    
-    # sim.response
-	  models.base[[i]]$sim.response$Biomass <- NA
-	  models.base[[i]]$sim.response <- models.base[[i]]$sim.response[,names(mod.out$sim.response)]
-    
-	}
-  
-  
-  if(i==1) {
+	if(i==1) {
 		mod.out <- list()
 		mod.out$data         <- models.base[[i]]$data
 		mod.out$weights      <- models.base[[i]]$weights
