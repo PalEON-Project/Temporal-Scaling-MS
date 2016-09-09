@@ -49,7 +49,8 @@ sites <- c("PHO", "PHA")
 # ----------------------------------------
 # Set Directories & file paths
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+# setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 dat.base="Data/gamms"
 fig.base="Figures/gamms"
 
@@ -297,7 +298,10 @@ for(y in start.yrs){
 
 	# Order everything the same way to make life easier
 	data.temp <- data.temp[,names(paleon.models[[1]])]
-
+	
+	# Applying 1 size effect to all things with actual estimated size and then treating ITRDB trees individually since we don't actually know thier size
+	data.temp$PlotID <- as.factor(ifelse(substr(data.temp$PlotID, 1, 2) %in% c("HO", "LF", "TP"), "Alex", paste(data.temp$TreeID)))
+	
 	paleon.models[[paste("TreeRingRW", ifelse(nchar(y)==3, paste0(0, y), y), sep="_")]] <- data.temp
 } # End year loop
 
@@ -382,9 +386,9 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingNPP",]) + fa
 
 trees.subset <- c("30-01", "30-02", "30-03", "30-04", "30-21", "30-22")
 print(	
-ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$PlotID=="ME029" & mod.out$ci.response$TreeID %in% trees.subset,]) + 
+ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$TreeID %in% trees.subset,]) + 
 	facet_grid(TreeID~ Extent, scales="free_x") + theme_bw() +
- 	geom_line(data= mod.out$data[mod.out$data$Model=="TreeRingRW" & mod.out$data$PlotID=="ME029" & mod.out$data$TreeID %in% trees.subset,], aes(x=Year, y=Y), alpha=0.5) +
+ 	geom_line(data= mod.out$data[mod.out$data$Model=="TreeRingRW" & mod.out$data$TreeID %in% trees.subset,], aes(x=Year, y=Y), alpha=0.5) +
 	geom_ribbon(aes(x=Year, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
 	geom_line(aes(x=Year, y=mean, color=Model), size=0.35) +
 	# scale_x_continuous(limits=c(1900,2010)) +
@@ -394,7 +398,7 @@ ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.ou
 	labs(title=paste("TempExtent"), x="Year", y="RW")
 )
 
-trees.subset <- unique(mod.out$data[!is.na(mod.out$data$TreeID) & mod.out$data$PlotID=="LF1", "TreeID"])[1:5]
+trees.subset <- unique(mod.out$data[!is.na(mod.out$data$TreeID) & mod.out$data$PlotID=="Alex", "TreeID"])[1:5]
 print(	
 ggplot(data=mod.out$ci.response[mod.out$ci.response$Model=="TreeRingRW" & mod.out$ci.response$TreeID %in% trees.subset,]) + 
 	facet_grid(TreeID~ Extent, scales="free_x") + theme_bw() +
@@ -439,16 +443,16 @@ ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("Biomass"),]) + face
 	scale_color_manual(values=paste(col.model)) +		
 	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) 
 )
-print(
-ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("Time"),]) + facet_grid(Extent ~ Model, scales="free_x") + theme_bw() +		
-	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
-	geom_line(aes(x=x, y=mean, color=Model), size=2) +
-	geom_hline(yintercept=0, linetype="dashed") +
-	scale_y_continuous(limits=c(-5,5), expand=c(0,0)) +
-	scale_fill_manual(values=paste(col.model)) +
-	scale_color_manual(values=paste(col.model)) +		
-	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) 
-)
+# print(
+# ggplot(data=mod.out$ci.terms[mod.out$ci.terms$Effect %in% c("Time"),]) + facet_grid(Extent ~ Model, scales="free_x") + theme_bw() +		
+# 	geom_ribbon(aes(x=x, ymin=lwr, ymax=upr, fill=Model), alpha=0.5) +
+# 	geom_line(aes(x=x, y=mean, color=Model), size=2) +
+# 	geom_hline(yintercept=0, linetype="dashed") +
+# 	scale_y_continuous(limits=c(-5,5), expand=c(0,0)) +
+# 	scale_fill_manual(values=paste(col.model)) +
+# 	scale_color_manual(values=paste(col.model)) +		
+# 	labs(title=paste0("Driver Sensitivity (not Relativized)"), y=paste0("NPP Contribution")) 
+# )
 
 }
 dev.off()

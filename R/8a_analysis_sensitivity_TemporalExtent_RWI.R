@@ -50,7 +50,9 @@ library(nlme)
 # ----------------------------------------
 # 1. Set Directories
 # ----------------------------------------
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+# setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+
 # setwd("..")
 path.data <- "Data"
 in.base <- "Data/gamms/Sensitivity_TempExtent_RWI"
@@ -82,10 +84,10 @@ load(file.path(in.base, "gamm_TempExtent.Rdata"))
 # # sim.terms$Effect <- as.factor(sim.terms$Effect)
 # 
 # # Grouping the kind and source of the data
-# dat.ecosys$Y.type <- as.factor(ifelse(dat.ecosys$Model=="TreeRingRWI", "RW", "NPP"))
-# # wt.terms  $Y.type <- as.factor(ifelse(wt.terms  $Model=="TreeRingRWI", "RW", "NPP"))
-# # ci.terms  $Y.type <- as.factor(ifelse(ci.terms  $Model=="TreeRingRWI", "RW", "NPP"))
-# # sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRWI", "RW", "NPP"))
+# dat.ecosys$Y.type <- as.factor(ifelse(dat.ecosys$Model=="TreeRingRWI", "RWI", "NPP"))
+# # wt.terms  $Y.type <- as.factor(ifelse(wt.terms  $Model=="TreeRingRWI", "RWI", "NPP"))
+# # ci.terms  $Y.type <- as.factor(ifelse(ci.terms  $Model=="TreeRingRWI", "RWI", "NPP"))
+# # sim.terms $Y.type <- as.factor(ifelse(sim.terms $Model=="TreeRingRWI", "RWI", "NPP"))
 # 
 # dat.ecosys$data.type <- as.factor(ifelse(substr(dat.ecosys$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
 # # wt.terms  $data.type <- as.factor(ifelse(substr(wt.terms  $Model,1,8)=="TreeRing", "Tree Rings", "Model"))
@@ -112,46 +114,46 @@ load(file.path(in.base, "gamm_TempExtent.Rdata"))
 # 
 # # set up and re-run the terms posterior distribution calclations
 # {
-extents <- paste(unique(dat.ecosys$Extent))
-
-out.new <- list()
-
-n=250
-var.ci <- data.frame(tair    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "tair"   ], na.rm=T),
-                                   max(dat.ecosys[dat.ecosys$data.type=="Model", "tair"   ], na.rm=T),
-                                   length.out=n),
-                     precipf = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "precipf"], na.rm=T),
-                                   max(dat.ecosys[dat.ecosys$data.type=="Model", "precipf"], na.rm=T),
-                                   length.out=n),
-                     CO2     = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "CO2"    ], na.rm=T),
-                                   max(dat.ecosys[dat.ecosys$data.type=="Model", "CO2"    ], na.rm=T),
-                                   length.out=n),
-                     Year    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
-                                   max(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
-                                   length.out=n)
-                     # Time    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
-                                   # max(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
-                                   # length.out=n)
-                     # Biomass = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "AGB"   ], na.rm=T),
-                                   # max(dat.ecosys[dat.ecosys$data.type=="Model", "AGB"   ], na.rm=T),
-                                   # length.out=n)
-                     )
-summary(var.ci)
-
-# Making a climate series so we can emulate the ecosystem dynamics using a base series
-#  Note: this will assume the same AGB trajectories; just changing the NPP
-clim.subset <- (dat.ecosys$Model=="ed2" & dat.ecosys$Extent=="850-2010" & dat.ecosys$Resolution=="t.001")
-var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ], 
-                          PlotID  = dat.ecosys[clim.subset,"PlotID" ], 
-                          Year    = dat.ecosys[clim.subset,"Year"   ], 
-                          # Time    = dat.ecosys[clim.subset,"Year"   ], 
-                          # Biomass = dat.ecosys[clim.subset,"AGB"    ], 
-                          tair    = dat.ecosys[clim.subset,"tair"   ],
-                          precipf = dat.ecosys[clim.subset,"precipf"],
-                          CO2     = dat.ecosys[clim.subset,"CO2"    ]
-                          )
-
-# basically going through process.gamm here
+# extents <- paste(unique(dat.ecosys$Extent))
+# 
+# out.new <- list()
+# 
+# n=250
+# var.ci <- data.frame(tair    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "tair"   ], na.rm=T),
+#                                    max(dat.ecosys[dat.ecosys$data.type=="Model", "tair"   ], na.rm=T),
+#                                    length.out=n),
+#                      precipf = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "precipf"], na.rm=T),
+#                                    max(dat.ecosys[dat.ecosys$data.type=="Model", "precipf"], na.rm=T),
+#                                    length.out=n),
+#                      CO2     = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "CO2"    ], na.rm=T),
+#                                    max(dat.ecosys[dat.ecosys$data.type=="Model", "CO2"    ], na.rm=T),
+#                                    length.out=n),
+#                      Year    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
+#                                    max(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
+#                                    length.out=n)
+#                      # Time    = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
+#                                    # max(dat.ecosys[dat.ecosys$data.type=="Model", "Year"   ], na.rm=T),
+#                                    # length.out=n)
+#                      # Biomass = seq(min(dat.ecosys[dat.ecosys$data.type=="Model", "AGB"   ], na.rm=T),
+#                                    # max(dat.ecosys[dat.ecosys$data.type=="Model", "AGB"   ], na.rm=T),
+#                                    # length.out=n)
+#                      )
+# summary(var.ci)
+# 
+# # Making a climate series so we can emulate the ecosystem dynamics using a base series
+# #  Note: this will assume the same AGB trajectories; just changing the NPP
+# clim.subset <- (dat.ecosys$Model=="ed2" & dat.ecosys$Extent=="850-2010" & dat.ecosys$Resolution=="t.001")
+# var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
+#                           PlotID  = dat.ecosys[clim.subset,"PlotID" ],
+#                           Year    = dat.ecosys[clim.subset,"Year"   ],
+#                           # Time    = dat.ecosys[clim.subset,"Year"   ],
+#                           # Biomass = dat.ecosys[clim.subset,"AGB"    ],
+#                           tair    = dat.ecosys[clim.subset,"tair"   ],
+#                           precipf = dat.ecosys[clim.subset,"precipf"],
+#                           CO2     = dat.ecosys[clim.subset,"CO2"    ]
+#                           )
+# 
+# # basically going through process.gamm here
 # for(m in unique(dat.ecosys$Model)){
 # 	for(e in unique(dat.ecosys[dat.ecosys$Model==m, "Extent"])){
 # 		# The year index for the gams
@@ -166,18 +168,18 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 		out.new[[paste(m, yr, sep="_")]] <- list(data=dat.ecosys[dat.subset, ], gamm=gam.now)
 # 
 # 		# -----------------------
-# 		# 3.a. Extrapolated Model Sensitivity 
+# 		# 3.a. Extrapolated Model Sensitivity
 # 		# -----------------------
 # 		# Setting up a data frame for this model-extent combo
-# 		ci.dat <- data.frame(Model      = as.factor(m), 
-# 		                     Extent     = as.factor(e), 
+# 		ci.dat <- data.frame(Model      = as.factor(m),
+# 		                     Extent     = as.factor(e),
 # 		                     Resolution = as.factor("t.001"),
 # 		                     Site       = as.factor(unique(dat.ecosys[dat.subset, "Site"  ])[1]),
 # 		                     PlotID     = as.factor(unique(dat.ecosys[dat.subset, "PlotID"])[1]),
 # 		                     TreeID     = as.factor(unique(dat.ecosys[dat.subset, "TreeID"])[1]),
-# 		                     Time       = mean(dat.ecosys[dat.ecosys$Model==m, "Time"]), 
-# 		                     Biomass    = seq(min(dat.ecosys[dat.ecosys$Model==m, "Biomass"], na.rm=T), 
-# 		                                      max(dat.ecosys[dat.ecosys$Model==m, "Biomass"], na.rm=T), 
+# 		                     Time       = mean(dat.ecosys[dat.ecosys$Model==m, "Time"]),
+# 		                     Biomass    = seq(min(dat.ecosys[dat.ecosys$Model==m, "Biomass"], na.rm=T),
+# 		                                      max(dat.ecosys[dat.ecosys$Model==m, "Biomass"], na.rm=T),
 # 		                                      length.out=n)
 # 		                      )
 # 
@@ -185,7 +187,7 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 		ci.dat <- cbind(ci.dat, var.ci)
 # 
 # 		# doing the sensitivity calculations
-# 		terms.out   <- post.distns(model.gam=gam.now, model.name=m, n=n, newdata=ci.dat, 
+# 		terms.out   <- post.distns(model.gam=gam.now, model.name=m, n=n, newdata=ci.dat,
 # 		                           vars=c("tair", "precipf", "CO2", "Biomass"), terms=T)
 # 
 # 		# Adding the new sims to the list
@@ -194,14 +196,14 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 		# -----------------------
 # 
 # 		# -----------------------
-# 		# 3.a. "Emulated" NPP 
+# 		# 3.a. "Emulated" NPP
 # 		# -----------------------
 # 		# Only run this for models!!
 # 		if(!unique(dat.ecosys[dat.ecosys$Model==m, "data.type"])=="Model") next
-# 		
+# 
 # 		# Running the gamm through our full time series "emulator"
-# 		ts.dat  <- data.frame(Model      = as.factor(m), 
-# 		                      Extent     = as.factor(e), 
+# 		ts.dat  <- data.frame(Model      = as.factor(m),
+# 		                      Extent     = as.factor(e),
 # 		                      Resolution = as.factor("t.001"),
 # 		                      Site       = dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent=="850-2010","Site"   ],
 # 		                      PlotID     = dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent=="850-2010","PlotID" ],
@@ -211,9 +213,9 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 		                      Year       = dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent=="850-2010","Year"   ],
 # 		                      Y          = dat.ecosys[dat.ecosys$Model==m & dat.ecosys$Extent=="850-2010","Y"      ]
 # 		                      )
-# 		 
+# 
 # 		 # Adding in the met data that has the full range of values
-# 		 ts.dat <- merge(ts.dat, var.ts, all.x=T, all.y=T)	
+# 		 ts.dat <- merge(ts.dat, var.ts, all.x=T, all.y=T)
 # 
 # 		 #NOTE: Jules is missing 2010, so we're just going to pretend it's exactly the same as 2009
 # 		 if(substr(m, 1, 5) %in% c("jules", "linka") ){
@@ -222,18 +224,18 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 
 # 
 # 		 # Doing the emulation of NPP & what drives it
-# 		 pred.out    <- post.distns(model.gam=gam.now, model.name=m, n=n, newdata=ts.dat, 
-# 		                            vars=c("tair", "precipf", "CO2", "Year", "Time", "Biomass"), terms=F) 
-# 		 weight.out  <- factor.weights(model.gam=gam.now, model.name=m, newdata=ts.dat,extent=e, 
-# 		                          vars=c("tair", "precipf", "CO2", "Year", "Time", "Biomass")) 
-# 		 
+# 		 pred.out    <- post.distns(model.gam=gam.now, model.name=m, n=n, newdata=ts.dat,
+# 		                            vars=c("tair", "precipf", "CO2", "Year", "Time", "Biomass"), terms=F)
+# 		 weight.out  <- factor.weights(model.gam=gam.now, model.name=m, newdata=ts.dat,extent=e,
+# 		                          vars=c("tair", "precipf", "CO2", "Year", "Time", "Biomass"))
+# 
 # 		 # Adding the new sims to the list
 # 		 out.new[[paste(m, yr, sep="_")]][["weights"     ]] <- weight.out
 # 		 out.new[[paste(m, yr, sep="_")]][["ci.response" ]] <- pred.out $ci
 # 		 out.new[[paste(m, yr, sep="_")]][["sim.response"]] <- pred.out $sims
 # 
 # 		# -----------------------
-# 		
+# 
 # 	}
 # }
 # } # End sensitivity & NPP emulation
@@ -261,7 +263,7 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # summary(dat.ecosys2)
 # summary(mod.resp)
 # 
-# # combining the model emulation output (mod.resp) witht he inputs that didn't get transferred (dat.ecosys2) 
+# # combining the model emulation output (mod.resp) witht he inputs that didn't get transferred (dat.ecosys2)
 # dim(dat.ecosys2)
 # ecosys.vars <- c("Model", "Model.Order", "data.type", "Y.type", "Site", "PlotID", "TreeID", "Y", "Time", "Year")
 # 
@@ -300,13 +302,13 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # # wt.terms  [which(wt.terms  $Model=="TreeRingRWI")[1:20],]
 # 
 # wt.terms <- wt.terms[!is.na(wt.terms$Resolution),]
-
+# 
 # {
 # for(m in unique(ci.terms$Model)){
 # 		for(e in unique(ci.terms[ci.terms$Model==m, "Extent"])){
 # 		# -----------------------
 # 		# 4.a. Find the NPP to relativize each set off of
-# 		# Using mean model NPP across sites since the GAMM response curves are for 
+# 		# Using mean model NPP across sites since the GAMM response curves are for
 # 		#    the whole model & not site-specific are parameterized
 # 		# Note: We're doing this based on the whole-model mean, from the full-length
 # 		#       runs
@@ -316,30 +318,30 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 		# ext="1980-2010"
 # 		yr <- as.numeric(strsplit(paste(e), "-")[[1]][1])
 # 
-# 		npp <- mean(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==ext & dat.ecosys2$Year>=yr, "Y"], na.rm=T)			
-# 		# npp.fit <- mean(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==ext, "mean"], na.rm=T)			
+# 		npp <- mean(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==ext & dat.ecosys2$Year>=yr, "Y"], na.rm=T)
+# 		# npp.fit <- mean(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==ext, "mean"], na.rm=T)
 # 		# -----------------------
-# 		
+# 
 # 		# -----------------------
 # 		# 4.b Relativizing everything in dat.ecosys2 to make it comparable to tree rings
 # 		# -----------------------
-# 		{		
+# 		{
 # 		# Which factors to relativize
 # 		y.rel <- c("Y", "mean", "lwr", "upr")
 # 
 # 		# for some reason, I can create multiple new columns at once
 # 		# Solution: use a loop to create blank columns and then fill them
 # 		for(y in y.rel){
-# 			dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e,paste0(y, ".rel"       )] <- NA	
-# 			dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e,paste0(y, ".10"        )] <- NA	
-# 			dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e,paste0(y, ".rel", ".10")] <- NA	
+# 			dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e,paste0(y, ".rel"       )] <- NA
+# 			dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e,paste0(y, ".10"        )] <- NA
+# 			dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e,paste0(y, ".rel", ".10")] <- NA
 # 		}
 # 		# dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e,paste0("Y", ".rel")] <- dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e, "Y"]/npp
 # 		dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e,paste0(y.rel, ".rel")] <- dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e, y.rel]/npp
-# 		
+# 
 # 		# Getting 10-year running means to make clearer figures
 # 		for(s in unique(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e, "Site"])){
-# 			# Note: If we're working with tree ring data, we need to go by plot for NPP products 
+# 			# Note: If we're working with tree ring data, we need to go by plot for NPP products
 # 			#       & by Tree for individual-level tree rings products
 # 			if(m=="TreeRingNPP"){
 # 				for(p in unique(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s, "PlotID"])){
@@ -352,7 +354,7 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 				}
 # 			} else if(m=="TreeRingRWI") {
 # 				for(t in unique(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s, "TreeID"])){
-# 					# If we have too few data points, we need to skip that tree 
+# 					# If we have too few data points, we need to skip that tree
 # 					if(length(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s & dat.ecosys2$TreeID==t, y.rel[1]]) < 10) next
 # 
 # 					# Raw NPP (to add dark line over faded annual wiggles)
@@ -369,21 +371,21 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 				dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s,paste0(y.rel, ".rel", ".10" )] <- rollapply(dat.ecosys2[dat.ecosys2$Model==m & dat.ecosys2$Extent==e & dat.ecosys2$Site==s, paste0(y.rel, ".rel")], FUN=mean, width=10, align="center", fill=NA, by.column=T)
 # 			}
 # 		}
-# 		}		
+# 		}
 # 		# -----------------------
 # 
-# 		
+# 
 # 		# -----------------------
 # 		# 4.c. Finding the percent change in NPP relative to the mean for that particular scale
 # 		# -----------------------
 # 		{
 # 		y.rel <- c("mean", "lwr", "upr")
 # 		for(y in y.rel){
-# 			ci.terms[ci.terms$Model==m & ci.terms$Extent==e,paste0(y, ".rel"       )] <- NA	
-# 		}		
+# 			ci.terms[ci.terms$Model==m & ci.terms$Extent==e,paste0(y, ".rel"       )] <- NA
+# 		}
 # 
 # 		ci.terms[ci.terms$Model==m & ci.terms$Extent==e,paste0(y.rel,".rel")] <- ci.terms[ci.terms$Model==m  & ci.terms$Extent==e, y.rel]/npp
-# 		
+# 
 # 		# Tacking on the simulated distributions so we can do ensemble CIs or robust comparisons
 # 		cols.sim <- which(substr(names(sim.terms),1,1)=="X")
 # 		sim.terms[sim.terms$Model==m,cols.sim] <- sim.terms[sim.terms$Model==m,cols.sim]/npp
@@ -396,23 +398,23 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 		# -----------------------
 # 		{
 # 		# Doing NPP calculation again for wt.terms because it does wonky things
-# 		npp <- mean(wt.terms[wt.terms$Model==m & wt.terms$Extent==ext, "fit.full"], na.rm=T)			
+# 		npp <- mean(wt.terms[wt.terms$Model==m & wt.terms$Extent==ext, "fit.full"], na.rm=T)
 # 
 # 		y.rel <- c("fit.full", "fit.tair", "fit.precipf", "fit.CO2")
 # 		# for some reason, I can create multiple new columns at once
 # 		# Solution: use a loop to create blank columns and then fill them
 # 		for(y in y.rel){
-# 			wt.terms[wt.terms$Model==m & wt.terms$Extent==e,paste0(y, ".rel"       )] <- NA	
-# 			wt.terms[wt.terms$Model==m & wt.terms$Extent==e,paste0(y, ".rel", ".10")] <- NA	
+# 			wt.terms[wt.terms$Model==m & wt.terms$Extent==e,paste0(y, ".rel"       )] <- NA
+# 			wt.terms[wt.terms$Model==m & wt.terms$Extent==e,paste0(y, ".rel", ".10")] <- NA
 # 		}
 # 		wt.terms[wt.terms$Model==m & wt.terms$Extent==e,paste0("fit.full", ".rel")] <- (wt.terms[wt.terms$Model==m & wt.terms$Extent==e,"fit.full"])/npp
-# 		
+# 
 # 		wt.terms[wt.terms$Model==m & wt.terms$Extent==e,paste0(y.rel[2:length(y.rel)], ".rel")] <- 1+(wt.terms[wt.terms$Model==m & wt.terms$Extent==e,y.rel[2:length(y.rel)]])/npp
-# 		
+# 
 # 		# We only really care about smoothing the relativized weights
 # 		y.rel2 <- c(y.rel, paste0(y.rel, ".rel"), "weight.tair", "weight.precipf", "weight.CO2")
 # 		for(y in y.rel2){
-# 			wt.terms[wt.terms$Model==m & wt.terms$Extent==e,paste0(y, ".10")] <- NA	
+# 			wt.terms[wt.terms$Model==m & wt.terms$Extent==e,paste0(y, ".10")] <- NA
 # 		}
 # 
 # 		# Getting 10-year running means to make clearer figures
@@ -420,17 +422,17 @@ var.ts      <- data.frame(Site    = dat.ecosys[clim.subset,"Site"   ],
 # 			if(m=="TreeRingNPP"){
 # 				for(p in unique(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s, "PlotID"])){
 # 					# Relativized NPP (to have generalized patterns for figures)
-# 					wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$PlotID==p,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$PlotID==p, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)			
+# 					wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$PlotID==p,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$PlotID==p, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)
 # 				}
 # 			} else if(m=="TreeRingRWI"){
 # 				for(t in unique(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s, "TreeID"])){
 # 
-# 					# If we have too few data points, we need to skip that tree 
+# 					# If we have too few data points, we need to skip that tree
 # 					if(length(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$TreeID==t, y.rel2[1]]) < 10) next
 # 
 # 					# Relativized NPP (to have generalized patterns for figures)
-# 					wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$TreeID==t,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$TreeID==t, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)			
-# 				}				
+# 					wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$TreeID==t,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s & wt.terms$TreeID==t, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)
+# 				}
 # 			} else {
 # 				# Relativized NPP (to have generalized patterns for figures)
 # 				wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s,paste0(y.rel2, ".10" )] <- rollapply(wt.terms[wt.terms$Model==m & wt.terms$Extent==e & wt.terms$Site==s, y.rel2], FUN=mean, width=10, align="center", fill=NA, by.column=T)
@@ -1450,7 +1452,7 @@ mean(ci.terms[!ci.terms$Effect=="Biomass" & !ci.terms$Extent=="1980-2010" & ci.t
   summary(ci.terms.graph)
   
   # Grouping the kind and source of the data
-  ci.terms.graph$Y.type <- as.factor(ifelse(ci.terms.graph$Model=="TreeRingRWI", "RW", "NPP"))
+  ci.terms.graph$Y.type <- as.factor(ifelse(ci.terms.graph$Model=="TreeRingRWI", "RWI", "NPP"))
   ci.terms.graph$data.type <- as.factor(ifelse(substr(ci.terms.graph$Model,1,8)=="TreeRing", "Tree Rings", "Model"))
   summary(ci.terms.graph)
   
