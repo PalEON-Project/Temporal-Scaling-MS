@@ -500,6 +500,29 @@ for(m in unique(ci.terms[!is.na(ci.terms$mean.rel.cent),"Model"])){
   }
 }
 
+  
+# Making sure we're not comparing the parts that are extrapolated beyond the range of temperatures
+for(v in c("tair", "precipf", "CO2")){
+  if(v=="CO2") r=0 else if(v=="tair") r=1 else r=-1
+  
+  for(m in unique(ci.terms$Model)){
+    # Trimming the range of conditions in each dataset
+    range.1980 <- range(dat.ecosys2[dat.ecosys2$Year>=1980 & dat.ecosys2$Model==m, v], na.rm=T)
+    range.1901 <- range(dat.ecosys2[dat.ecosys2$Year>=1901 & dat.ecosys2$Model==m, v], na.rm=T)
+    range.0850 <- range(dat.ecosys2[dat.ecosys2$Model==m, v], na.rm=T)
+    
+    rows.1980 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010" & ci.terms$x>=min(range.1980) & ci.terms$x<=max(range.1980))
+    rows.1901 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010" & ci.terms$x>=min(range.1901) & ci.terms$x<=max(range.1901))
+    rows.0850 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010"  & ci.terms$x>=min(range.0850) & ci.terms$x<=max(range.0850))
+    
+    ci.terms[rows.1980,"cent.deriv2"] <- ci.terms[rows.1980,"mean.cent.deriv"]
+    ci.terms[rows.1901,"cent.deriv2"] <- ci.terms[rows.1901,"mean.cent.deriv"]
+    ci.terms[rows.0850,"cent.deriv2"] <- ci.terms[rows.0850 ,"mean.cent.deriv"]
+  }  
+}
+summary(ci.terms)
+
+
 summary(ci.terms)
 summary(ci.terms[ci.terms$Effect=="precipf",])
 
@@ -619,46 +642,68 @@ mod.deriv[which(mod.deriv$Extent=="850-2010" & mod.deriv$Effect=="CO2" &mod.deri
   for(m in unique(ci.terms[ci.terms$data.type=="Model", "Model"])){
     for(v in c("tair", "precipf", "CO2")){
       for(e in unique(ci.terms[ci.terms$Model==m, "Extent"])){
+        mean.ens <- aggregate(ci.terms[ci.terms$Effect==v & ci.terms$Extent==e,"mean.rel.cent"], 
+                              by=list(ci.terms[ci.terms$Effect==v & ci.terms$Extent==e,"x"]), 
+                              FUN=mean)
+        
         ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent==e,"dev.ensemble"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent==e,"mean.rel.cent"] - ext.post[ext.post$Extent==e & ext.post$Effect==v & ext.post$Model==m , "mean"]
+        ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent==e,"dev.ensemble2"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent==e,"mean.rel.cent"] - mean.ens$x
       }
     }
   }
   
+  # Making sure we're not comparing the parts that are extrapolated beyond the range of temperatures
+  for(v in c("tair", "precipf", "CO2")){
+    if(v=="CO2") r=0 else if(v=="tair") r=1 else r=-1
+    
+    for(m in unique(ci.terms$Model)){
+      # Trimming the range of conditions in each dataset
+      range.1980 <- range(dat.ecosys2[dat.ecosys2$Year>=1980 & dat.ecosys2$Model==m, v], na.rm=T)
+      range.1901 <- range(dat.ecosys2[dat.ecosys2$Year>=1901 & dat.ecosys2$Model==m, v], na.rm=T)
+      range.0850 <- range(dat.ecosys2[dat.ecosys2$Model==m, v], na.rm=T)
+      
+      rows.1980 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010" & ci.terms$x>=min(range.1980) & ci.terms$x<=max(range.1980))
+      rows.1901 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010" & ci.terms$x>=min(range.1901) & ci.terms$x<=max(range.1901))
+      rows.0850 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010"  & ci.terms$x>=min(range.0850) & ci.terms$x<=max(range.0850))
+      
+      ci.terms[rows.1980,"dev.ensemble3a"] <- abs(ci.terms[rows.1980,"dev.ensemble"])
+      ci.terms[rows.1901,"dev.ensemble3a"] <- abs(ci.terms[rows.1901,"dev.ensemble"])
+      ci.terms[rows.0850,"dev.ensemble3a"] <- abs(ci.terms[rows.0850,"dev.ensemble"])
+      
+      ci.terms[rows.1980,"dev.ensemble3b"] <- abs(ci.terms[rows.1980,"dev.ensemble2"])
+      ci.terms[rows.1901,"dev.ensemble3b"] <- abs(ci.terms[rows.1901,"dev.ensemble2"])
+      ci.terms[rows.0850,"dev.ensemble3b"] <- abs(ci.terms[rows.0850,"dev.ensemble2"])
+      
+    }  
+  }
+  
+  
   summary(ci.terms)  
   
-  mod.agree <- aggregate(ci.terms[ci.terms$data.type=="Model",c("mean.cent.deriv", "dev.ensemble")],
+  
+  mod.agree <- aggregate(ci.terms[ci.terms$data.type=="Model",c("mean.cent.deriv", "dev.ensemble", "cent.deriv2", "dev.ensemble2", "dev.ensemble3a", "dev.ensemble3b")],
                          by=ci.terms[ci.terms$data.type=="Model", c("Effect", "Extent", "Model")],
                          FUN=mean, na.rm=T)
-  mod.agree[,paste0(c("mean.cent.deriv", "dev.ensemble"), ".sd")] <- aggregate(ci.terms[ci.terms$data.type=="Model",c("mean.cent.deriv", "dev.ensemble")],
+  mod.agree[,paste0(c("mean.cent.deriv", "dev.ensemble", "cent.deriv2", "dev.ensemble2", "dev.ensemble3a", "dev.ensemble3b"), ".sd")] <- aggregate(ci.terms[ci.terms$data.type=="Model",c("mean.cent.deriv", "dev.ensemble", "cent.deriv2", "dev.ensemble2", "dev.ensemble3a", "dev.ensemble3b")],
                                                                                by=ci.terms[ci.terms$data.type=="Model", c("Effect", "Extent", "Model")],
-                                                                               FUN=sd, na.rm=T)[,c("mean.cent.deriv", "dev.ensemble")]
+                                                                               FUN=sd, na.rm=T)[,c("mean.cent.deriv", "dev.ensemble", "cent.deriv2", "dev.ensemble2", "dev.ensemble3a", "dev.ensemble3b")]
   summary(mod.agree)
   
-  ens.agree1 <- aggregate(ci.terms[ci.terms$data.type=="Model",c("mean.cent.deriv", "dev.ensemble")],
-                          by=ci.terms[ci.terms$data.type=="Model", c("Effect", "Extent", "x", "Quantile")],
-                          FUN=mean, na.rm=T)
-  ens.agree <- aggregate(ens.agree1[,c("mean.cent.deriv", "dev.ensemble")],
-                         by=ens.agree1[,c("Effect", "Extent")],
-                         FUN=mean, na.rm=T)
-  ens.agree[,paste0(c("mean.cent.deriv", "dev.ensemble"), ".sd")] <- aggregate(ens.agree1[,c("mean.cent.deriv", "dev.ensemble")],
-                                                                               by=ens.agree1[,c("Effect", "Extent")],
-                                                                               FUN=sd, na.rm=T)[,c("mean.cent.deriv", "dev.ensemble")]
-  ens.agree <- ens.agree[!ens.agree$Effect=="Biomass",]
-  ens.agree
-  
-  ens.co2     <- lm(abs(dev.ensemble) ~ Extent, data=ens.agree1[ens.agree1$Effect=="CO2"     & !ens.agree1$Quantile=="Other",])
-  ens.precipf <- lm(abs(dev.ensemble) ~ Extent, data=ens.agree1[ens.agree1$Effect=="precipf" & !ens.agree1$Quantile=="Other",])
-  ens.tair    <- lm(abs(dev.ensemble) ~ Extent, data=ens.agree1[ens.agree1$Effect=="tair"   & !ens.agree1$Quantile=="Other",])
-  summary(ens.co2)
-  summary(ens.precipf)
-  summary(ens.tair)
-  
-  ensemble.co2     <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!ci.terms$Quantile=="Other" & ci.terms$Effect=="CO2"     & ci.terms$data.type=="Model",])
-  ensemble.tair    <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect=="tair"    & ci.terms$data.type=="Model",])
-  ensemble.precipf <- lm(abs(dev.ensemble) ~ Extent, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$Effect=="precipf" & ci.terms$data.type=="Model",])
-  summary(ensemble.co2)  
-  summary(ensemble.tair)  
-  summary(ensemble.precipf)  
+  # Looking at the mean deviation from the ensemble mean
+  # 3b finds the model mean analytically rather than through the gam
+  ext.co2     <- lm(dev.ensemble3b ~ Extent, data=mod.agree[mod.agree$Effect=="CO2"    ,])
+  ext.precipf <- lm(dev.ensemble3b ~ Extent, data=mod.agree[mod.agree$Effect=="precipf",])
+  ext.tair    <- lm(dev.ensemble3b ~ Extent, data=mod.agree[mod.agree$Effect=="tair"   ,])
+  summary(ext.co2)
+  summary(ext.precipf)
+  summary(ext.tair)
+
+  ext.co2.sd     <- lm(dev.ensemble.3b.sd ~ Extent, data=mod.agree[mod.agree$Effect=="CO2"    ,])
+  ext.precipf.sd <- lm(dev.ensemble.3b.sd ~ Extent, data=mod.agree[mod.agree$Effect=="precipf",])
+  ext.tair.sd    <- lm(dev.ensemble.3b.sd ~ Extent, data=mod.agree[mod.agree$Effect=="tair"   ,])
+  summary(ext.co2.sd)
+  summary(ext.precipf.sd)
+  summary(ext.tair.sd)
 }
 # -----------
 
@@ -666,21 +711,21 @@ mod.deriv[which(mod.deriv$Extent=="850-2010" & mod.deriv$Effect=="CO2" &mod.deri
 # Comparing Models & tree rings (1900-2010, 1980-2010)
 # -----------
 {
-mod.deriv2 <- aggregate(ci.terms[,c("mean.rel.cent", "mean.cent.deriv")],
-                       by=ci.terms[,c("Effect", "Extent", "data.type", "Y.type", "Model"),],
+mod.deriv2 <- aggregate(ci.terms[,c("mean.rel.cent", "mean.cent.deriv", "cent.deriv2")],
+                       by=ci.terms[,c("Effect", "Extent", "data.type", "Y.type", "Model", "veg.scheme", "Evergreen.sd","fire.scheme", "Biomass.rel.sd"),],
                        FUN=mean, na.rm=T)
-mod.deriv2[,paste0(c("mean.rel.cent", "mean.cent.deriv"), ".sd")] <- aggregate(ci.terms[, c("mean.rel.cent", "mean.cent.deriv")],
-                                                                              by=ci.terms[, c("Effect", "Extent", "data.type", "Y.type", "Model"),],
-                                                                              FUN=sd, na.rm=T)[,c("mean.rel.cent", "mean.cent.deriv")]
+mod.deriv2[,paste0(c("mean.rel.cent", "mean.cent.deriv", "cent.deriv2"), ".sd")] <- aggregate(ci.terms[, c("mean.rel.cent", "mean.cent.deriv", "cent.deriv2")],
+                                                                                              by=ci.terms[,c("Effect", "Extent", "data.type", "Y.type", "Model", "veg.scheme", "Evergreen.sd","fire.scheme", "Biomass.rel.sd"),],
+                                                                                              FUN=sd, na.rm=T)[,c("mean.rel.cent", "mean.cent.deriv", "cent.deriv2")]
 mod.deriv2 <- mod.deriv2[!mod.deriv2$Effect=="Biomass",]
 summary(mod.deriv2)
 
-ens.deriv2 <- aggregate(mod.deriv2[,c("mean.rel.cent", "mean.cent.deriv")], 
+ens.deriv2 <- aggregate(mod.deriv2[,c("mean.rel.cent", "mean.cent.deriv", "cent.deriv2")], 
                        by=mod.deriv2[,c("Effect", "Extent", "Y.type", "data.type")],
                        FUN=mean, na.rm=T)
-ens.deriv2[,paste0(c("mean.rel.cent", "mean.cent.deriv"), ".sd")] <- aggregate(mod.deriv2[,c("mean.rel.cent", "mean.cent.deriv")], 
+ens.deriv2[,paste0(c("mean.rel.cent", "mean.cent.deriv", "cent.deriv2"), ".sd")] <- aggregate(mod.deriv2[,c("mean.rel.cent", "mean.cent.deriv", "cent.deriv2")], 
                                                                               by=mod.deriv2[,c("Effect", "Extent", "Y.type", "data.type")],
-                                                                              FUN=sd, na.rm=T)[,c("mean.rel.cent", "mean.cent.deriv")]
+                                                                              FUN=sd, na.rm=T)[,c("mean.rel.cent", "mean.cent.deriv", "cent.deriv2")]
 ens.deriv2
 
 # 1980-2010
@@ -691,7 +736,7 @@ ens.deriv2[ens.deriv2$Extent=="1980-2010" & ens.deriv2$Effect=="CO2",]
 # -----------
 
 
-ci.terms.agg <- aggregate(ci.terms[,c("mean.cent.deriv", "mean.rel.cent", "Y", "Evergreen.sd", "Biomass.rel.sd")], 
+ci.terms.agg <- aggregate(ci.terms[,c("mean.cent.deriv", "mean.rel.cent", "cent.deriv2", "Y", "Evergreen.sd", "Biomass.rel.sd")], 
                           by=ci.terms[,c("Effect", "Extent", "Model", "veg.scheme", "fire.scheme", "data.type", "Y.type")],
                           FUN=mean, na.rm=T)
 summary(ci.terms.agg)
@@ -701,19 +746,20 @@ summary(ci.terms.agg)
 # -----------
 {
 # Correlation with Vegetation Scheme
-precipf.veg.lme <- lme(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",], na.action=na.omit)
+precipf.veg.lme <- lme(abs(cent.deriv2) ~ veg.scheme*(Extent-1) - veg.scheme, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",], na.action=na.omit)
 summary(precipf.veg.lme)
 
 # precipf.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-precipf.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+precipf.veg.lm2 <- lm(abs(cent.deriv2) ~ veg.scheme*(Extent-1) - veg.scheme, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="precipf",])
 summary(precipf.veg.lm2)
 
 # Correlation with Composition Variability
-precipf.evg.lme <- lme(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",], na.action=na.omit)
+precipf.evg.lme <- lme(abs(cent.deriv2) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, random=list(Model=~1, x=~1), data=ci.terms[ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",], na.action=na.omit)
 summary(precipf.evg.lme)
 
 # precipf.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-precipf.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+# precipf.evg.lm2 <- lm(abs(cent.deriv2) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+precipf.evg.lm2 <- lm(abs(cent.deriv2) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="precipf",])
 summary(precipf.evg.lm2)
 
 # Correlation with Fire 
@@ -721,7 +767,8 @@ precipf.fire.lme <- lme(abs(mean.cent.deriv) ~ fire.scheme*(Extent-1) - fire.sch
 summary(precipf.fire.lme)
 
 # precipf.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-precipf.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+# precipf.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+precipf.fire.lm2 <- lm(abs(cent.deriv2) ~ fire.scheme*(Extent-1) - fire.scheme, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="precipf",])
 summary(precipf.fire.lm2) 
 
 # Correlation with Biomass
@@ -729,7 +776,8 @@ precipf.bm.lme <- lme(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass
 summary(precipf.bm.lme)
 
 # precipf.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="precipf",])
-precipf.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+# precipf.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="precipf",])
+precipf.bm.lm2 <- lm(abs(cent.deriv2) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="precipf",])
 summary(precipf.bm.lm2)
 }
 # -----------
@@ -744,7 +792,8 @@ summary(precipf.bm.lm2)
   summary(co2.veg.lme)
   
   #   co2.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  co2.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
+  # co2.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
+  co2.veg.lm2 <- lm(abs(cent.deriv2) ~ veg.scheme*(Extent-1) - veg.scheme, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="CO2",])
   summary(co2.veg.lm2)
   
   # Correlation with Composition Variability
@@ -752,7 +801,8 @@ summary(precipf.bm.lm2)
   summary(co2.evg.lme)
 
 #   co2.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  co2.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
+  # co2.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
+  co2.evg.lm2 <- lm(abs(cent.deriv2) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="CO2",])
   summary(co2.evg.lm2)
   
   # Correlation with Fire 
@@ -760,7 +810,8 @@ summary(precipf.bm.lm2)
   summary(co2.fire.lme)
   
   #   co2.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  co2.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
+  # co2.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
+  co2.fire.lm2 <- lm(abs(cent.deriv2) ~ fire.scheme*(Extent-1) - fire.scheme, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="CO2",])
   summary(co2.fire.lm2) 
   
   # Correlation with Biomass
@@ -768,7 +819,8 @@ summary(precipf.bm.lm2)
   summary(co2.bm.lme)
   
   #   co2.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="CO2",])
-  co2.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
+  # co2.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="CO2",])
+  co2.bm.lm2 <- lm(abs(cent.deriv2) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="CO2",])
   summary(co2.bm.lm2)
 }
 # -----------
@@ -784,7 +836,8 @@ summary(precipf.bm.lm2)
   summary(tair.veg.lme)
   
   #   tair.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  tair.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
+  # tair.veg.lm2 <- lm(abs(mean.cent.deriv) ~ veg.scheme*(Extent-1) - veg.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
+  tair.veg.lm2 <- lm(abs(cent.deriv2) ~ veg.scheme*(Extent-1) - veg.scheme, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="tair",])
   summary(tair.veg.lm2)
   
   # Correlation with Composition Variability
@@ -792,7 +845,8 @@ summary(precipf.bm.lm2)
   summary(tair.evg.lme)
   
   #   tair.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  tair.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
+  # tair.evg.lm2 <- lm(abs(mean.cent.deriv) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
+  tair.evg.lm2 <- lm(abs(cent.deriv2) ~ Evergreen.sd*(Extent-1) - Evergreen.sd, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="tair",])
   summary(tair.evg.lm2)
   
   # Correlation with Fire 
@@ -800,7 +854,8 @@ summary(precipf.bm.lm2)
   summary(tair.fire.lme)
   
   #   tair.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms[!ci.terms$Quantile=="Other"  & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  tair.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
+  # tair.fire.lm2 <- lm(abs(mean.cent.deriv) ~ (Extent-1)*fire.scheme - fire.scheme, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])
+  tair.fire.lm2 <- lm(abs(cent.deriv2) ~ fire.scheme*(Extent-1) - fire.scheme, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="tair",])
   summary(tair.fire.lm2) 
   
   # Correlation with Biomass
@@ -808,7 +863,8 @@ summary(precipf.bm.lm2)
   summary(tair.bm.lme)
   
   #   tair.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms[!ci.terms$Quantile=="Other"  & !is.na(ci.terms$mean.rel.cent) & ci.terms$data.type=="Model" & ci.terms$Effect=="tair",])
-  tair.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])  
+  # tair.bm.lm2 <- lm(abs(mean.cent.deriv) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=ci.terms.agg[ci.terms.agg$data.type=="Model" & ci.terms.agg$Effect=="tair",])  
+  tair.bm.lm2 <- lm(abs(cent.deriv2) ~ Biomass.rel.sd*(Extent-1) - Biomass.rel.sd, data=mod.deriv2[mod.deriv2$data.type=="Model" & mod.deriv2$Effect=="tair",])
   summary(tair.bm.lm2)
 }
 # -----------
@@ -945,7 +1001,7 @@ for(i in unique(table3$Character)){
 }
 table3
 
-write.csv(table3, file.path("Data/analyses/analysis_TempExtent", "Table3_ModelCharStats.csv"), row.names=F)
+write.csv(table3, file.path("Manuscript/Submission3/", "Table3_ModelCharStats.csv"), row.names=F)
 }
 # -----------
 
