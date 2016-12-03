@@ -53,8 +53,9 @@ library(car); library(zoo)
   summary(npp.tr)
 
   # The figure
-  png(file.path("Figures/analyses/analysis_baseline", "Fig1_NPP_Raw_AllSites_0850-2010_Simple_Models.png"), height=5, width=8, units="in", res=180)
+  png(file.path("Manuscript/Submission3/Figures", "Fig1_NPP_Raw_AllSites_0850-2010_Simple_Models.png"), height=5, width=8, units="in", res=180)
   {
+    print(
     ggplot(data=dat.ecosys[!dat.ecosys$Model %in% c("TreeRingRW", "TreeRingBAI", "TreeRingNPP"),])  + 
       facet_wrap(~Site.Order) +
       # geom_line(aes(x=Year, y=Y, color=Model.Order), size=0.1, alpha=0.3) + 
@@ -83,6 +84,7 @@ library(car); library(zoo)
             axis.title.x=element_text(face="bold", vjust=-0.5, size=12),  
             axis.title.y=element_text(face="bold", vjust=1, size=12),
             strip.text=element_text(face="bold", size=12))
+    )
   }
   dev.off()
   
@@ -190,7 +192,7 @@ library(car); library(zoo)
       geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
       geom_vline(aes(xintercept=line.max), linetype="dashed") +
       scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Temperature ("^"o", "C)"))), breaks=c(10, 12.5, 15.0, 17.5)) +
-      scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
+      scale_y_continuous(name="Normalized NPP Effect (%)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
       guides(fill=F, color=F, linetype=F) +
       scale_fill_manual(values=colors.use) +
       scale_color_manual(values=colors.use) +
@@ -224,7 +226,7 @@ library(car); library(zoo)
       geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
       geom_vline(aes(xintercept=line.max), linetype="dashed") +
       scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Precipitation (mm yr"^"-1", ")")))) +
-      scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+      scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0)) +
       guides(fill=F, color=F, linetype=F) +
       scale_fill_manual(values=colors.use) +
       scale_color_manual(values=colors.use) +
@@ -258,7 +260,7 @@ library(car); library(zoo)
       geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
       geom_vline(aes(xintercept=line.max), linetype="dashed") +
       scale_x_continuous(expand=c(0,0), name=expression(bold(paste("CO" ["2"], " (ppm)")))) +
-      scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+      scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0)) +
       guides(fill=guide_legend(title="Model"), 
              color=guide_legend(title="Model"), 
              linetype=guide_legend(title="Model")) +
@@ -288,7 +290,7 @@ library(car); library(zoo)
     
   }
   
-  png(file.path("Figures/analyses/analysis_TempExtent", "Fig2_Sensitivity_Rel_extent.png"), width=8, height=6, units="in", res=180)
+  png(file.path("Manuscript/Submission3/Figures", "Fig2_Sensitivity_Rel_extent.png"), width=8, height=6, units="in", res=180)
   grid.newpage()
   pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.3,1,2))))
   print(fig3.tair  , vp = viewport(layout.pos.row = 1, layout.pos.col=1))
@@ -469,7 +471,7 @@ library(car); library(zoo)
   plot.dev <- {
     ggplot() + 
       scale_x_continuous(expand=c(0,0), name="Year") +
-      scale_y_continuous(expand=c(0,0), name="% NPP") +
+      scale_y_continuous(expand=c(0,0), name="Normalized NPP (%)") +
       # facet_grid(Mode.Plot~., scales="free_y", space="free") +
       geom_ribbon(data=dat.plot.dev[dat.plot.dev$data.type=="Model",], aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.33) +
       geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Model",], aes(x=Year, y=Y.rel.10*100), size=3,
@@ -550,7 +552,7 @@ library(car); library(zoo)
     plot.wts <- {
       ggplot(fit.stack[fit.stack$data.type=="Model",]) + 
         scale_x_continuous(limits=c(1700,2010), expand=c(0,0), name="Year") +
-        scale_y_continuous(expand=c(0,0), name="% NPP") +
+        scale_y_continuous(expand=c(0,0), name="Normalized NPP (%)") +
         # facet_grid(Mode.Plot~., scales="free_y", space="free") +
         geom_ribbon(aes(x=Year, ymin=ci.lo*100, ymax=ci.hi*100, fill=Effect), alpha=0.33) +
         geom_line(aes(x=Year, y=fit.mean*100, color=Effect), size=2) +
@@ -592,7 +594,7 @@ library(car); library(zoo)
   # --------
   # Putting NPP & change through time in context
   # --------
-  png(file.path("Figures/analyses/analysis_baseline", "Fig3_NPP_Dev_1700-2010_NPP_Rel_Weight.png"), height=8, width=8, units="in", res=180)
+  png(file.path("Manuscript/Submission3/Figures", "Fig3_NPP_Dev_1700-2010_NPP_Rel_Weight.png"), height=8, width=8, units="in", res=180)
   grid.arrange(plot.npp, plot.dev, plot.wts, ncol=1)
   dev.off()
   
@@ -625,13 +627,50 @@ met.all.agg[,paste0(vars.agg, ".lo")] <- aggregate(met.mod[,paste0(vars.agg, ".g
 met.all.agg[,paste0(vars.agg, ".hi")] <- aggregate(met.mod[,paste0(vars.agg, ".gs")], by=met.mod[,c("Site", "Data", "Year")], FUN=quantile, 0.975, na.rm=T)[,paste0(vars.agg, ".gs")]
 summary(met.all.agg)
 
-png("Figures/analysis_met_drivers/SuppFig1_Temperature_GrowingSeason.png", width=8, height=6, units="in", res=120)
+met.all.agg$Site <- factor(met.all.agg$Site, levels=c("PDL", "PBL", "PUN", "PMB", "PHA", "PHO"))
+levels(met.all.agg$Site) <- c("Demming", "Billy's", "UNDERC", "Minden", "Harvard", "Howland")
+# met.all.agg$Site <- recode(met.all.agg$Site, "'PDL'='Demming'; 'PBL'='Billy's'; 'PUN'='UNDERC'; 'PMB'='Minden'; 'PHA'='Harvard'; 'PHO'='Howland'")
+
+png("Manuscript/Submission3/Figures/SuppFig1_Temperature_GrowingSeason.png", width=8, height=6, units="in", res=120)
 {
   ggplot(data=met.all.agg) + facet_wrap(~Site) +
     geom_ribbon(aes(x=Year, ymin=tair.lo, ymax=tair.hi, fill=Data), alpha=0.5) +
     geom_line(aes(x=Year, y=tair.mean, color=Data), alpha=0.8) +
     scale_x_continuous(expand=c(0,0)) +
     scale_y_continuous(name=expression(bold(paste("Growing Season Temperature ("^"o", "C)"))), expand=c(0,0)) + 
+    scale_color_manual(values=c("black", "red3")) +
+    scale_fill_manual(values=c("black", "red3")) +
+    theme(legend.position=c(0.775, 0.37),
+          legend.title=element_text(size=12, face="bold"),
+          legend.text=element_text(size=10),
+          legend.key=element_blank(),
+          legend.key.size=unit(1.5, "lines"),
+          legend.background=element_blank()) +
+    theme(strip.text.x=element_text(size=12, face="bold"),
+          strip.text.y=element_text(size=12, face="bold")) + 
+    theme(axis.line=element_line(color="black", size=0.5), 
+          panel.grid.major=element_blank(), 
+          panel.grid.minor=element_blank(), 
+          panel.border=element_rect(fill=NA, color="black", size=0.5), 
+          panel.background=element_blank(),
+          panel.margin.x=unit(0.5, "lines"),
+          panel.margin.y=unit(0.5, "lines"))  +
+    theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+          axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+          axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+          axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+          axis.ticks.length=unit(-0.5, "lines"))
+}
+dev.off()
+
+
+png("Manuscript/Submission3/Figures/SuppFig2_Precipitation_GrowingSeason.png", width=8, height=6, units="in", res=120)
+{
+  ggplot(data=met.all.agg) + facet_wrap(~Site) +
+    geom_ribbon(aes(x=Year, ymin=precipf.lo, ymax=precipf.hi, fill=Data), alpha=0.5) +
+    geom_line(aes(x=Year, y=precipf.mean, color=Data), alpha=0.8) +
+    scale_x_continuous(expand=c(0,0)) +
+    scale_y_continuous(name=expression(bold(paste("Precipitation (mm yr"^"-1", ")"))), expand=c(0,0)) +
     scale_color_manual(values=c("black", "red3")) +
     scale_fill_manual(values=c("black", "red3")) +
     theme(legend.position=c(0.1, 0.37),
@@ -656,47 +695,52 @@ png("Figures/analysis_met_drivers/SuppFig1_Temperature_GrowingSeason.png", width
           axis.ticks.length=unit(-0.5, "lines"))
 }
 dev.off()
-
-
-png("Figures/analysis_met_drivers/SuppFig2_Precipitation_GrowingSeason.png", width=8, height=6, units="in", res=120)
-{
-  ggplot(data=met.all.agg) + facet_wrap(~Site) +
-    geom_ribbon(aes(x=Year, ymin=precipf.lo, ymax=precipf.hi, fill=Data), alpha=0.5) +
-    geom_line(aes(x=Year, y=precipf.mean, color=Data), alpha=0.8) +
-    scale_x_continuous(expand=c(0,0)) +
-    scale_y_continuous(name=expression(bold(paste("Precipitation (mm yr"^"-1", ")"))), expand=c(0,0)) +
-    scale_color_manual(values=c("black", "red3")) +
-    scale_fill_manual(values=c("black", "red3")) +
-    theme(legend.position=c(0.5, 0.37),
-          legend.title=element_text(size=12, face="bold"),
-          legend.text=element_text(size=10),
-          legend.key=element_blank(),
-          legend.key.size=unit(1.5, "lines"),
-          legend.background=element_blank()) +
-    theme(strip.text.x=element_text(size=12, face="bold"),
-          strip.text.y=element_text(size=12, face="bold")) + 
-    theme(axis.line=element_line(color="black", size=0.5), 
-          panel.grid.major=element_blank(), 
-          panel.grid.minor=element_blank(), 
-          panel.border=element_rect(fill=NA, color="black", size=0.5), 
-          panel.background=element_blank(),
-          panel.margin.x=unit(0.5, "lines"),
-          panel.margin.y=unit(0.5, "lines"))  +
-    theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
-          axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
-          axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
-          axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
-          axis.ticks.length=unit(-0.5, "lines"))
 }
+# ----------------------------------------
+
+# ----------------------------------------
+# Supplemental Figure 3: Tree Ring data in "less digested form" per Reviewer 4
+# ----------------------------------------
+{
+# Read in the raw tree ring data
+tree.rings <- read.csv("Data/TreeRing_RingWidths.csv")
+summary(tree.rings)
+
+# Aggregating to the site level with a mean & 95% CI to graph
+cols.agg <- c("RWI", "RW", "Age", "DBH", "BAI")
+trees.site <- aggregate(tree.rings[,cols.agg],
+                        by=tree.rings[,c("Site", "PlotID", "Year")],
+                        FUN=mean, na.rm=T)
+names(trees.site)[4:ncol(trees.site)] <- paste0(cols.agg, ".mean")
+trees.site[,paste0(cols.agg, ".025")] <- aggregate(tree.rings[,cols.agg],
+                                                   by=tree.rings[,c("Site", "PlotID", "Year")],
+                                                   FUN=quantile, 0.025, na.rm=T)[,cols.agg]
+trees.site[,paste0(cols.agg, ".975")] <- aggregate(tree.rings[,cols.agg],
+                                                   by=tree.rings[,c("Site", "PlotID", "Year")],
+                                                   FUN=quantile, 0.975, na.rm=T)[,cols.agg]
+summary(trees.site)
+trees.site$Site <- factor(trees.site$Site, levels=c("PDL", "PUN", "PHA", "PHO"))
+levels(trees.site$Site) <- c("Demming", "UNDERC", "Harvard", "Howland")
+
+png(file.path("Manuscript/Submission3/Figures", "SuppFig3_TreeRings_RWI.png"), height=8, width=8, units="in", res=180)
+print(
+ggplot(data=trees.site[trees.site$Year>=1901,]) +
+  facet_wrap(~Site+PlotID) + 
+  geom_ribbon(aes(x=Year, ymin=RWI.025, ymax=RWI.975), alpha=0.5) +
+  geom_line(aes(x=Year, y=RWI.mean)) +
+  scale_x_continuous(expand=c(0,0)) +
+  scale_y_continuous(name="Ring Width Index", expand=c(0,0)) +
+  coord_cartesian(ylim=c(0,3), xlim=c(1901, 2010)) +
+  theme_bw()
+)
 dev.off()
 }
 # ----------------------------------------
 
 
 
-
 # ----------------------------------------
-# Supplemental Figures 3: Ring Width Index
+# Supplemental Figures 4: Sensitivity of Ring Width Index
 # ----------------------------------------
 {
   load(file.path("Data/analyses/analysis_TempExtent_RWI", "post-process_TempExtent.RData"))
@@ -801,7 +845,7 @@ fig3.tair <- {
     geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
     geom_vline(aes(xintercept=line.max), linetype="dashed") +
     scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Temperature ("^"o", "C)"))), breaks=c(10, 12.5, 15.0, 17.5)) +
-    scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
+    scale_y_continuous(name="Normalized NPP Effect (%)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
     guides(fill=F, color=F, linetype=F) +
     scale_fill_manual(values=colors.use) +
     scale_color_manual(values=colors.use) +
@@ -835,7 +879,7 @@ fig3.precip <- {
     geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
     geom_vline(aes(xintercept=line.max), linetype="dashed") +
     scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Precipitation (mm yr"^"-1", ")")))) +
-    scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+    scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0)) +
     guides(fill=F, color=F, linetype=F) +
     scale_fill_manual(values=colors.use) +
     scale_color_manual(values=colors.use) +
@@ -869,7 +913,7 @@ fig3.co2 <- {
     geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
     geom_vline(aes(xintercept=line.max), linetype="dashed") +
     scale_x_continuous(expand=c(0,0), name=expression(bold(paste("CO" ["2"], " (ppm)")))) +
-    scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+    scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0)) +
     guides(fill=guide_legend(title="Model"), 
            color=guide_legend(title="Model"), 
            linetype=guide_legend(title="Model")) +
@@ -899,7 +943,7 @@ fig3.co2 <- {
   
 }
 
-png(file.path("Figures/analyses/analysis_TempExtent", "SuppFig3_Sensitivity_Rel_extent_RWI.png"), width=8, height=6, units="in", res=180)
+png(file.path("Manuscript/Submission3/Figures", "SuppFig4_Sensitivity_Rel_extent_RWI.png"), width=8, height=6, units="in", res=180)
 grid.newpage()
 pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.3,1,2))))
 print(fig3.tair  , vp = viewport(layout.pos.row = 1, layout.pos.col=1))
@@ -910,7 +954,7 @@ dev.off()
 # ----------------------------------------
 
 # ----------------------------------------
-# Supplemental Figures 4: Harvard/Howland
+# Supplemental Figures 5: Sensitivity of Harvard/Howland
 # ----------------------------------------
 {
   load(file.path("Data/analyses/analysis_TempExtent_HarHow", "post-process_TempExtent.RData"))
@@ -1009,7 +1053,7 @@ fig3.tair <- {
     geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
     geom_vline(aes(xintercept=line.max), linetype="dashed") +
     scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Temperature ("^"o", "C)"))), breaks=c(10, 12.5, 15.0, 17.5)) +
-    scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
+    scale_y_continuous(name="Normalized NPP Effect (%)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
     guides(fill=F, color=F, linetype=F) +
     scale_fill_manual(values=colors.use) +
     scale_color_manual(values=colors.use) +
@@ -1043,7 +1087,7 @@ fig3.precip <- {
     geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
     geom_vline(aes(xintercept=line.max), linetype="dashed") +
     scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Precipitation (mm yr"^"-1", ")")))) +
-    scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+    scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0)) +
     guides(fill=F, color=F, linetype=F) +
     scale_fill_manual(values=colors.use) +
     scale_color_manual(values=colors.use) +
@@ -1077,7 +1121,7 @@ fig3.co2 <- {
     geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
     geom_vline(aes(xintercept=line.max), linetype="dashed") +
     scale_x_continuous(expand=c(0,0), name=expression(bold(paste("CO" ["2"], " (ppm)")))) +
-    scale_y_continuous(name="NPP Contribution (% mean)", expand=c(0,0)) +
+    scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0)) +
     guides(fill=guide_legend(title="Model"), 
            color=guide_legend(title="Model"), 
            linetype=guide_legend(title="Model")) +
@@ -1107,7 +1151,7 @@ fig3.co2 <- {
   
 }
 
-png(file.path("Figures/analyses/analysis_TempExtent", "SuppFig4_Sensitivity_Rel_extent_HarvardHowland.png"), width=8, height=6, units="in", res=180)
+png(file.path("Manuscript/Submission3/Figures", "SuppFig5_Sensitivity_Rel_extent_HarvardHowland.png"), width=8, height=6, units="in", res=180)
 grid.newpage()
 pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.3,1,2))))
 print(fig3.tair  , vp = viewport(layout.pos.row = 1, layout.pos.col=1))
@@ -1119,7 +1163,7 @@ dev.off()
 
 
 # ----------------------------------------
-# Supplemental Figures 5-7: change in sensitivity by model/data type
+# Supplemental Figures 6-8: change in sensitivity by model/data type
 # ----------------------------------------
 {
   load(file.path("Data/analyses/analysis_TempExtent", "post-process_TempExtent.RData"))
@@ -1145,39 +1189,51 @@ dev.off()
                                          "1901-2010",
                                          "850-2010"
                                   ))
-    )  
+                           )  
     ci.terms[ci.terms$Effect==v,"Met"] <- as.factor(met.fill)  
   }
 
   for(v in c("tair", "precipf", "CO2")){
     if(v=="CO2") r=0 else if(v=="tair") r=1 else r=-1
-    
+
     for(m in unique(ci.terms$Model)){
+      # Trimming the range of conditions in each dataset
+      range.1980 <- range(dat.ecosys2[dat.ecosys2$Year>=1980 & dat.ecosys2$Model==m, v], na.rm=T)
+      range.1901 <- range(dat.ecosys2[dat.ecosys2$Year>=1901 & dat.ecosys2$Model==m, v], na.rm=T)
+      range.0850 <- range(dat.ecosys2[dat.ecosys2$Model==m, v], na.rm=T)
+      
       var.mid <- mean(ci.terms[ci.terms$Effect==v & ci.terms$Met=="1980-2010", "x"], na.rm=T)
       offset.1980 <- mean(ci.terms[ci.terms$Model==m & ci.terms$Effect==v & round(ci.terms$x, r)==round(var.mid,r) & ci.terms$Extent=="1980-2010","mean.rel"])
       offset.1901 <- mean(ci.terms[ci.terms$Model==m & ci.terms$Effect==v & round(ci.terms$x, r)==round(var.mid,r) & ci.terms$Extent=="1901-2010","mean.rel"])
       offset.850  <- mean(ci.terms[ci.terms$Model==m & ci.terms$Effect==v & round(ci.terms$x, r)==round(var.mid,r) & ci.terms$Extent=="850-2010","mean.rel"])
       
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010","mean.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010","mean.rel"] - offset.1980
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010","mean.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010","mean.rel"] - offset.1901
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010" ,"mean.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010" ,"mean.rel"] - offset.850
+      rows.1980 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010" & ci.terms$x>=min(range.1980) & ci.terms$x<=max(range.1980))
+      rows.1901 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010" & ci.terms$x>=min(range.1901) & ci.terms$x<=max(range.1901))
+      rows.0850 <- which(ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010"  & ci.terms$x>=min(range.0850) & ci.terms$x<=max(range.0850))
       
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010","upr.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010","upr.rel"] - offset.1980
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010","upr.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010","upr.rel"] - offset.1901
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010" ,"upr.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010" ,"upr.rel"] - offset.850
+      ci.terms[rows.1980,"mean.rel.cent"] <- ci.terms[rows.1980,"mean.rel"] - offset.1980
+      ci.terms[rows.1901,"mean.rel.cent"] <- ci.terms[rows.1901,"mean.rel"] - offset.1901
+      ci.terms[rows.0850,"mean.rel.cent"] <- ci.terms[rows.0850 ,"mean.rel"] - offset.850
       
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010","lwr.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1980-2010","lwr.rel"] - offset.1980
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010","lwr.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="1901-2010","lwr.rel"] - offset.1901
-      ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010" ,"lwr.rel.cent"] <- ci.terms[ci.terms$Model==m & ci.terms$Effect==v & ci.terms$Extent=="850-2010" ,"lwr.rel"] - offset.850
+      ci.terms[rows.1980,"upr.rel.cent"] <- ci.terms[rows.1980,"upr.rel"] - offset.1980
+      ci.terms[rows.1901,"upr.rel.cent"] <- ci.terms[rows.1901,"upr.rel"] - offset.1901
+      ci.terms[rows.0850,"upr.rel.cent"] <- ci.terms[rows.0850,"upr.rel"] - offset.850
+      
+      ci.terms[rows.1980,"lwr.rel.cent"] <- ci.terms[rows.1980,"lwr.rel"] - offset.1980
+      ci.terms[rows.1901,"lwr.rel.cent"] <- ci.terms[rows.1901,"lwr.rel"] - offset.1901
+      ci.terms[rows.0850,"lwr.rel.cent"] <- ci.terms[rows.0850,"lwr.rel"] - offset.850
       
     }  
   }
   summary(ci.terms)
+  
+  # Re-ordering the extent so that the longer extent shows up on bottom
+  ci.terms$Extent <- factor(ci.terms$Extent, levels=c("850-2010", "1901-2010", "1980-2010"))
   }  
   # -------------------
   
   
-  png(file.path("Figures/analyses/analysis_TempExtent", "SuppFig5_Sensitivity_byModel_tair.png"), height=8, width=8, units="in", res=180)
+  png(file.path("Manuscript/Submission3/Figures", "SuppFig6_Sensitivity_byModel_tair.png"), height=8, width=8, units="in", res=180)
   {
     print(
     ggplot(data=ci.terms[ci.terms$Effect=="tair",]) +
@@ -1185,7 +1241,7 @@ dev.off()
     geom_ribbon(aes(x=x-273.15, ymin=lwr.rel.cent*100, ymax=upr.rel.cent*100, fill=Extent),alpha=0.5) +
     geom_line(aes(x=x-273.15, y=mean.rel.cent*100, color=Extent, linetype=Extent), size=2) +
     scale_x_continuous(name=expression(bold(paste("Temperature, May-Sep ("^"o","C)"))), expand=c(0,0), breaks=c(10, 12.5, 15, 17.5)) +
-    scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
+    scale_y_continuous(name="Normalized NPP Effect (%)", expand=c(0,0)) +
     scale_fill_manual(values=c("blue3", "red3", "green3")) +
     scale_color_manual(values=c("blue3", "red3", "green3")) +
     theme(legend.title=element_text(size=10, face="bold"),
@@ -1213,7 +1269,7 @@ dev.off()
   }
   dev.off()
   
-  png(file.path("Figures/analyses/analysis_TempExtent", "SuppFig6_Sensitivity_byModel_precipf.png"), height=8, width=8, units="in", res=180)
+  png(file.path("Manuscript/Submission3/Figures", "SuppFig7_Sensitivity_byModel_precipf.png"), height=8, width=8, units="in", res=180)
   {
     print(
     ggplot(data=ci.terms[ci.terms$Effect=="precipf",]) +
@@ -1221,7 +1277,7 @@ dev.off()
     geom_ribbon(aes(x=x, ymin=lwr.rel.cent*100, ymax=upr.rel.cent*100, fill=Extent),alpha=0.5) +
     geom_line(aes(x=x, y=mean.rel.cent*100, color=Extent, linetype=Extent), size=2) +
     scale_x_continuous(name=expression(bold(paste("Precipitation, May-Sep (mm yr"^"-1",")"))), expand=c(0,0)) +
-    scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
+    scale_y_continuous(name="Normalized NPP Effect (%)", expand=c(0,0)) +
     scale_fill_manual(values=c("blue3", "red3", "green3")) +
     scale_color_manual(values=c("blue3", "red3", "green3")) +
     theme(legend.title=element_text(size=10, face="bold"),
@@ -1249,7 +1305,7 @@ dev.off()
   }
   dev.off()
   
-  png(file.path("Figures/analyses/analysis_TempExtent", "SuppFig7_Sensitivity_byModel_CO2.png"), height=8, width=8, units="in", res=180)
+  png(file.path("Manuscript/Submission3/Figures", "SuppFig8_Sensitivity_byModel_CO2.png"), height=8, width=8, units="in", res=180)
   {
     print(
     ggplot(data=ci.terms[ci.terms$Effect=="CO2",]) +
@@ -1258,7 +1314,7 @@ dev.off()
     geom_line(aes(x=x, y=mean.rel.cent*100, color=Extent, linetype=Extent), size=2) +
     #       geom_hline(yintercept=0, linetype="dashed", size=0.5) +
     scale_x_continuous(name=expression(bold(paste("CO"["2"], " (ppm)"))), expand=c(0,0)) +
-    scale_y_continuous(name="NPP Effect (%)", expand=c(0,0)) +
+    scale_y_continuous(name="Normalized NPP Effect (%)", expand=c(0,0)) +
     scale_fill_manual(values=c("blue3", "red3", "green3")) +
     scale_color_manual(values=c("blue3", "red3", "green3")) +
     theme(legend.title=element_text(size=10, face="bold"),
