@@ -9,10 +9,13 @@
 # ----------------------------------------
 rm(list=ls())
 
-setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
-# setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+# setwd("~/Desktop/Research/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
+setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 load("Data/EcosysData.Rdata")
 
+# Set the file output path
+fig.out <- "Manuscript/Final_ForPublication/Figures"
+if(!dir.exists(fig.out)) dir.create(fig.out)
 
 # ----------------------------------------
 # Load libraries we may need
@@ -52,39 +55,54 @@ library(car); library(zoo)
   npp.tr$Site.Order <- recode(npp.tr$Site, "'PHA'='Harvard'; 'PHO'='Howland'")
   summary(npp.tr)
 
+  panel.key <- data.frame(Site.Order=c("Demming", "Billy's", "UNDERC", "Minden", "Harvard", "Howland"),
+                          panel=c("a)", "b)", "c)", "d)", "e)", "f)"))
+  
   # The figure
-  png(file.path("Manuscript/Submission3/Figures", "Fig1_NPP_Raw_AllSites_0850-2010_Simple_Models.png"), height=5, width=8, units="in", res=180)
+  png(file.path(fig.out, "Fig1_NPP_Raw_AllSites_0850-2010_Simple_Models.png"), height=100, width=169, units="mm", res=320)
   {
     print(
     ggplot(data=dat.ecosys[!dat.ecosys$Model %in% c("TreeRingRW", "TreeRingBAI", "TreeRingNPP"),])  + 
       facet_wrap(~Site.Order) +
+      # facet_wrap(~Site.Order, scales="fixed") +
+      # facet_grid(.~Site.Order) +
       # geom_line(aes(x=Year, y=Y, color=Model.Order), size=0.1, alpha=0.3) + 
-      geom_line(aes(x=Year, y=Y.10, color=Model.Order), size=0.5, alpha=1) + 
-      geom_pointrange(data=npp.tr, aes(x=Year, y=mean, ymin=lwr, ymax=upr), size=0.5) +
-      # scale_x_continuous(limits=c(0850, 2010), expand=c(0,0), breaks=seq(min(dat.ecosys$Year), max(dat.ecosys$Year), by=250)) +
-      scale_y_continuous(expand=c(0,0)) +
+      geom_line(aes(x=Year, y=Y.10, color=Model.Order), size=1.5*0.3, alpha=1) + 
+      geom_pointrange(data=npp.tr, aes(x=Year, y=mean, ymin=lwr, ymax=upr), size=1.5*0.5) +
+      geom_text(data=panel.key, x=1000, y=15, aes(label=panel), fontface="bold", size=6) +
+      scale_x_continuous(limits=c(0850, 2010)) +
+      scale_y_continuous(expand=c(0,0), limits=range(dat.ecosys$Y.10, na.rm=T)) +
       scale_fill_manual(values=c("black", "gray50")) +
       scale_color_manual(values=colors.use) +
       labs(color="Model", x="Year", y=expression(bold(paste("NPP (Mg C ha"^"-1"," yr"^"-1",")")))) +
       guides(col=guide_legend(nrow=2, title="Model"), fill=F) +
       theme(legend.position="top") +
       # 	theme(plot.title=element_text(face="bold", size=rel(3))) + 
-      theme(legend.text=element_text(size=8), 
-            legend.title=element_text(size=10),
+      theme(legend.text=element_text(size=10), 
+            legend.title=element_text(size=10, face="bold"),
             legend.key=element_blank(),
             legend.key.size=unit(1, "lines"),
-            legend.position=c(0.5, 0.9)) + 
-      theme(axis.line=element_line(color="black", size=0.5), 
-            panel.grid.major=element_blank(), 
+            legend.position="top",
+            legend.background=element_blank(),
+            legend.margin=margin(0,0,0,0, "lines")) + 
+      theme(axis.line=element_line(color="black", size=0.25),
+            axis.ticks=element_line(color="black", size=0.25),
+            axis.ticks.length=unit(-0.5, "lines")) +
+      theme(panel.grid.major=element_blank(), 
             panel.grid.minor=element_blank(), 
-            panel.border=element_blank(), 
-            panel.background=element_blank(), 
-            axis.text.x=element_text(angle=0, color="black", size=10), 
-            axis.text.y=element_text(color="black", size=10), 
-            axis.title.x=element_text(face="bold", vjust=-0.5, size=12),  
-            axis.title.y=element_text(face="bold", vjust=1, size=12),
-            strip.text=element_text(face="bold", size=12))
-    )
+            panel.border=element_rect(color="black", size=0.25, fill=NA),
+            panel.background=element_rect(fill="white"),
+            panel.spacing=unit(0, "lines")) +
+      theme(axis.text.x=element_text(color="black", margin=unit(c(1.5,0,0,0), "lines"), size=10, angle=0), 
+            axis.text.y=element_text(color="black", margin=unit(c(0,1.5,0,0,0), "lines"), size=10), 
+            axis.title.x=element_text(face="bold", margin=unit(c(0.5,0,0,0), "lines"), size=10),  
+            axis.title.y=element_text(face="bold", margin=unit(c(0,0.5,0,0), "lines"), size=10),
+            strip.text=element_blank()) 
+      # theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
+            # axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
+            # axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+            # axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.65,0,0,0), "lines"))
+      )
   }
   dev.off()
   
@@ -183,13 +201,13 @@ library(car); library(zoo)
   fig3.tair <- {
     ggplot(data=ci.terms.graph[ci.terms.graph$Effect == "Temperature",]) + 
       facet_grid(Extent3~Effect, scales="free_x") +
-      geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.2) +
-      geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=0.75, alpha=0.8) +
+      geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
+      geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1.5*0.5, alpha=0.8) +
       # Lower Shaded Region
-      geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+      geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
       geom_vline(aes(xintercept=line.min), linetype="dashed") +
       # Upper Shaded Region
-      geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+      geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
       geom_vline(aes(xintercept=line.max), linetype="dashed") +
       scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Temperature ("^"o", "C)"))), breaks=c(10, 12.5, 15.0, 17.5)) +
       scale_y_continuous(name="Normalized NPP Effect (%)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
@@ -197,102 +215,106 @@ library(car); library(zoo)
       scale_fill_manual(values=colors.use) +
       scale_color_manual(values=colors.use) +
       scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
-      theme(strip.text.x=element_text(size=12, face="bold"),
+      theme(strip.text.x=element_text(size=11, face="bold"),
             strip.text.y=element_blank()) + 
-      theme(axis.line=element_line(color="black", size=0.5), 
+      theme(axis.line=element_line(color="black", size=0.7), 
             panel.grid.major=element_blank(), 
             panel.grid.minor=element_blank(), 
-            panel.border=element_rect(fill=NA, color="black", size=0.5), 
+            panel.border=element_rect(fill=NA, color="black", size=0.7), 
             panel.background=element_blank(),
             panel.margin.x=unit(0, "lines"),
             panel.margin.y=unit(0, "lines"))  +
-      theme(axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")),
-            axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
-            axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
-            axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.65,0,0,0), "lines")),
+      theme(axis.ticks=element_line(size=0.7),
             axis.ticks.length=unit(-0.5, "lines")) +
+      theme(axis.text.y=element_text(color="black", size=9, margin=unit(c(0,1.5,0,0), "lines")),
+            axis.text.x=element_text(color="black", size=9, margin=unit(c(1.5,0,0,0), "lines")), 
+            axis.title.y=element_text(size=9, face="bold", margin=unit(c(0,0.5,0,0), "lines")),  
+            axis.title.x=element_text(size=9, face="bold", margin=unit(c(0.65,0,0,0), "lines"))) +
       theme(plot.margin=unit(c(0.5,0,0.5,0.5), "lines"))
     
   }
   fig3.precip <- {
     ggplot(data=ci.terms.graph[ci.terms.graph$Effect == "Precipitation",]) + 
       facet_grid(Extent3~Effect, scales="free_x") +
-      geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.2) +
-      geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=0.75, alpha=0.8) +
+      geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
+      geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1.5*0.5, alpha=0.8) +
       # Lower Shaded Region
-      geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+      geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
       geom_vline(aes(xintercept=line.min), linetype="dashed") +
       # Upper Shaded Region
-      geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+      geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
       geom_vline(aes(xintercept=line.max), linetype="dashed") +
       scale_x_continuous(expand=c(0,0), name=expression(bold(paste("Precipitation (mm yr"^"-1", ")")))) +
-      scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0)) +
+      scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
       guides(fill=F, color=F, linetype=F) +
       scale_fill_manual(values=colors.use) +
       scale_color_manual(values=colors.use) +
       scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
-      theme(strip.text.x=element_text(size=12, face="bold"),
+      theme(strip.text.x=element_text(size=11, face="bold"),
             strip.text.y=element_blank()) + 
       theme(axis.line=element_line(color="black", size=0.5), 
             panel.grid.major=element_blank(), 
             panel.grid.minor=element_blank(), 
-            panel.border=element_rect(fill=NA, color="black", size=0.5), 
+            panel.border=element_rect(fill=NA, color="black", size=0.7), 
             panel.background=element_blank(),
             panel.margin.x=unit(0, "lines"),
             panel.margin.y=unit(0, "lines"))  +
-      theme(axis.text.y=element_blank(),
-            axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
-            axis.title.y=element_blank(),  
-            axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.5,0,0,0), "lines")),
+      theme(axis.ticks=element_line(size=0.7),
             axis.ticks.length=unit(-0.5, "lines")) +
+      theme(axis.text.y=element_blank(),
+            axis.text.x=element_text(color="black", size=9, margin=unit(c(1.5,0,0,0), "lines")), 
+            axis.title.y=element_blank(),  
+            axis.title.x=element_text(size=9, face="bold", margin=unit(c(0.5,0,0,0), "lines"))) +
       theme(plot.margin=unit(c(0.5,0.0,0.5,0.5), "lines"))
     
   }
   fig3.co2 <- {
     ggplot(data=ci.terms.graph[ci.terms.graph$Effect == "CO2",]) + 
       facet_grid(Extent3~Effect, scales="free_x") +
-      geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.2) +
-      geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=0.75, alpha=0.8) +
+      geom_ribbon(aes(x=x, ymin=lwr.rel*100, ymax=upr.rel*100, fill=Model.Order), alpha=0.3) +
+      geom_line(aes(x=x, y=mean.rel*100, color=Model.Order, linetype=Model.Order), size=1.5*0.5, alpha=0.8) +
       # Lower Shaded Region
-      geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+      geom_ribbon(aes(x=x.min, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
       geom_vline(aes(xintercept=line.min), linetype="dashed") +
       # Upper Shaded Region
-      geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.3) +
+      geom_ribbon(aes(x=x.max, ymin=mask.min*100, ymax=mask.max*100), alpha=0.5) +
       geom_vline(aes(xintercept=line.max), linetype="dashed") +
       scale_x_continuous(expand=c(0,0), name=expression(bold(paste("CO" ["2"], " (ppm)")))) +
-      scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0)) +
+      scale_y_continuous(name="NPP Contribution (%)", expand=c(0,0), breaks=c(-33, 0, 33, 66)) +
       guides(fill=guide_legend(title="Model"), 
              color=guide_legend(title="Model"), 
              linetype=guide_legend(title="Model")) +
       scale_fill_manual(values=colors.use) +
       scale_color_manual(values=colors.use) +
       scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
-      theme(legend.title=element_text(size=12, face="bold"),
+      theme(legend.title=element_text(size=11, face="bold"),
             legend.text=element_text(size=10),
             legend.key=element_blank(),
             legend.key.size=unit(1.5, "lines"),
-            legend.background=element_blank()) +
-      theme(strip.text.x=element_text(size=12, face="bold"),
-            strip.text.y=element_text(size=12, face="bold")) + 
-      theme(axis.line=element_line(color="black", size=0.5), 
+            legend.background=element_blank(),
+            legend.margin=margin(0,0,0,0, "lines")) +
+      theme(strip.text.x=element_text(size=11, face="bold"),
+            strip.text.y=element_text(size=11, face="bold")) + 
+      theme(axis.line=element_line(color="black", size=0.7), 
             panel.grid.major=element_blank(), 
             panel.grid.minor=element_blank(), 
             panel.border=element_rect(fill=NA, color="black", size=0.5), 
             panel.background=element_blank(),
             panel.margin.x=unit(0, "lines"),
             panel.margin.y=unit(0, "lines"))  +
-      theme(axis.text.y=element_blank(),
-            axis.text.x=element_text(color="black", size=10, margin=unit(c(1.5,0,0,0), "lines")), 
-            axis.title.y=element_blank(),  
-            axis.title.x=element_text(size=12, face="bold", margin=unit(c(0.79,0,0,0), "lines")),
+      theme(axis.ticks=element_line(size=0.7),
             axis.ticks.length=unit(-0.5, "lines")) +
+      theme(axis.text.y=element_blank(),
+            axis.text.x=element_text(color="black", size=9, margin=unit(c(1.5,0,0,0), "lines")), 
+            axis.title.y=element_blank(),  
+            axis.title.x=element_text(size=9, face="bold", margin=unit(c(0.79,0,0,0), "lines"))) +
       theme(plot.margin=unit(c(0.5,0,0.5,0.5), "lines"))
     
   }
   
-  png(file.path("Manuscript/Submission3/Figures", "Fig2_Sensitivity_Rel_extent.png"), width=8, height=6, units="in", res=180)
+  png(file.path(fig.out, "Fig2_Sensitivity_Rel_extent.png"), width=169, height=140, units="mm", res=320)
   grid.newpage()
-  pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.3,1,2))))
+  pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.25,0.9,2))))
   print(fig3.tair  , vp = viewport(layout.pos.row = 1, layout.pos.col=1))
   print(fig3.precip, vp = viewport(layout.pos.row = 1, layout.pos.col=2))
   print(fig3.co2   , vp = viewport(layout.pos.row = 1, layout.pos.col=3))
@@ -427,21 +449,22 @@ library(car); library(zoo)
       geom_ribbon(aes(x=Year, ymin=Y.10.lo, ymax=Y.10.hi, fill=Model.Order), alpha=0.25) +
       geom_line(aes(x=Year, y=Y.10, color=Model.Order, linetype=Model.Order), size=0.9, alpha=1.0) +
       # annotate(geom="text", label="a)", x=1725, y=15) +
-      geom_text(data=annotate.npp, aes(x=x, y=y, label=label), fontface="bold", size=8) +
+      geom_text(data=annotate.npp, aes(x=x, y=y, label=label), fontface="bold", size=6) +
       scale_fill_manual(values=colors.use) +
       scale_color_manual(values=colors.use) +
       scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
       guides(color=guide_legend(title="Model", nrow=3),
              fill =guide_legend(title="Model", nrow=3),
              linetype =guide_legend(title="Model", nrow=3)) +
-      theme(legend.title=element_text(size=10, face="bold"),
-            legend.text=element_text(size=10),
+      theme(legend.title=element_text(size=8, face="bold"),
+            legend.text=element_text(size=8),
             legend.position=c(0.35, 0.83),
             legend.key=element_blank(),
             legend.key.size=unit(0.75, "lines"),
             legend.background=element_blank()) +
       theme(strip.text=element_text(size=11, face="bold")) + 
-      theme(axis.line=element_line(color="black", size=0.5), 
+      theme(axis.line=element_line(color="black", size=0.7),
+            axis.ticks=element_line(color="black", size=0.7),
             panel.grid.major=element_blank(), 
             panel.grid.minor=element_blank(), 
             panel.border=element_rect(fill=NA, color="black", size=0.5), 
@@ -449,11 +472,11 @@ library(car); library(zoo)
             panel.margin.x=unit(0, "lines"),
             panel.margin.y=unit(0, "lines"))  +
       theme(axis.text.x=element_blank(),
-            axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")), 
+            axis.text.y=element_text(color="black", size=11, margin=unit(c(0,1.5,0,0), "lines")), 
             axis.title.x=element_blank(),  
-            axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
+            axis.title.y=element_text(size=11, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
             axis.ticks.length=unit(-0.5, "lines")) +
-      theme(plot.margin=unit(c(1.5,1,0.5,0.85), "lines"))
+      theme(plot.margin=unit(c(1.5,1,0.5,0.55), "lines"))
   }
   # plot.npp <- ggplotGrob(plot.npp )
   # plot.npp $heights[[5]] <- unit(5, "null")
@@ -470,7 +493,7 @@ library(car); library(zoo)
   annotate.dev <- data.frame(Mode.Plot=c("Model"), x=1715, y=175, label="b)")
   plot.dev <- {
     ggplot() + 
-      scale_x_continuous(expand=c(0,0), name="Year") +
+      scale_x_continuous(limits=c(1700,2004), expand=c(0,0), name="Year") +
       scale_y_continuous(expand=c(0,0), name="Normalized NPP (%)") +
       # facet_grid(Mode.Plot~., scales="free_y", space="free") +
       geom_ribbon(data=dat.plot.dev[dat.plot.dev$data.type=="Model",], aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.33) +
@@ -479,25 +502,9 @@ library(car); library(zoo)
                           abs(dat.plot.dev[dat.plot.dev$data.type=="Model","weight.CO2.10.adj"     ]),
                           abs(dat.plot.dev[dat.plot.dev$data.type=="Model","weight.precipf.10.adj" ])), 
                 size=3) +
-      
-      # geom_ribbon(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="NPP",],
-      #             aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.5) +
-      # geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings"  & dat.plot.dev$Y.type=="NPP",], aes(x=Year, y=Y.rel.10*100), size=2,
-      #           color=rgb(abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="NPP","weight.tair.10.adj"    ]),
-      #                     abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="NPP","weight.CO2.10.adj"     ]),
-      #                     abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="NPP","weight.precipf.10.adj" ])), 
-      #           size=3) +
-      
-      # geom_ribbon(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="RW",],
-      #             aes(x=Year, ymin=Y.rel.10.lo*100, ymax=Y.rel.10.hi*100), alpha=0.5) +
-      # geom_line(data=dat.plot.dev[dat.plot.dev$data.type=="Tree Rings"  & dat.plot.dev$Y.type=="RW",], aes(x=Year, y=Y.rel.10*100), size=2,
-      #           color=rgb(abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="RW","weight.tair.10.adj"    ]),
-      #                     abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="RW","weight.CO2.10.adj"     ]),
-      #                     abs(dat.plot.dev[dat.plot.dev$data.type=="Tree Rings" & dat.plot.dev$Y.type=="RW","weight.precipf.10.adj" ])), 
-      #           size=3) +
       geom_hline(yintercept=100, linetype="dashed") +
       #   annotate(geom="text", label="b)", x=1725, y=180, size=14) +
-      geom_text(data=annotate.dev, aes(x=x, y=y, label=label), fontface="bold", size=8) +
+      geom_text(data=annotate.dev, aes(x=x, y=y, label=label), fontface="bold", size=6) +
       scale_linetype_manual(values=c(rep("solid", length(colors.use)-1), "dashed")) +
       theme(legend.title=element_text(size=rel(1), face="bold"),
             legend.text=element_text(size=rel(1)),
@@ -505,7 +512,8 @@ library(car); library(zoo)
             legend.key=element_blank(),
             legend.key.size=unit(1.5, "lines")) +
       theme(strip.text=element_text(size=11, face="bold")) + 
-      theme(axis.line=element_line(color="black", size=0.5), 
+      theme(axis.line=element_line(color="black", size=0.7), 
+            axis.ticks=element_line(color="black", size=0.7), 
             panel.grid.major=element_blank(), 
             panel.grid.minor=element_blank(), 
             panel.border=element_rect(fill=NA, color="black", size=0.5), 
@@ -513,11 +521,11 @@ library(car); library(zoo)
             panel.margin.x=unit(0, "lines"),
             panel.margin.y=unit(0, "lines"))  +
       theme(axis.text.x=element_blank(),
-            axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")), 
+            axis.text.y=element_text(color="black", size=11, margin=unit(c(0,1.5,0,0), "lines")), 
             axis.title.x=element_blank(),  
-            axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
+            axis.title.y=element_text(size=11, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
             axis.ticks.length=unit(-0.5, "lines")) +
-      theme(plot.margin=unit(c(0,1,0.5,0.90), "lines"))
+      theme(plot.margin=unit(c(0,1,0.5,0.50), "lines"))
   }
   # plot.dev <- ggplotGrob(plot.dev )
   # plot.dev $heights[[3]] <- unit(150, "null")
@@ -547,41 +555,42 @@ library(car); library(zoo)
     
     levels(fit.stack$Effect) <- c("CO2", "Precip", "Tair")
 
-    annotate.wts <- data.frame(Mode.Plot="Model", x=1715, y=165, label="c)")
+    annotate.wts <- data.frame(Mode.Plot="Model", x=1715, y=175, label="c)")
     
     plot.wts <- {
       ggplot(fit.stack[fit.stack$data.type=="Model",]) + 
-        scale_x_continuous(limits=c(1700,2010), expand=c(0,0), name="Year") +
+        scale_x_continuous(limits=c(1700,2004), expand=c(0,0), name="Year") +
         scale_y_continuous(expand=c(0,0), name="Normalized NPP (%)") +
         # facet_grid(Mode.Plot~., scales="free_y", space="free") +
         geom_ribbon(aes(x=Year, ymin=ci.lo*100, ymax=ci.hi*100, fill=Effect), alpha=0.33) +
         geom_line(aes(x=Year, y=fit.mean*100, color=Effect), size=2) +
         geom_hline(yintercept=100, linetype="dashed") +
         #   annotate("text", label="c)", x=1725, y=180, size=14) +
-        geom_text(data=annotate.wts, aes(x=x, y=y, label=label), fontface="bold", size=8) +
+        geom_text(data=annotate.wts, aes(x=x, y=y, label=label), fontface="bold", size=6) +
         scale_color_manual(values=c("green3", "blue", "red2")) +
         scale_fill_manual(values=c("green3", "blue", "red2")) +
         guides(color=guide_legend(nrow=1), 
                fill =guide_legend(nrow=1))+
         theme(legend.title=element_text(size=10, face="bold"),
               legend.text=element_text(size=10),
-              legend.position=c(0.23, 0.85),
+              legend.position=c(0.23, 0.83),
               legend.key=element_blank(),
               legend.key.size=unit(1, "lines")) +
         theme(strip.text=element_text(size=11, face="bold")) + 
-        theme(axis.line=element_line(color="black", size=0.5), 
+        theme(axis.line=element_line(color="black", size=0.7), 
+              axis.ticks=element_line(color="black", size=0.7), 
               panel.grid.major=element_blank(), 
               panel.grid.minor=element_blank(), 
               panel.border=element_rect(fill=NA, color="black", size=0.5), 
               panel.background=element_blank(),
               panel.margin.x=unit(0, "lines"),
               panel.margin.y=unit(0, "lines"))  +
-        theme(axis.text.x=element_text(color="black", size=12, margin=unit(c(1.5,0,0,0), "lines")),
-              axis.text.y=element_text(color="black", size=10, margin=unit(c(0,1.5,0,0), "lines")), 
-              axis.title.x=element_text(size=12, face="bold"),  
-              axis.title.y=element_text(size=12, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
+        theme(axis.text.x=element_text(color="black", size=11, margin=unit(c(1.5,0,0,0), "lines")),
+              axis.text.y=element_text(color="black", size=11, margin=unit(c(0,1.5,0,0), "lines")), 
+              axis.title.x=element_text(size=11, face="bold"),  
+              axis.title.y=element_text(size=11, face="bold", margin=unit(c(0,0.5,0,0), "lines")),
               axis.ticks.length=unit(-0.5, "lines")) +
-        theme(plot.margin=unit(c(0,1,0.5,0.90), "lines"))
+        theme(plot.margin=unit(c(0,1,0.5,0.50), "lines"))
     }
     # plot.wts <- ggplotGrob(plot.wts )
     # plot.wts $heights[[3]] <- unit(150, "null")
@@ -594,7 +603,7 @@ library(car); library(zoo)
   # --------
   # Putting NPP & change through time in context
   # --------
-  png(file.path("Manuscript/Submission3/Figures", "Fig3_NPP_Dev_1700-2010_NPP_Rel_Weight.png"), height=8, width=8, units="in", res=180)
+  png(file.path(fig.out, "Fig3_NPP_Dev_1700-2010_NPP_Rel_Weight.png"), height=169, width=169, units="mm", res=320)
   grid.arrange(plot.npp, plot.dev, plot.wts, ncol=1)
   dev.off()
   
