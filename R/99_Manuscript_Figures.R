@@ -14,7 +14,7 @@ setwd("~/Dropbox/PalEON_CR/PalEON_MIP_Site/Analyses/Temporal-Scaling")
 load("Data/EcosysData.Rdata")
 
 # Set the file output path
-fig.out <- "Manuscript/Final_ForPublication/Figures"
+fig.out <- "Manuscript/Proofs"
 if(!dir.exists(fig.out)) dir.create(fig.out)
 
 # ----------------------------------------
@@ -56,10 +56,10 @@ library(car); library(zoo)
   summary(npp.tr)
 
   panel.key <- data.frame(Site.Order=c("Demming", "Billy's", "UNDERC", "Minden", "Harvard", "Howland"),
-                          panel=c("a)", "b)", "c)", "d)", "e)", "f)"))
+                          panel=c("(a)", "(b)", "(c)", "(d)", "(e)", "(f)"))
   
   # The figure
-  png(file.path(fig.out, "Fig1_NPP_Raw_AllSites_0850-2010_Simple_Models.png"), height=100, width=169, units="mm", res=320)
+  png(file.path(fig.out, "Fig1_NPP_Raw_AllSites_0850-2010_Simple_Models.png"), height=100, width=169*1.5, units="mm", res=320)
   {
     print(
     ggplot(data=dat.ecosys[!dat.ecosys$Model %in% c("TreeRingRW", "TreeRingBAI", "TreeRingNPP"),])  + 
@@ -312,9 +312,9 @@ library(car); library(zoo)
     
   }
   
-  png(file.path(fig.out, "Fig2_Sensitivity_Rel_extent.png"), width=169, height=140, units="mm", res=320)
+  png(file.path(fig.out, "Fig2_Sensitivity_Rel_extent.png"), width=169*1.5, height=140, units="mm", res=320)
   grid.newpage()
-  pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.25,0.9,2))))
+  pushViewport(viewport(layout=grid.layout(nrow=1,ncol=3, widths=c(1.2,1,1.6))))
   print(fig3.tair  , vp = viewport(layout.pos.row = 1, layout.pos.col=1))
   print(fig3.precip, vp = viewport(layout.pos.row = 1, layout.pos.col=2))
   print(fig3.co2   , vp = viewport(layout.pos.row = 1, layout.pos.col=3))
@@ -440,7 +440,7 @@ library(car); library(zoo)
   # --------
   # 4.b.1. Raw NPP by model
   # --------
-  annotate.npp <- data.frame(Y.type="NPP", x=1715, y=15, label="a)")
+  annotate.npp <- data.frame(Y.type="NPP", x=1715, y=15, label="(a)")
   plot.npp <- {
     ggplot(data=dat.region[dat.region$data.type=="Model",]) + 
       scale_x_continuous(limits=c(1700,2004), expand=c(0,0), name="Year") +
@@ -458,7 +458,7 @@ library(car); library(zoo)
              linetype =guide_legend(title="Model", nrow=3)) +
       theme(legend.title=element_text(size=8, face="bold"),
             legend.text=element_text(size=8),
-            legend.position=c(0.35, 0.83),
+            legend.position=c(0.37, 0.83),
             legend.key=element_blank(),
             legend.key.size=unit(0.75, "lines"),
             legend.background=element_blank()) +
@@ -490,7 +490,7 @@ library(car); library(zoo)
   dat.plot.dev$Mode.Plot <- factor(ifelse(dat.plot.dev$data.type=="Model", "Model", ifelse(dat.plot.dev$Y.type=="NPP", "NPPtr", "RW")), levels=c("Model", "NPPtr", "RW"))
   summary(dat.plot.dev)
   
-  annotate.dev <- data.frame(Mode.Plot=c("Model"), x=1715, y=175, label="b)")
+  annotate.dev <- data.frame(Mode.Plot=c("Model"), x=1715, y=175, label="(b)")
   plot.dev <- {
     ggplot() + 
       scale_x_continuous(limits=c(1700,2004), expand=c(0,0), name="Year") +
@@ -555,7 +555,7 @@ library(car); library(zoo)
     
     levels(fit.stack$Effect) <- c("CO2", "Precip", "Tair")
 
-    annotate.wts <- data.frame(Mode.Plot="Model", x=1715, y=175, label="c)")
+    annotate.wts <- data.frame(Mode.Plot="Model", x=1715, y=175, label="(c)")
     
     plot.wts <- {
       ggplot(fit.stack[fit.stack$data.type=="Model",]) + 
@@ -607,6 +607,9 @@ library(car); library(zoo)
   grid.arrange(plot.npp, plot.dev, plot.wts, ncol=1)
   dev.off()
   
+  png(file.path(fig.out, "GraphAbst_NPP_Dev_1700-2010_NPP_Rel_Weight.png"), height=8, width=8, units="in", res=320)
+  grid.arrange(plot.npp, plot.dev, plot.wts, ncol=1)
+  dev.off()
   
   # --------
 
